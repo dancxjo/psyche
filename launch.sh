@@ -1,5 +1,8 @@
 #!/bin/bash
 
-# Until we have the launch files written
-tail -f /dev/null
-ros2 launch psyche $(hostname).launch.py
+if [ -e /psyche/src/psyche/launch/$(hostname).launch.py ]; then
+    ros2 launch psyche $(hostname).launch.py
+else
+    tail -f /dev/null
+fi
+
