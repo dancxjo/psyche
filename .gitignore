@@ -1,6 +1,10 @@
+# Colcon artifacts
 /install
 /build
 /log
+
+# Shell scripts for specific, non-ROS2 hosts
+/launch
 
 .vscode
 
