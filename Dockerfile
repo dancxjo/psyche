@@ -45,6 +45,4 @@ RUN echo "ROS_DOMAIN_ID=42" >> /etc/environment
 RUN echo "source /opt/ros/iron/setup.bash" >> /etc/bash.bashrc
 RUN echo "source /psyche/install/setup.bash" >> /etc/bash.bashrc
 
-RUN sed -e "s/\bexec\b/\/bin\/bash -c/g" /ros_entrypoint.sh > /ros_entrypoint.sh
-
 CMD ["/psyche/launch.sh"]

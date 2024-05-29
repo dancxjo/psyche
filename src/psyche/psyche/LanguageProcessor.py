@@ -32,7 +32,7 @@ class LanguageProcessor(Node):
 
     def setup_llm(self):
         self.declare_parameter('model', 'llama3')
-        self.declare_parameter('base_url', 'http://localhost:11434')
+        self.declare_parameter('base_url', 'http://127.0.0.1:11434')
         self.declare_parameter('model_type', 'ollama')
         self.declare_parameter('api_key', '')
 
@@ -73,7 +73,6 @@ class LanguageProcessor(Node):
         """
         self.get_logger().info('Executing goal...')
         result = self.stream(goal_handle)
-        goal_handle.succeed()
         self.get_logger().info('Goal execution completed.')
         return result
 
@@ -141,6 +140,7 @@ class LanguageProcessor(Node):
                 self.report_chunk(goal_handle, word_buffer.strip(), 1)
             if sentence_buffer:
                 self.report_chunk(goal_handle, sentence_buffer.strip(), 2)
+            goal_handle.succeed()
             return result
         except Exception as e:
             self.get_logger().error('Exception during goal execution: {0}'.format(str(e)))
