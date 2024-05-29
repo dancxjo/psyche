@@ -4,7 +4,7 @@ from rclpy.action import ActionServer
 
 from psyche_interfaces.action import PlainTextInference
 
-from langchain_community.llms import Ollama # TODO: Make this configurable
+from langchain_community.llms import Ollama
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -31,7 +31,7 @@ class LanguageProcessor(Node):
         )
 
     def setup_llm(self):
-        self.declare_parameter('model', 'llama3')
+        self.declare_parameter('model', 'llama3:instruct')
         self.declare_parameter('base_url', 'http://127.0.0.1:11434')
         self.declare_parameter('model_type', 'ollama')
         self.declare_parameter('api_key', '')
