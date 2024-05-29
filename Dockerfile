@@ -33,16 +33,11 @@ RUN mkdir -p /psyche
 #RUN git clone https://github.com/dancxjo/psyche.git /psyche
 #Until we have a public repo
 COPY . /psyche
-
 WORKDIR /psyche
+
 RUN /bin/bash -c "source /opt/ros/iron/setup.bash && \
     rosdep install --from-paths src --ignore-src -r -y"
 RUN /bin/bash -c "source /opt/ros/iron/setup.bash && \
     colcon build"
-
-RUN echo "RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /etc/environment 
-RUN echo "ROS_DOMAIN_ID=42" >> /etc/environment
-RUN echo "source /opt/ros/iron/setup.bash" >> /etc/bash.bashrc
-RUN echo "source /psyche/install/setup.bash" >> /etc/bash.bashrc
 
 CMD ["/psyche/launch.sh"]
