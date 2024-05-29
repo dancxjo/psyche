@@ -15,11 +15,12 @@ setup(
     zip_safe=True,
     maintainer='dancxjo',
     maintainer_email='tdreed@gmail.com',
-    description='TODO: Package description',
-    license='LGPL-3.0-only',
+    description='Psyche is an operating system for robots',
+    license='GPL-3.0-only',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'lpu = psyche.LanguageProcessor:main',
         ],
     },
 )

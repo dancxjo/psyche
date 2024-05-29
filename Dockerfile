@@ -24,7 +24,9 @@ RUN rosdep update && \
 # Install Python packages
 RUN pip install -qU \
     langchain \
-    langchain-community 
+    langchain-community \
+    langchain-openai \
+    sentence_splitter
 
 # Set up workspace and build
 RUN mkdir -p /psyche
@@ -42,5 +44,7 @@ RUN echo "RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /etc/environment
 RUN echo "ROS_DOMAIN_ID=42" >> /etc/environment
 RUN echo "source /opt/ros/iron/setup.bash" >> /etc/bash.bashrc
 RUN echo "source /psyche/install/setup.bash" >> /etc/bash.bashrc
+
+RUN sed -e "s/\bexec\b/\/bin\/bash -c/g" /ros_entrypoint.sh > /ros_entrypoint.sh
 
 CMD ["/psyche/launch.sh"]
