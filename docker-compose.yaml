@@ -1,0 +1,8 @@
+services:
+  psyche:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: host
+    volumes:
+      - "./:/psyche"
