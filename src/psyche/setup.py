@@ -23,8 +23,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'lpu = psyche.LanguageProcessor:main',
-            'distill = psyche.Distiller:main',
+            'lpu = psyche.language_processor:main',
+            'distill = psyche.distiller:main',
         ],
     },
 )

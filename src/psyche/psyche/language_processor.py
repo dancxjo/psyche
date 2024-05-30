@@ -43,7 +43,7 @@ class LanguageProcessor(Node):
         
         if model_type == 'openai':
             if api_key:
-                self.llm = ChatOpenAI(model=model, api_key=api_key, base_url=base_url)
+                self.llm = ChatOpenAI(model=model, api_key=api_key)
             else:
                 self.llm = ChatOpenAI(model=model, base_url=base_url)
         else:
@@ -83,9 +83,9 @@ class LanguageProcessor(Node):
         return {"prompt": goal_handle.request.prompt}
 
     def report_chunk(self, goal_handle, chunk, chunk_level=0):
-        feedback_msg = PlainTextInference.Feedback() 
-        feedback_msg.chunk = chunk
-        feedback_msg.level = chunk_level
+        feedback_msg = PlainTextInference.Feedback()
+        feedback_msg.chunk.chunk = chunk
+        feedback_msg.chunk.level = chunk_level
         goal_handle.publish_feedback(feedback_msg)
 
     def stream(self, goal_handle):
