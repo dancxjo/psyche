@@ -139,7 +139,6 @@ class Distiller(Node):
     
     def on_feedback(self, feedback_msg):
         feedback = feedback_msg.feedback
-        self.get_logger().info(f'Feedback: {feedback}')
         
         if feedback.chunk.level == 0:
             self.on_chunk(feedback.chunk.chunk)
