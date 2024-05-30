@@ -19,7 +19,7 @@ class Distiller(Node):
 
         self.declare_parameters('', [
             ('narrative', ''),
-            ('prompt', """Compress, summarize, emphasize parts of, and/or otherwise transform the input into a coherent output (topic name={output_topic}) in terms of the narrative. Phrase it in terms of an inhabitant in the narrative. Don't "break character".
+            ('prompt', """Compress, summarize, emphasize parts of, and/or otherwise transform the input into a coherent output (topic name={output_topic}) in terms of the narrative. Phrase it in terms of an inhabitant in the narrative. Don't "break character".  Do not invent data that is not here. Only use the data that is presented here.
                 Narrative: {narrative}
                 Input topics:
                 {input_topics}

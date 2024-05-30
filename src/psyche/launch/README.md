@@ -1,1 +1,1 @@
-You're meant to put specific py launch files here named by the host they're run on.
+You're meant to put specific py launch files here named by the host they're run on. For instance, by_host_victus.launch.py will automatically run on a host named victus.
