@@ -141,12 +141,12 @@ class Distiller(Node):
         feedback = feedback_msg.feedback
         self.get_logger().info(f'Feedback: {feedback}')
         
-        if feedback.level == 0:
-            self.on_chunk(feedback.chunk)
-        elif feedback.level == 1:
-            self.on_word(feedback.word)
-        elif feedback.level == 2:
-            self.on_sentence(feedback.sentence)
+        if feedback.chunk.level == 0:
+            self.on_chunk(feedback.chunk.chunk)
+        elif feedback.chunk.level == 1:
+            self.on_word(feedback.chunk.chunk)
+        elif feedback.chunk.level == 2:
+            self.on_sentence(feedback.chunk.chunk)
         else:
             self.get_logger().error('Unknown feedback level')
     
