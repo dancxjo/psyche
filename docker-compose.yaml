@@ -5,4 +5,4 @@ services:
       dockerfile: Dockerfile
     network_mode: host
     environment:
-      - OPEN_API_KEY=${OPEN_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}

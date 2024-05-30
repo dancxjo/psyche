@@ -34,18 +34,13 @@ class LanguageProcessor(Node):
         self.declare_parameter('model', 'llama3:instruct')
         self.declare_parameter('base_url', 'http://127.0.0.1:11434')
         self.declare_parameter('model_type', 'ollama')
-        self.declare_parameter('api_key', '')
 
         model = self.get_parameter('model').get_parameter_value().string_value
         base_url = self.get_parameter('base_url').get_parameter_value().string_value
         model_type = self.get_parameter('model_type').get_parameter_value().string_value
-        api_key = self.get_parameter('api_key').get_parameter_value().string_value
         
         if model_type == 'openai':
-            if api_key:
-                self.llm = ChatOpenAI(model=model, api_key=api_key)
-            else:
-                self.llm = ChatOpenAI(model=model, base_url=base_url)
+            self.llm = ChatOpenAI(model=model)
         else:
             self.llm = Ollama(model=model, base_url=base_url)
         
