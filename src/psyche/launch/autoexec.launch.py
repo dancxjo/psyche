@@ -14,10 +14,10 @@ def generate_launch_description():
             name="default_lpu",
             output="screen",
             parameters=[{
-                # "model": "llama3:instruct",
-                # "base_url": "http://172.22.112.1:11434",
-                "model": "gpt-3.5-turbo",
-                "model_type": "openai",
+                "model": "llama3:instruct",
+                "base_url": "http://192.168.0.129:11434",
+                # "model": "gpt-3.5-turbo",
+                # "model_type": "openai",
             }]
         ),
         Node(

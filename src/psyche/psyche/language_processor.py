@@ -32,7 +32,7 @@ class LanguageProcessor(Node):
 
     def setup_llm(self):
         self.declare_parameter('model', 'llama3:instruct')
-        self.declare_parameter('base_url', 'http://127.0.0.1:11434')
+        self.declare_parameter('base_url', 'http://192.168.0.129:11434')
         self.declare_parameter('model_type', 'ollama')
 
         model = self.get_parameter('model').get_parameter_value().string_value
@@ -68,7 +68,6 @@ class LanguageProcessor(Node):
         """
         self.get_logger().info('Executing goal...')
         result = self.stream(goal_handle)
-        self.get_logger().info('Goal execution completed.')
         return result
 
     def extract_input(self, goal_handle):

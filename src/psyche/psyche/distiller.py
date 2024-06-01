@@ -152,7 +152,7 @@ class Distiller(Node):
     def on_response(self, future):
         try:
             result = future.result().result
-            self.on_result(result)
+            self.on_result(result.response)
         except Exception as e:
             self.get_logger().error(f'Error in processing response: {e}')
         
