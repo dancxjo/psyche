@@ -17,44 +17,68 @@ def generate_launch_description():
                     ])
                 ])
         ),
+        
         Node(
-            package="soma",
-            
+            package="pete",
+            executable="hc_sr04_sensor",
+            name="forward_ultrasonic_sensor",
+            output="screen",
+            parameters=[{
+                'trigger_pin': 28,
+                'trigger_chip': "/dev/gpiochip2",
+                'echo_pin': 20,
+                'echo_chip': "/dev/gpiochip1",
+                'min_range': 0.03,
+                'max_range': 4.0,
+                'field_of_view_deg': 15.0,
+                'frame_id': 'base_link',
+                'output_topic': '/ultrasonic_sensor/forward_distance',
+                'timer_period_sec': 0.1,
+            }]
         ),
+        
         Node(
-            package="hc_sr04_sensor",
-            executable="bringup",
-            name="ultrasonic_sensor_node",
+            package="pete",
+            executable="sense_buttons",
+            name="button_sensations",
+            output="screen",
+        ),
+
+        Node(
+            package="pete",
+            executable="sense_ir",
+            name="omni_ir_sense",
             output="screen",
         ),
         
         Node(
-            package="distance",
-            executable="sense",
-            name="distance_sense",
+            package="pete",
+            executable="sense_metabolism",
+            name="metabolism",
             output="screen",
-            parameters=[{
-                "sensor_id": "forrward_ultrasonic_sensor",
-                "reliability": "high",
-                "processing_notes": "",
-                "threshold": 1,
-                "time_interval": 60,
-            }]
         ),
+        
+        Node(
+            package="pete",
+            executable="sense_proprioception",
+            name="proprioception",
+            output="screen",
+        ),
+
     
         # Audio segmenter
         Node(
-           package="whisper",
-           executable="listen", 
-           name="listen_for_voices",
+           package="psyche",
+           executable="listen_for_speech", 
+           name="speech_segmenter",
            output="screen",
         ),
         
         # Reporting of the transcribed speech to the psyche (i.e. "/sensation")
         Node(
-            package="whisper",
-            executable="sense",
-            name="voice_understanding_sense",
+            package="psyche",
+            executable="sense_speech",
+            name="transcription_sense",
             output="screen",
         ),
         

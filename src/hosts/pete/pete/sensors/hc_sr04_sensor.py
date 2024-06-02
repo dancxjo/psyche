@@ -22,6 +22,8 @@ class UltrasonicSensorNode(Node):
         self.declare_parameter('frame_id', 'base_link')
         self.declare_parameter('echo_chip', "/dev/gpiochip1")
         self.declare_parameter('trigger_chip', "/dev/gpiochip2")
+        self.declare_parameter('output_topic', '/ultrasonic_sensor/distance')
+        self.declare_parameter('timer_period_sec', 0.1)
 
         self.trigger_pin = self.get_parameter('trigger_pin').value
         self.echo_pin = self.get_parameter('echo_pin').value
@@ -31,6 +33,7 @@ class UltrasonicSensorNode(Node):
         self.frame_id = self.get_parameter('frame_id').value
         self.echo_chip = self.get_parameter('echo_chip').value
         self.trigger_chip = self.get_parameter('trigger_chip').value
+        self.timer_period_sec = self.get_parameter('timer_period_sec').value
 
         # GPIO setup
         self.trig_chip = gpiod.request_lines(
@@ -49,8 +52,9 @@ class UltrasonicSensorNode(Node):
         )
 
         # Publisher
-        self.publisher = self.create_publisher(Range, 'ultrasonic_sensor/distance', 10)
-        self.timer = self.create_timer(0.1, self.publish_distance)
+        self.output_topic = self.get_parameter('output_topic').get_parameter_value().string_value
+        self.publisher = self.create_publisher(Range, self.output_topic, 10)
+        self.timer = self.create_timer(self.timer_period_sec, self.publish_distance)
 
     def publish_distance(self):
         distance = self.measure_distance()

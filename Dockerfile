@@ -35,7 +35,7 @@ RUN mkdir -p /psyche
 COPY . /psyche
 
 WORKDIR /psyche/src
-# Add body of the robot (somehow sort this out--what's part of Psyche and what's part of the robot?)
+# Add body of the robot
 RUN git clone https://github.com/autonomylab/create_robot.git && \
     git clone https://github.com/AutonomyLab/libcreate.git
 

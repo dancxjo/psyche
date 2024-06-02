@@ -25,6 +25,9 @@ setup(
         'console_scripts': [
             'lpu = psyche.language_processor:main',
             'distill = psyche.distiller:main',
+            'listen_for_speech = psyche.listen:main',
+            'sense_speech = psyche.sense:main',
+            'transcribe_speech = psyche.transcribe:main',
         ],
     },
 )

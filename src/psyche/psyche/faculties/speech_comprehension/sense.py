@@ -5,7 +5,7 @@ from pete_interfaces.msg import Sensation
 import uuid
 import datetime
 
-class AuditoryComprehension(Node):
+class SpeechComprehension(Node):
     def __init__(self):
         super().__init__('auditory_comprehension')        
         self.transcript_sub = self.create_subscription(
@@ -52,7 +52,7 @@ class AuditoryComprehension(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = AuditoryComprehension()
+    node = SpeechComprehension()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

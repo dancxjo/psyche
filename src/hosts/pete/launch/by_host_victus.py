@@ -9,6 +9,18 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource, XML
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            
+            package="psyche",
+            executable="transcribe_speech",
+            name="transcription_service",
+            output="screen",
+        ),
+        Node(
+            package="psyche",
+            executable="stream_voice",
+            name="tts_service",
+            output="screen",
+            parameters=[{
+                'port': 8000,
+            }]
         ),
     ])
