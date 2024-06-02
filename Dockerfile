@@ -26,13 +26,17 @@ RUN pip install -qU \
     langchain \
     langchain-community \
     langchain-openai \
-    sentence_splitter
+    sentence_splitter \
+    langchain-text-splitters \
+    faiss-cpu
 
 # Set up workspace and build
 RUN mkdir -p /psyche
 #RUN git clone https://github.com/dancxjo/psyche.git /psyche
 #Until we have a public repo
 COPY . /psyche
+WORKDIR /psyche
+RUN rm -rf {.git,build,install,log}
 
 WORKDIR /psyche/src
 # Add body of the robot

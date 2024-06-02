@@ -28,6 +28,7 @@ setup(
             'listen_for_speech = psyche.listen:main',
             'sense_speech = psyche.sense:main',
             'transcribe_speech = psyche.transcribe:main',
+            'to_thine_own_self_be_true = psyche.self_informed_lp:main',
         ],
     },
 )
