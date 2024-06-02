@@ -3,11 +3,61 @@ from launch_ros.actions import Node
 from launch.actions import IncludeLaunchDescription
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.launch_description_sources import PythonLaunchDescriptionSource, XMLLaunchDescriptionSource
 
-# This file is always executed when the package is launched
+# This is onboard the robot. As much as possible should run here
 def generate_launch_description():
     return LaunchDescription([
+        IncludeLaunchDescription(
+            XMLLaunchDescriptionSource([
+                    PathJoinSubstitution([
+                        FindPackageShare('create_bringup'),
+                        'launch',
+                        'create_1.launch'
+                    ])
+                ])
+        ),
+        Node(
+            package="soma",
+            
+        ),
+        Node(
+            package="hc_sr04_sensor",
+            executable="bringup",
+            name="ultrasonic_sensor_node",
+            output="screen",
+        ),
+        
+        Node(
+            package="distance",
+            executable="sense",
+            name="distance_sense",
+            output="screen",
+            parameters=[{
+                "sensor_id": "forrward_ultrasonic_sensor",
+                "reliability": "high",
+                "processing_notes": "",
+                "threshold": 1,
+                "time_interval": 60,
+            }]
+        ),
+    
+        # Audio segmenter
+        Node(
+           package="whisper",
+           executable="listen", 
+           name="listen_for_voices",
+           output="screen",
+        ),
+        
+        # Reporting of the transcribed speech to the psyche (i.e. "/sensation")
+        Node(
+            package="whisper",
+            executable="sense",
+            name="voice_understanding_sense",
+            output="screen",
+        ),
+        
         Node(
             package="psyche",
             executable="lpu",
@@ -16,8 +66,6 @@ def generate_launch_description():
             parameters=[{
                 "model": "llama3:instruct",
                 "base_url": "http://192.168.0.129:11434",
-                # "model": "gpt-3.5-turbo",
-                # "model_type": "openai",
             }]
         ),
         Node(

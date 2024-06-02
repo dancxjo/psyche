@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'whisper'
+package_name = 'pete'
 
 setup(
     name=package_name,
@@ -15,14 +15,11 @@ setup(
     zip_safe=True,
     maintainer='dancxjo',
     maintainer_email='tdreed@gmail.com',
-    description='Provide audio segmentation and transcription services',
+    description='TODO: Package description',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'listen = whisper.listen:main',
-            'transcribe = whisper.transcribe:main',
-            'sense = whisper.sense:main',
         ],
     },
 )

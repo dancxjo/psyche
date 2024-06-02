@@ -1,0 +1,1 @@
+A "host" is an embodiment for a psyche. Included is the reference robot named Pete.

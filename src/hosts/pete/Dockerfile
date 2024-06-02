@@ -33,6 +33,12 @@ RUN mkdir -p /psyche
 #RUN git clone https://github.com/dancxjo/psyche.git /psyche
 #Until we have a public repo
 COPY . /psyche
+
+WORKDIR /psyche/src
+# Add body of the robot (somehow sort this out--what's part of Psyche and what's part of the robot?)
+RUN git clone https://github.com/autonomylab/create_robot.git && \
+    git clone https://github.com/AutonomyLab/libcreate.git
+
 WORKDIR /psyche
 
 RUN /bin/bash -c "source /opt/ros/iron/setup.bash && \

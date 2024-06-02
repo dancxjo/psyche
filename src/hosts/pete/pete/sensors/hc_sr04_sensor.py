@@ -20,6 +20,8 @@ class UltrasonicSensorNode(Node):
         self.declare_parameter('max_range', 4.0)
         self.declare_parameter('field_of_view_deg', 15.0)
         self.declare_parameter('frame_id', 'base_link')
+        self.declare_parameter('echo_chip', "/dev/gpiochip1")
+        self.declare_parameter('trigger_chip', "/dev/gpiochip2")
 
         self.trigger_pin = self.get_parameter('trigger_pin').value
         self.echo_pin = self.get_parameter('echo_pin').value
@@ -27,17 +29,19 @@ class UltrasonicSensorNode(Node):
         self.max_range = self.get_parameter('max_range').value
         self.fov_deg = self.get_parameter('field_of_view_deg').value
         self.frame_id = self.get_parameter('frame_id').value
+        self.echo_chip = self.get_parameter('echo_chip').value
+        self.trigger_chip = self.get_parameter('trigger_chip').value
 
         # GPIO setup
         self.trig_chip = gpiod.request_lines(
-            "/dev/gpiochip2",
+            self.trigger_chip,
             consumer="Ultrasonic Sensor",
             config={
                 self.trigger_pin: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE)
             },
         )
         self.echo_chip = gpiod.request_lines(
-            "/dev/gpiochip1",
+            self.echo_chip,
             consumer="Ultrasonic Sensor",
             config={
                 self.echo_pin: gpiod.LineSettings(direction=Direction.INPUT)
