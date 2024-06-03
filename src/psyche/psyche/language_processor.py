@@ -32,7 +32,7 @@ class LanguageProcessor(Node):
 
     def setup_llm(self):
         self.declare_parameter('model', 'llama3:instruct')
-        self.declare_parameter('base_url', 'http://192.168.0.129:11434')
+        self.declare_parameter('base_url', 'http://127.0.0.1:11434')
         self.declare_parameter('model_type', 'ollama')
 
         model = self.get_parameter('model').get_parameter_value().string_value
