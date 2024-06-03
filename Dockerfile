@@ -50,4 +50,9 @@ RUN /bin/bash -c "source /opt/ros/iron/setup.bash && \
 RUN /bin/bash -c "source /opt/ros/iron/setup.bash && \
     colcon build"
 
+RUN echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /root/.bashrc
+RUN echo "export ROS_DOMAIN_ID=42" >> /root/.bashrc
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> /root/.bashrc
+RUN echo "source /psyche/install/setup.bash" >> /root/.bashrc
+
 CMD ["/psyche/launch.sh"]
