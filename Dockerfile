@@ -28,7 +28,8 @@ RUN pip install -qU \
     langchain-openai \
     sentence_splitter \
     langchain-text-splitters \
-    faiss-cpu
+    faiss-cpu \
+    langchainhub
 
 # Set up workspace and build
 RUN mkdir -p /psyche
@@ -36,8 +37,7 @@ RUN mkdir -p /psyche
 #Until we have a public repo
 COPY . /psyche
 WORKDIR /psyche
-RUN rm -rf {.git,build,install,log}
-
+RUN rm -rf {.git,build,install,log,memory}
 WORKDIR /psyche/src
 # Add body of the robot
 RUN git clone https://github.com/autonomylab/create_robot.git && \

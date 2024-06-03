@@ -40,17 +40,16 @@ class Informant(LanguageProcessor):
         self.get_logger().info('Documents loaded and split.')        
 
     def setup_embeddings(self):
-        # TODO: These should be separate parameters from the llm itself
-        model = self.get_parameter('model').get_parameter_value().string_value
+        self.declare_parameter('embeddings_model', 'mxbai-embed-large')
+        model = self.get_parameter('embeddings_model').get_parameter_value().string_value
         base_url = self.get_parameter('base_url').get_parameter_value().string_value
         model_type = self.get_parameter('model_type').get_parameter_value().string_value
+        embeddings_model = self.get_parameter('embeddings_model').get_parameter_value().string_value
         
-        if model_type == 'openai':
-            self.real_embeddings = OpenAIEmbeddings()
-        else:
-            # TODO: Add support for specifying the embedding model
-            self.real_embeddings = OllamaEmbeddings(model="mxbai-embed-large", base_url=base_url)
+        Embeddings = OpenAIEmbeddings if model_type == 'openai' else OllamaEmbeddings
         
+        self.real_embeddings = Embeddings(model=embeddings_model, base_url=base_url)
+    
         # TODO: Use a stable cache path
         self.embeddings_store = LocalFileStore("/tmp/embeddings_cache/")
         self.embeddings = CacheBackedEmbeddings.from_bytes_store(
@@ -66,25 +65,12 @@ class Informant(LanguageProcessor):
         self.setup_embeddings()
         self.setup_retriever()
         
-        self.declare_parameter('rag_prompt_template', 'You are an assistant for answering questions about your own source code. Use the following pieces of retrieved source code to answer the question. If you don\'t know the answer, just say that you don\'t know. Use three sentences maximum and keep the answer concise.\n\nQuestion: {question}\n\nContext: {context}\n\nAnswer: ')
+        self.declare_parameter('rag_prompt_template', 'You are an assistant for answering questions about a specific domain. Use the following pieces of retrieved context to answer the question. If you don\'t know the answer, just say that you don\'t know. Use three sentences maximum and keep the answer concise.\n\nQuestion: {question}\n\nContext: {context}\n\nAnswer: ')
         rag_prompt_template = self.get_parameter('rag_prompt_template').get_parameter_value().string_value
-        self.rag_prompt = PromptTemplate.from_template(rag_prompt_template)
+        self.prompt = PromptTemplate.from_template(rag_prompt_template)
         
         # TODO: These depend on the prompt template
-        self.rag = {"context": self.retriever, "question": RunnablePassthrough()} | self.rag_prompt | self.llm | self.output_parser
+        self.rag = {"context": self.retriever, "question": RunnablePassthrough()} | self.prompt | self.llm | self.output_parser
         self.chain = self.rag
         self.get_logger().info('Processing chain created with RAG system.')
         
-def main(args=None):
-    rclpy.init(args=args)
-
-    node = Informant(
-        'autognosis_language_processor',
-        'to_thine_own_self_be_true'
-    )
-
-    rclpy.spin(node)
-
-
-if __name__ == '__main__':
-    main()

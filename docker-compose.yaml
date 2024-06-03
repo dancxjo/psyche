@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
     network_mode: host
-    devices:
-      - "/dev/ttyUSB0:/dev/ttyUSB0"
+    # devices:
+    # - "/dev/ttyUSB0:/dev/ttyUSB0"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
 

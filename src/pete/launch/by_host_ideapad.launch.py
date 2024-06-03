@@ -8,13 +8,10 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 # This is onboard the robot. As much as possible should run here
 def generate_launch_description():
     return LaunchDescription([
-        IncludeLaunchDescription(
-            XMLLaunchDescriptionSource([
-                    PathJoinSubstitution([
-                        FindPackageShare('create_bringup'),
-                        'launch',
-                        'create_1.launch'
-                    ])
-                ])
-        ),        
+        Node(
+            package="psyche",
+            executable="memorialist",
+            name="memorialist",
+            output="screen",
+        ),
     ])
