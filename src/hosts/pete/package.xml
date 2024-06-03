@@ -3,7 +3,7 @@
 <package format="3">
   <name>pete</name>
   <version>0.0.0</version>
-  <description>Pete is the first & reference implementation of a psyche host</description>
+  <description>Pete is the first and reference implementation of a psyche host</description>
   <maintainer email="tdreed@gmail.com">dancxjo</maintainer>
   <license>Apache-2.0</license>
 
