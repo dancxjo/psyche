@@ -6,6 +6,8 @@
 # Shell scripts for specific, non-ROS2 hosts
 /launch
 
+# PETE's ongoing memory should be kept secure
+/memory
 .vscode
 
 # Byte-compiled / optimized / DLL files
