@@ -9,8 +9,8 @@ source /psyche/install/setup.bash
 
 if [ -e $(whereis ros2 | awk '{print $2}') ]; then
     echo "Found a ROS2 node"
-    echo "Looking for /psyche/src/hosts/$HOST_PKG/launch/by_host_$(hostname).launch.py"
-    if [ -e /psyche/src/hosts/$HOST_PKG/launch/by_host_$(hostname).launch.py ]; then
+    echo "Looking for /psyche/src/$HOST_PKG/launch/by_host_$(hostname).launch.py"
+    if [ -e /psyche/src/$HOST_PKG/launch/by_host_$(hostname).launch.py ]; then
         echo "Found $(hostname) specific launch file"
         ros2 launch $HOST_PKG by_host_$(hostname).launch.py &
     fi

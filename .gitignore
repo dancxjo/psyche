@@ -6,6 +6,9 @@
 # Shell scripts for specific, non-ROS2 hosts
 /launch
 
+# Contains sensitive information about users, etc. Only store locally or privately
+/memory
+
 .vscode
 
 # Byte-compiled / optimized / DLL files
