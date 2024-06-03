@@ -1,1 +1,8 @@
 1717384541	172.18.0.1	C	start		created		733
+1717450372	172.18.0.1	E	memory_filing_system				69
+1717450372	172.18.0.1	C	storage_room		created		155
+1717450380	172.18.0.1	C	memory_management		created		113
+1717450388	172.18.0.1	E	memory_management				-9
+1717450388	172.18.0.1	C	data_structure		created		114
+1717450394	172.18.0.1	E	storage_room				157
+1717450926	172.18.0.1	D	memory_management_key_takeaways		This isn't relevant to this kind of memory management though		-192

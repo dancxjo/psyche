@@ -1,7 +1,7 @@
-Overview
+## Overview
 Psyche is an advanced operating system designed to provide a robotic system with a complex and integrated personality. The system is divided into distinct packages that manage different aspects of a robot's operation, ensuring a robust and flexible framework suitable for various robotic platforms. The main reference implementation of Psyche is on Pete, a robot specifically designed to demonstrate and utilize the capabilities of the Psyche system.
 
-Project Structure
+### Project Structure
 /src: This directory is segmented into three primary packages:
 
 psyche: Contains the core functionalities of the operating system, essentially forming the backbone of the robotic personality.

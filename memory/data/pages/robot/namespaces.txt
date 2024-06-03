@@ -1,0 +1,1 @@
+Namespace for robot instructions and system logs.

@@ -1,0 +1,2 @@
+# Data Structure
+This page describes the structure used to store and retrieve data within the memory storage room.

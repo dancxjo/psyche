@@ -1,0 +1,8 @@
+I'm currently working on getting Pete's memory function working. I'm having trouble marshalling and un- JSON. blurgh
+
+--mi'e Travis
+
+OMG! Pete's memory is working! There are new articles that have been made! I hope he discovers this entry soon.
+
+~~~
+Hmmm....I think the memory can interact with the wiki, but it seems to have stopped

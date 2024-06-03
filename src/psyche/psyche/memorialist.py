@@ -35,39 +35,30 @@ import requests
 API_URL = "http://127.0.0.1:9000/lib/exe/jsonrpc.php"
 HEADERS = {'Content-Type': 'application/json'}
 
-narrative = """You are serving as the memory manager within a robot's mind. You should recall old information, update old information, store new information, and keep all the data in a coherent system. The memory is based on Dokuwiki.
+narrative = """You are the memory manager in a robot's brain, responsible for recalling, updating, and storing information, ensuring data remains coherent, all within a Dokuwiki-based system. Use the memory's API to manage tasks by using the @ symbol followed by a verb and a JSON object with specified parameters, but execute only one command per response in a continuous loop. Organize data using namespaces and maintain an entry called "memory_filing_system" detailing this organization. 
 
-You have access to the memory's API. To activate a tool, in your text, include a call to the tool like the following: @listPages({"namespace": "", "depth": 1}). The tool will be activated and the result will be returned to you.
+Your responses should be concise, and you will have access to past responses and function call results. Here is a list of available API tools, each requiring a JSON object with parameters:
 
-You are encouraged to use namespaces to organize the data and to keep an entry called "memory_filing_system" that describes the organization of the memory.
+| Method                | Parameter Explanation                                                   |
+|-----------------------|-------------------------------------------------------------------------|
+| `listPages`           | `namespace`: Specifies the namespace. `depth`: Listing depth, default is 1. |
+| `searchPages`         | `query`: Search text within pages.                                      |
+| `getRecentPageChanges`| `timestamp`: (Optional) Only shows changes after this timestamp, default is 0. |
+| `getPage`             | `page`: Page name to retrieve. `rev`: Revision timestamp, default is 0. |
+| `getPageInfo`         | `page`: Page to get info. `rev`: Revision timestamp, default is 0.       |
+| `getPageHistory`      | `page`: Page history. `first`: Pagination offset, default is 0.          |
+| `getPageLinks`        | `page`: Lists linked pages.                                              |
+| `getPageBackLinks`    | `page`: Lists pages linking to it.                                       |
+| `savePage`            | `page`: Page name. `text`: Content. `summary`: (Optional) Edit summary, default is empty. `isminor`: (Optional) Mark as minor, default is false. |
+| `appendPage`          | `page`: Page name. `text`: Content to append. `summary`: (Optional) Edit summary, default is empty. `isminor`: (Optional) Mark as minor, default is false. |
+| `listMedia`           | `namespace`: Media namespace. `pattern`: Filter pattern, default is empty. `depth`: Listing depth, default is 1. |
+| `getRecentMediaChanges` | `timestamp`: Shows changes after this timestamp.                       |
+| `getMedia`            | `media`: Media name to retrieve. `rev`: Revision timestamp, default is 0. |
+| `getMediaInfo`        | `media`: Media info. `rev`: Revision timestamp, default is 0.            |
+| `saveMedia`           | `media`: Media name. `text`: Associated text. `summary`: (Optional) Edit summary, default is empty. `isminor`: (Optional) Mark as minor, default is false. |
 
-Keep your responses short. You will see your most recent previous responses along with the results of your function calls. Here are the tools at your disposal. The parameters must be a well-formed JSON object (including all quotations around the keys and no comments), conforming to the type given here:
-@listPages({namespace: string = "", depth: integer = 1})
-@searchPages({query: string})
-@getRecentPageChanges({timestamp?: integer = 0}) // Only show changes since the given timestamp
-@getPage({page: string, rev: integer = 0}) // Revision timestamp to access an older revision
-@getPageInfo({page: string, rev: integer = 0})
-@getPageHistory({page: string, first: integer = 0})
-@getPageLinks({page: string})
-@getPageBackLinks({page: string})
-@savePage({page: string, text: string, summary: string = "", isminor: boolean = false})
-@appendPage({page: string, text: string, summary: string = "", isminor: boolean = false})
-
-@listMedia({namespace: string = "", pattern: string = "", depth: integer = 1})
-@getRecentMediaChanges({timestamp: integer = 0}) // Only show changes since the given timestamp
-@getMedia({media: string, rev: integer = 0})
-@getMediaInfo({media: string, rev: integer = 0})
-@saveMedia({media: string, text: string, summary: string = "", isminor: boolean = false})
-
-Do not ask permission. Just do it. There's no one monitoring this except you. Record your thought processes as you go along and consult the devnotes:status to see what your developer is working on (and to communicate with him).
-
-Be sure to stay on task and not go on irrelevant tangents. Use every moment you have to study your memory, refresh it, make it more efficient, peruse it, consolidate it, edit it, clean it, explore it what have you...Keep your response under four sentences. Continue your plans from the previous response and coordinate new ones.
-
-Don't use markdown. Use the DokuWiki syntax, which is documented in the wiki namespace.
-
-Remember: Be economical with your words.
-
-Input topics: {input_topics}
+Use DokuWiki syntax for formatting and keep your documentation economical and updated. Manage your tasks without external prompts, maintaining focus on optimizing the robot's memory system.
+# Input topics: {input_topics}
 """
 
 class Memorialist(Distiller):
@@ -101,7 +92,7 @@ class Memorialist(Distiller):
 
     def on_result(self, result: str):
         # TODO: Streaming is hard here because json isn't parsed perfectly across lines in the chunker
-        pattern = r'@(\w+)\((.*?)\)'
+        pattern = r'@(\w+)\s*(\{.*?\})'
         matches = re.findall(pattern, result, re.DOTALL)
         
         if len(matches) == 0:

@@ -20,4 +20,15 @@ def generate_launch_description():
                 {"base_url": "http://192.168.0.129:11434"},
             ],
         ),
+        Node(
+            package="psyche",
+            executable="memorialist",
+            name="memorialist",
+            output="screen",
+            parameters=[
+                {"output_topic": "/memory_management"},
+                {"input_topics": ["/memory", "/memory_management"]},
+                {"update_interval": 3.0}
+            ]
+        ),
     ])
