@@ -28,7 +28,7 @@ def generate_launch_description():
             parameters=[
                 {"output_topic": "/memory_management"},
                 {"input_topics": ["/memory", "/memory_management"]},
-                {"update_interval": 3.0}
+                {"update_interval": 2.0}
             ]
         ),
     ])
