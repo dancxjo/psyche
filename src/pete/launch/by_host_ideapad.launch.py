@@ -13,5 +13,8 @@ def generate_launch_description():
             executable="memorialist",
             name="memorialist",
             output="screen",
+            parameters=[
+                {"model": "codellama:13b"},
+            ]
         ),
     ])

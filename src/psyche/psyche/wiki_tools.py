@@ -4,7 +4,7 @@ import yaml
 from langchain.agents import tool
 
 # Global variables for DokuWiki API access
-API_URL = "http://localhost:9000/jsonrpc"
+API_URL = "http://127.0.0.1:9000/jsonrpc"
 HEADERS = {'Content-Type': 'application/json'}
 
 @tool

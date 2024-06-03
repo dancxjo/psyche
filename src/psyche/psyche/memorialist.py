@@ -32,8 +32,8 @@ def query_memory(question: str):
 class Memorialist(LanguageProcessor):
     def setup_agent(self):
         self.tools = wiki_tools #+ [self.query_memory]
-        self.prompt = prompt = ChatPromptTemplate.from_messages([
-            ("system", """Answer the following questions as best you can. You have access to the following tools:
+        self.prompt = ChatPromptTemplate.from_messages([
+            ("system", """Answer the following questions as best you can. YOU MUST USE THE EXACT FORMAT WITHOUT MAKING EXTRANEOUS COMMENTARY! You have access to the following tools:
 
             {tools}
 
@@ -70,7 +70,7 @@ class Memorialist(LanguageProcessor):
             {agent_scratchpad}"""),
             ])
         self.agent = create_json_chat_agent(self.llm, self.tools, self.prompt)
-        self.agent_executor = AgentExecutor(agent=self.agent, tools=self.tools, verbose=True, handle_parsing_errors=True)
+        self.agent_executor = AgentExecutor(agent=self.agent, tools=self.tools, verbose=True, handle_parsing_errors=False)
 
     def setup_chain(self):
         super().setup_chain()
