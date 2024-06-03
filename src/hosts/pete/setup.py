@@ -18,7 +18,7 @@ setup(
     zip_safe=True,
     maintainer='dancxjo',
     maintainer_email='tdreed@gmail.com',
-    description='TODO: Package description',
+    description='A reference robot host for psyche',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={

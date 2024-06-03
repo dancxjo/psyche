@@ -8,15 +8,5 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 # This file is always executed when the package is launched
 def generate_launch_description():
     return LaunchDescription([
-        Node(
-            package="psyche",
-            executable="to_thine_own_self_be_true",
-            name="autognosis_lpu",
-            output="screen",
-            parameters=[{
-                "model": "llama3:instruct",
-                "base_url": "http://192.168.0.129:11434",
-            }]
-        ),
     ])
 

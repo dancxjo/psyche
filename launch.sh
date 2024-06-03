@@ -10,7 +10,7 @@ if [ -e $(whereis ros2 | awk '{print $2}') ]; then
     if [ -e /psyche/src/psyche/launch/by_host_$(hostname).launch.py ]; then
         ros2 launch psyche by_host_$(hostname).launch.py &
     fi
-
+    
     ros2 launch psyche autoexec.launch.py
 else
     # Sometimes we're launched on a non-ROS2 host
