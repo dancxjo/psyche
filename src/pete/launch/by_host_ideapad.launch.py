@@ -14,7 +14,8 @@ def generate_launch_description():
             name="memorialist",
             output="screen",
             parameters=[
-                {"model": "codellama:13b"},
+                {"model": "wizardlm2"},
+                {"base_url": "http://192.168.0.129:11434"},
             ]
         ),
     ])

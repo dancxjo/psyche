@@ -15,13 +15,14 @@ from rclpy.action import ActionServer
 from std_msgs.msg import String, Empty
 from geometry_msgs.msg import Twist
 from create_msgs.msg import DefineSong, PlaySong
-from langchain.agents import AgentExecutor, tool, create_json_chat_agent
+from langchain.agents import AgentExecutor, tool, create_json_chat_agent, create_structured_chat_agent
 from langchain.agents.format_scratchpad.openai_tools import format_to_openai_tool_messages
 from langchain.agents.output_parsers.openai_tools import OpenAIToolsAgentOutputParser
 from langchain_community.llms import Ollama
 from langchain import hub
 from .wiki_tools import wiki_tools
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import SystemMessage, AIMessage, HumanMessage
 
 
 @tool
@@ -29,48 +30,64 @@ def query_memory(question: str):
     """Ask a question in natural language to engage your retrieval system."""
     pass
 
+prompt_template = ChatPromptTemplate.from_messages([
+    SystemMessage("""Assistant is serving as the memory manager for a robot's mind. Assistant should recall old information, update old information, store new information and keep all the data in a coherent system. The memory is based on Dokuwiki."""),
+    MessagesPlaceholder('chat_history'),
+    HumanMessage("""TOOLS
+------
+Assistant can ask the user to use tools to look up information that may be helpful in answering the users original question. If you're stumped, you might try looking at the start page. The tools the human can use are:
+
+{tools}
+
+RESPONSE FORMAT INSTRUCTIONS
+----------------------------
+
+When responding to me, please output a response in one of two formats:
+
+**Option 1:**
+Use this if you want the human to use a tool.
+Markdown code snippet formatted in the following schema:
+
+```json
+{{
+    "action": string, \ The action to take. Must be one of {tool_names}
+    "action_input": string \ The input to the action
+}}
+```
+
+**Option #2:**
+Use this if you want to respond directly to the human. Markdown code snippet formatted in the following schema:
+
+```json
+{{
+    "action": "Final Answer",
+    "action_input": string \ You should put what you want to return to use here
+}}
+```
+
+ROBOT'S INPUT
+--------------------
+Here is the robot's input (remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else):
+
+{input}"""),
+    MessagesPlaceholder('agent_scratchpad'),
+])
+
 class Memorialist(LanguageProcessor):
     def setup_agent(self):
         self.tools = wiki_tools #+ [self.query_memory]
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", """Answer the following questions as best you can. YOU MUST USE THE EXACT FORMAT WITHOUT MAKING EXTRANEOUS COMMENTARY! You have access to the following tools:
-
-            {tools}
-
-            The way you use the tools is by specifying a json blob.
-            Specifically, this json should have a `action` key (with the name of the tool to use) and a `action_input` key (with the input to the tool going here).
-
-            The only values that should be in the "action" field are: {tool_names}
-
-            The $JSON_BLOB should only contain a SINGLE action, do NOT return a list of multiple actions. Here is an example of a valid $JSON_BLOB:
-
-            ```
-            {{
-            "action": $TOOL_NAME,
-            "action_input": $INPUT
-            }}
-            ```
-
-            ALWAYS use the following format:
-
-            Question: the input question you must answer
-            Thought: you should always think about what to do
-            Action:
-            ```
-            $JSON_BLOB
-            ```
-            Observation: the result of the action
-            ... (this Thought/Action/Observation can repeat N times)
-            Thought: I now know the final answer
-            Final Answer: the final answer to the original input question
-
-            Begin! Reminder to always use the exact characters `Final Answer` when responding."""),
-            ("human", """{prompt}
-
-            {agent_scratchpad}"""),
-            ])
+        self.prompt = prompt_template
         self.agent = create_json_chat_agent(self.llm, self.tools, self.prompt)
-        self.agent_executor = AgentExecutor(agent=self.agent, tools=self.tools, verbose=True, handle_parsing_errors=False)
+        self.agent_executor = AgentExecutor(agent=self.agent, tools=self.tools, verbose=True, handle_parsing_errors=True)
+
+    def extract_input(self, goal_handle):
+        """
+        Extracts the input from the goal handle.
+        """
+        if self.chat_history == None:
+            self.chat_history = []
+            
+        return {"input": goal_handle.request.prompt, "chat_history": self.chat_history},
 
     def setup_chain(self):
         super().setup_chain()
