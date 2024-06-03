@@ -29,15 +29,19 @@ from psyche_interfaces.action import PlainTextInference
 import yaml
 import re
 import json
+import requests
 
+# Global variables for DokuWiki API access
+API_URL = "http://127.0.0.1:9000/lib/exe/jsonrpc.php"
+HEADERS = {'Content-Type': 'application/json'}
 
 narrative = """You are serving as the memory manager within a robot's mind. You should recall old information, update old information, store new information, and keep all the data in a coherent system. The memory is based on Dokuwiki.
 
-You have access to the memory's API. To activate a tool, in your text, include a call to the tool like the following: @listPages({namespace: "", depth: 1}). The tool will be activated and the result will be returned to you.
+You have access to the memory's API. To activate a tool, in your text, include a call to the tool like the following: @listPages({"namespace": "", "depth": 1}). The tool will be activated and the result will be returned to you.
 
 You are encouraged to use namespaces to organize the data and to keep an entry called "memory_filing_system" that describes the organization of the memory.
 
-Keep your responses short. You will see your most recent previous responses along with the results of your function calls. Here are the tools at your disposal:
+Keep your responses short. You will see your most recent previous responses along with the results of your function calls. Here are the tools at your disposal. The parameters must be a well-formed JSON object (including all quotations around the keys and no comments), conforming to the type given here:
 @listPages({namespace: string = "", depth: integer = 1})
 @searchPages({query: string})
 @getRecentPageChanges({timestamp?: integer = 0}) // Only show changes since the given timestamp
@@ -54,6 +58,7 @@ Keep your responses short. You will see your most recent previous responses alon
 @getMedia({media: string, rev: integer = 0})
 @getMediaInfo({media: string, rev: integer = 0})
 @saveMedia({media: string, text: string, summary: string = "", isminor: boolean = false})
+ 
 """
 
 class Memorialist(Distiller):
@@ -63,15 +68,53 @@ class Memorialist(Distiller):
         self.buffer = ""
         self.command_queue = []
 
+    def execute_wiki_command(self, verb: str, params: dict): 
+        self.cur_id = 0 if not hasattr(self, 'cur_id') else self.cur_id + 1
+        payload = {
+            "jsonrpc": "2.0",
+            "method": f"core.{verb}",
+            "params": params,
+            "id": self.cur_id
+        }
+        self.get_logger().info(f"Executing {verb} with params: {params}")
+        response = requests.post(API_URL, headers=HEADERS, data=json.dumps(payload))
+        json_response = response.json()
+        self.get_logger().info(json_response)
+        return yaml.safe_dump(json_response, default_flow_style=False)
+
     def on_sentence(self, sentence: str):
         self.output_pub.publish(String(data=sentence))
 
-    def on_chunk(self, chunk: str):
-        self.buffer += chunk
-        pattern = r'@{(\w+)}\((.*?)\)'
+    def on_result(self, result: str):
+        # TODO: Streaming is hard here because json isn't parsed perfectly across lines in the chunker
+        pattern = r'@(\w+)\((.*?)\)'
+        matches = re.findall(pattern, result, re.DOTALL)
+        
+        if len(matches) == 0:
+            self.get_logger().info("No commands in result")
+            return
+            
+        self.get_logger().info(f"Commands found: {matches}")
+        
+        for match in matches:
+            tool = match[0]
+            json_str = match[1]
+            try:
+                self.get_logger().info(f"{json_str}: {type(json_str)}")
+                json_obj = json.loads(json_str)
+                self.get_logger().info(json_obj)
+                results = self.execute_wiki_command(tool, json_obj)
+                self.output_pub.publish(String(data=results))
+            except json.JSONDecodeError:
+                self.output_pub.publish(String(data=f"Invalid JSON object: {json_str}"))
+                self.get_logger().error(f"Invalid JSON object: {json_str}")
+            except Exception as e:
+                self.output_pub.publish(String(data=f"Error executing {tool}: {e}"))
+                self.get_logger().error(f"Error executing {tool}: {e}")
         matches = re.findall(pattern, self.buffer)
         
         if len(matches) == 0:
+            
             return
             
         self.buffer = ""
@@ -82,9 +125,11 @@ class Memorialist(Distiller):
             try:
                 json_obj = json.loads(json_str)
                 # Process the tool and json_obj as needed
-                self.command_queue.append((tool, json_obj))
-                self.output_pub.publish(String(data=f"Added command to queue: {tool}({json_obj})"))
-                self.get_logger().info(f"Added command to queue: {tool}({json_obj})")
+                try:
+                    results = self.execute_wiki_command(tool, json_obj)
+                    self.output_pub.publish(String(results))
+                except Exception as e:
+                    self.get_logger().error(f"Error executing {tool}: {e}")
             except json.JSONDecodeError:
               print(f"Invalid JSON object: {json_str}")
 

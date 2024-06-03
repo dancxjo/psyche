@@ -12,12 +12,13 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package="psyche",
-            executable="lpu",
-            name="language_processor",
+            executable="memorialist",
+            name="memorialist",
             output="screen",
             parameters=[
-                {"model": "llama3:instruct"},
-                {"base_url": "http://192.168.0.129:11434"},
-            ],
+                {"output_topic": "/memory_management"},
+                {"input_topics": ["/memory", "/memory_management"]},
+                {"update_interval": 3.0}
+            ]
         ),
     ])
