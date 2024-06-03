@@ -146,7 +146,7 @@ def main(args=None):
 
     node = LanguageProcessor(
         'default_language_processor',
-        'infer'
+        'instruct'
     )
 
     rclpy.spin(node)

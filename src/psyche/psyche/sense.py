@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.serialization import deserialize_message
 from psyche_interfaces.msg import Sensation
+from std_msgs.msg import String
 
 class Sense(Node):
     """

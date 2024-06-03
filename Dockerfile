@@ -1,4 +1,5 @@
-FROM ros:iron
+ARG ROS_REPO=ros
+FROM ${ROS_REPO}:iron
 
 RUN apt-get update && \
     apt-get upgrade -y 

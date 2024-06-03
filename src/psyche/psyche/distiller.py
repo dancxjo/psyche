@@ -26,7 +26,7 @@ class Distiller(Node):
             
             Interpretation:    
             """),
-            ('input_topics', []),
+            ('input_topics', ['/identity', '/context']),
             ('output_topic', ''),
             ('update_interval', 60.0)
         ])
@@ -37,7 +37,7 @@ class Distiller(Node):
         self.update_interval = self.get_parameter('update_interval').get_parameter_value().double_value
         self.prompt = self.get_parameter('prompt').get_parameter_value().string_value
         
-        self.action_client = ActionClient(self, PlainTextInference, "/infer")
+        self.action_client = ActionClient(self, PlainTextInference, "/instruct")
         
         self.output_pub = self.create_publisher(String, self.output_topic, 10)
         self.input_subs = []
@@ -66,7 +66,7 @@ class Distiller(Node):
     def queue_message(self, msg, topic):
         if topic not in self.input_queue:
             self.input_queue[topic] = []
-        self.input_queue[topic].append = msg
+        self.input_queue[topic].append(msg)
     
     def transform_inputs(self, inputs):
         '''A hook to transform the inputs before they are passed to the prompt'''

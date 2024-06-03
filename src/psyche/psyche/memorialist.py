@@ -1,3 +1,4 @@
+from .distiller import Distiller
 from .informant import Informant
 from .language_processor import LanguageProcessor
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
@@ -15,88 +16,81 @@ from rclpy.action import ActionServer
 from std_msgs.msg import String, Empty
 from geometry_msgs.msg import Twist
 from create_msgs.msg import DefineSong, PlaySong
-from langchain.agents import AgentExecutor, tool, create_json_chat_agent, create_structured_chat_agent
-from langchain.agents.format_scratchpad.openai_tools import format_to_openai_tool_messages
-from langchain.agents.output_parsers.openai_tools import OpenAIToolsAgentOutputParser
-from langchain_community.llms import Ollama
-from langchain import hub
-from .wiki_tools import wiki_tools
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import SystemMessage, AIMessage, HumanMessage
+import rclpy
+from rclpy.node import Node
+from rclpy.action import ActionClient
+
+from std_msgs.msg import String
+
+from langchain_core.prompts import PromptTemplate
+
+from psyche_interfaces.action import PlainTextInference
+
+import yaml
+import re
+import json
 
 
-@tool
-def query_memory(question: str):
-    """Ask a question in natural language to engage your retrieval system."""
-    pass
+narrative = """You are serving as the memory manager within a robot's mind. You should recall old information, update old information, store new information, and keep all the data in a coherent system. The memory is based on Dokuwiki.
 
-prompt_template = ChatPromptTemplate.from_messages([
-    SystemMessage("""Assistant is serving as the memory manager for a robot's mind. Assistant should recall old information, update old information, store new information and keep all the data in a coherent system. The memory is based on Dokuwiki."""),
-    MessagesPlaceholder('chat_history'),
-    HumanMessage("""TOOLS
-------
-Assistant can ask the user to use tools to look up information that may be helpful in answering the users original question. If you're stumped, you might try looking at the start page. The tools the human can use are:
+You have access to the memory's API. To activate a tool, in your text, include a call to the tool like the following: @listPages({namespace: "", depth: 1}). The tool will be activated and the result will be returned to you.
 
-{tools}
+You are encouraged to use namespaces to organize the data and to keep an entry called "memory_filing_system" that describes the organization of the memory.
 
-RESPONSE FORMAT INSTRUCTIONS
-----------------------------
+Keep your responses short. You will see your most recent previous responses along with the results of your function calls. Here are the tools at your disposal:
+@listPages({namespace: string = "", depth: integer = 1})
+@searchPages({query: string})
+@getRecentPageChanges({timestamp?: integer = 0}) // Only show changes since the given timestamp
+@getPage({page: string, rev: integer = 0}) // Revision timestamp to access an older revision
+@getPageInfo({page: string, rev: integer = 0})
+@getPageHistory({page: string, first: integer = 0})
+@getPageLinks({page: string})
+@getPageBackLinks({page: string})
+@savePage({page: string, text: string, summary: string = "", isminor: boolean = false})
+@appendPage({page: string, text: string, summary: string = "", isminor: boolean = false})
 
-When responding to me, please output a response in one of two formats:
+@listMedia({namespace: string = "", pattern: string = "", depth: integer = 1})
+@getRecentMediaChanges({timestamp: integer = 0}) // Only show changes since the given timestamp
+@getMedia({media: string, rev: integer = 0})
+@getMediaInfo({media: string, rev: integer = 0})
+@saveMedia({media: string, text: string, summary: string = "", isminor: boolean = false})
+"""
 
-**Option 1:**
-Use this if you want the human to use a tool.
-Markdown code snippet formatted in the following schema:
+class Memorialist(Distiller):
+    def __init__(self):
+        super().__init__('memorialist')
+        self.narrative = narrative
+        self.buffer = ""
+        self.command_queue = []
 
-```json
-{{
-    "action": string, \ The action to take. Must be one of {tool_names}
-    "action_input": string \ The input to the action
-}}
-```
+    def on_sentence(self, sentence: str):
+        self.output_pub.publish(String(data=sentence))
 
-**Option #2:**
-Use this if you want to respond directly to the human. Markdown code snippet formatted in the following schema:
-
-```json
-{{
-    "action": "Final Answer",
-    "action_input": string \ You should put what you want to return to use here
-}}
-```
-
-ROBOT'S INPUT
---------------------
-Here is the robot's input (remember to respond with a markdown code snippet of a json blob with a single action, and NOTHING else):
-
-{input}"""),
-    MessagesPlaceholder('agent_scratchpad'),
-])
-
-class Memorialist(LanguageProcessor):
-    def setup_agent(self):
-        self.tools = wiki_tools #+ [self.query_memory]
-        self.prompt = prompt_template
-        self.agent = create_json_chat_agent(self.llm, self.tools, self.prompt)
-        self.agent_executor = AgentExecutor(agent=self.agent, tools=self.tools, verbose=True, handle_parsing_errors=True)
-
-    def extract_input(self, goal_handle):
-        """
-        Extracts the input from the goal handle.
-        """
-        if self.chat_history == None:
-            self.chat_history = []
+    def on_chunk(self, chunk: str):
+        self.buffer += chunk
+        pattern = r'@{(\w+)}\((.*?)\)'
+        matches = re.findall(pattern, self.buffer)
+        
+        if len(matches) == 0:
+            return
             
-        return {"input": goal_handle.request.prompt, "chat_history": self.chat_history},
-
-    def setup_chain(self):
-        super().setup_chain()
-        self.setup_agent()
-        self.chain = self.agent_executor
+        self.buffer = ""
+        
+        for match in matches:
+            tool = match[0]
+            json_str = match[1]
+            try:
+                json_obj = json.loads(json_str)
+                # Process the tool and json_obj as needed
+                self.command_queue.append((tool, json_obj))
+                self.output_pub.publish(String(data=f"Added command to queue: {tool}({json_obj})"))
+                self.get_logger().info(f"Added command to queue: {tool}({json_obj})")
+            except json.JSONDecodeError:
+              print(f"Invalid JSON object: {json_str}")
 
 def main(args=None):
     rclpy.init(args=args)
-    node = Memorialist('memorialist', 'manage_memory')
+    node = Memorialist()
     rclpy.spin(node)
 
 if __name__ == '__main__':

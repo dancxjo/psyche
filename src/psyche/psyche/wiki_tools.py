@@ -185,7 +185,7 @@ def get_page_links(page: str) -> str:
         "params": [page],
         "id": 9
     }
-    response = requests.post(API_API, headers=HEADERS, data=json.dumps(payload))
+    response = requests.post(API_URL, headers=HEADERS, data=json.dumps(payload))
     return yaml.safe_dump(response.json())
 
 @tool
