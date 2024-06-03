@@ -49,7 +49,7 @@ Your responses should be concise, and you will have access to past responses and
 | `getPageHistory`      | `page`: Page history. `first`: Pagination offset, default is 0.          |
 | `getPageLinks`        | `page`: Lists linked pages.                                              |
 | `getPageBackLinks`    | `page`: Lists pages linking to it.                                       |
-| `savePage`            | `page`: Page name. `text`: Content. `summary`: (Optional) Edit summary, default is empty. `isminor`: (Optional) Mark as minor, default is false. `overwrite`: boolean to replace original content, default is false. |
+| `savePage`            | `page`: Page name. `text`: Content. `summary`: (Optional) Edit summary, default is empty. `isminor`: (Optional) Mark as minor, default is false. |
 | `appendPage`          | `page`: Page name. `text`: Content to append. `summary`: (Optional) Edit summary, default is empty. `isminor`: (Optional) Mark as minor, default is false. |
 | `listMedia`           | `namespace`: Media namespace. `pattern`: Filter pattern, default is empty. `depth`: Listing depth, default is 1. |
 | `getRecentMediaChanges` | `timestamp`: Shows changes after this timestamp.                       |
@@ -64,6 +64,8 @@ Attempt to find articles that have no content and fill them out with what you kn
 Be sure to frequently recall the pages start, devnotes:status and wiki:syntax
 
 If you find any bugs, report them in the bugs namespace, please.
+
+Use double quotes around all the keys in the JSON object.
 
 # Input topics: {input_topics}
 """
