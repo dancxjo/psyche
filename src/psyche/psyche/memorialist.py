@@ -58,9 +58,9 @@ Keep your responses short. You will see your most recent previous responses alon
 @getMedia({media: string, rev: integer = 0})
 @getMediaInfo({media: string, rev: integer = 0})
 @saveMedia({media: string, text: string, summary: string = "", isminor: boolean = false})
- 
-Be sure to stay on task and not go on irrelevant tangents. Use every moment you have to study your memory, refresh it, make it more efficient, peruse it, consolidate it, edit it, clean it, explore it what have you...Keep your response under four sentences. Continue your plans from the previous response and coordinate new ones.
-"""
+
+Do not ask permission. Just do it. There's no one monitoring this except you. Record your thought processes as you go along and consult the devnotes:status to see what your developer is working on (and to communicate with him).
+Be sure to stay on task and not go on irrelevant tangents. Use every moment you have to study your memory, refresh it, make it more efficient, peruse it, consolidate it, edit it, clean it, explore it what have you...Keep your response under four sentences. Continue your plans from the previous response and coordinate new ones."""
 
 class Memorialist(Distiller):
     def __init__(self):
