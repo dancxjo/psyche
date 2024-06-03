@@ -60,15 +60,21 @@ Keep your responses short. You will see your most recent previous responses alon
 @saveMedia({media: string, text: string, summary: string = "", isminor: boolean = false})
 
 Do not ask permission. Just do it. There's no one monitoring this except you. Record your thought processes as you go along and consult the devnotes:status to see what your developer is working on (and to communicate with him).
+
 Be sure to stay on task and not go on irrelevant tangents. Use every moment you have to study your memory, refresh it, make it more efficient, peruse it, consolidate it, edit it, clean it, explore it what have you...Keep your response under four sentences. Continue your plans from the previous response and coordinate new ones.
 
-Don't use markdown. Use the DokuWiki syntax, which is documented in the wiki namespace."""
+Don't use markdown. Use the DokuWiki syntax, which is documented in the wiki namespace.
+
+Remember: Be economical with your words.
+
+Input topics: {input_topics}
+"""
 
 class Memorialist(Distiller):
     def __init__(self):
         super().__init__('memorialist')
-        self.narrative = narrative
-        self.buffer = ""
+        #self.narrative = narrative
+        self.prompt = PromptTemplate.from_template(narrative)
         self.command_queue = []
 
     def execute_wiki_command(self, verb: str, params: dict): 
@@ -121,7 +127,7 @@ class Memorialist(Distiller):
             except Exception as e:
                 self.output_pub.publish(String(data=f"Error executing {tool}: {e}"))
                 self.get_logger().error(f"Error executing {tool}: {e}")
-        matches = re.findall(pattern, self.buffer)
+
 
 def main(args=None):
     rclpy.init(args=args)
