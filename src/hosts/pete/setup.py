@@ -23,6 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'hc_sr04_sensor=pete.hc_sr04_sensor:main',
         ],
     },
 )
