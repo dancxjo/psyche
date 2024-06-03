@@ -59,6 +59,7 @@ Keep your responses short. You will see your most recent previous responses alon
 @getMediaInfo({media: string, rev: integer = 0})
 @saveMedia({media: string, text: string, summary: string = "", isminor: boolean = false})
  
+Be sure to stay on task and not go on irrelevant tangents. Use every moment you have to study your memory, refresh it, make it more efficient, peruse it, consolidate it, edit it, clean it, explore it what have you...Keep your response under four sentences. Continue your plans from the previous response and coordinate new ones.
 """
 
 class Memorialist(Distiller):
@@ -76,11 +77,16 @@ class Memorialist(Distiller):
             "params": params,
             "id": self.cur_id
         }
-        self.get_logger().info(f"Executing {verb} with params: {params}")
-        response = requests.post(API_URL, headers=HEADERS, data=json.dumps(payload))
-        json_response = response.json()
-        self.get_logger().info(json_response)
-        return yaml.safe_dump(json_response, default_flow_style=False)
+        self.get_logger().info(f"Executing {verb} with params: {str(params)}")
+        try:
+            response = requests.post(API_URL, headers=HEADERS, data=json.dumps(payload))
+            response.raise_for_status()  # This will raise an exception for HTTP error codes
+            json_response = response.json()
+            self.get_logger().info(f"Response: {str(json_response)}")
+            return yaml.safe_dump(json_response)
+        except requests.exceptions.RequestException as e:
+            self.get_logger().error(f"Request failed: {e}")
+            return f"ERROR! {e}"
 
     def on_sentence(self, sentence: str):
         self.output_pub.publish(String(data=sentence))
@@ -99,11 +105,13 @@ class Memorialist(Distiller):
         for match in matches:
             tool = match[0]
             json_str = match[1]
+            self.get_logger().info(f"Matched perhaps {tool}, {json_str}")
             try:
                 self.get_logger().info(f"{json_str}: {type(json_str)}")
                 json_obj = json.loads(json_str)
-                self.get_logger().info(json_obj)
+                self.get_logger().info("Made it past deserialization")
                 results = self.execute_wiki_command(tool, json_obj)
+                self.get_logger().info(f"Got back {results}")
                 self.output_pub.publish(String(data=results))
             except json.JSONDecodeError:
                 self.output_pub.publish(String(data=f"Invalid JSON object: {json_str}"))
@@ -112,26 +120,6 @@ class Memorialist(Distiller):
                 self.output_pub.publish(String(data=f"Error executing {tool}: {e}"))
                 self.get_logger().error(f"Error executing {tool}: {e}")
         matches = re.findall(pattern, self.buffer)
-        
-        if len(matches) == 0:
-            
-            return
-            
-        self.buffer = ""
-        
-        for match in matches:
-            tool = match[0]
-            json_str = match[1]
-            try:
-                json_obj = json.loads(json_str)
-                # Process the tool and json_obj as needed
-                try:
-                    results = self.execute_wiki_command(tool, json_obj)
-                    self.output_pub.publish(String(results))
-                except Exception as e:
-                    self.get_logger().error(f"Error executing {tool}: {e}")
-            except json.JSONDecodeError:
-              print(f"Invalid JSON object: {json_str}")
 
 def main(args=None):
     rclpy.init(args=args)

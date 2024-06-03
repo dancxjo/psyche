@@ -38,7 +38,7 @@ RUN mkdir -p /psyche
 #Until we have a public repo
 COPY . /psyche
 WORKDIR /psyche
-RUN rm -rf {.git,build,install,log,memory}
+RUN rm -rf {build,install,log,memory}
 WORKDIR /psyche/src
 # Add body of the robot
 RUN git clone https://github.com/autonomylab/create_robot.git && \
