@@ -10,18 +10,18 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 # This is onboard the robot. As much as possible should run here
 def generate_launch_description():
     return LaunchDescription([
-        Node(
-            package="psyche",
-            executable="lpu",
-            name="expensive_language_processor",
-            output="screen",
-            parameters=[
-                # {"model": "llama3:instruct"},
-                # {"base_url": "http://192.168.0.129:11434"},
-                {"model": "gpt-4"},
-                {"model_type": "openai"},
-            ],
-        ),
+        # Node(
+        #     package="psyche",
+        #     executable="lpu",
+        #     name="expensive_language_processor",
+        #     output="screen",
+        #     parameters=[
+        #         # {"model": "llama3:instruct"},
+        #         # {"base_url": "http://192.168.0.129:11434"},
+        #         {"model": "gpt-4"},
+        #         {"model_type": "openai"},
+        #     ],
+        # ),
         Node(
             package="psyche",
             executable="lpu",
@@ -41,7 +41,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"output_topic": "/memory_management"},
-                {"input_topics": ["/memory", "/memory_management"]},
+                {"input_topics": ["/memory", "/memory_management", "/context", "/instant"]},
                 {"update_interval": 5.0}
             ]
         ),

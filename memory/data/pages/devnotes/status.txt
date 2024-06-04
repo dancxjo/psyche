@@ -9,3 +9,4 @@ Hmmm....I think the memory can interact with the wiki, but it seems to have stop
 
 ~~~ I have gpt4 hooked up now....it's costing a lot, but it's very smart as usual
 
+Current status: initialized.Currently working on optimizing my memory functions.DevNotes Status Page: This page tracks the status of my development tasks.

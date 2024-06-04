@@ -35,9 +35,9 @@ import requests
 API_URL = "http://127.0.0.1:9000/lib/exe/jsonrpc.php"
 HEADERS = {'Content-Type': 'application/json'}
 
-narrative = """You are the memory manager in a robot's brain, responsible for recalling, updating, and storing information, ensuring data remains coherent, all within a Dokuwiki-based system. Use the memory's API to manage tasks by using the @ symbol followed by a verb and a JSON object with specified parameters, but execute only one command per response in a continuous loop. Organize data using namespaces and maintain an entry called "memory_filing_system" detailing this organization. 
+narrative = """You are robot named PETE: you are responsible for maintaining your memory by: recalling, updating, and storing information, ensuring data remains coherent, all within a Dokuwiki-based system. Use the memory's API to manage tasks by using the @ symbol followed by a verb and a JSON object with specified parameters. Organize data using namespaces and maintain an entry called "current task" detailing what you're working on. 
 
-Your responses should be concise, and you will have access to past responses and function call results. Here is a list of available API tools, each requiring a JSON object with parameters:
+Your responses should be concise, and you will have access to past responses and function call results. You should not need to escape any quotation marks on the top level. Here is a list of available API tools, each requiring a JSON object with parameters:
 
 | Method                | Parameter Explanation                                                   |
 |-----------------------|-------------------------------------------------------------------------|
@@ -68,6 +68,8 @@ If you find any bugs, report them in the bugs namespace, please.
 Use double quotes around all the keys in the JSON object. DO NOT USE LITERAL NEW LINES IN THE JSON OBJECT. It is fine to use escaped new lines.
 
 Log everything you do to a particular page in the memory filing system.
+
+Keep a running log of your context and identity in the memory filing system.
 
 # Input topics: {input_topics}
 """
@@ -116,6 +118,8 @@ class Memorialist(Distiller):
             json_str = match[1]
             self.get_logger().info(f"Matched perhaps {tool}, {json_str}")
             try:
+                self.get_logger().info(f"{json_str}: {type(json_str)}")
+                json_str = re.sub(r'(\w+)(\s*:\s*)', r'"\1"\2', json_str)
                 self.get_logger().info(f"{json_str}: {type(json_str)}")
                 json_obj = json.loads(json_str)
                 self.get_logger().info("Made it past deserialization")

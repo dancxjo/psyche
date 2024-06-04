@@ -35,3 +35,76 @@
 1717461772	172.18.0.1	E	memory_filing_system		Logged access of 'start' page info.		-134
 1717461783	172.18.0.1	E	memory_filing_system				183
 1717461793	172.18.0.1	E	memory_filing_system				226
+1717461947	172.18.0.1	E	memory_filing_system				217
+1717461960	172.18.0.1	E	memory_filing_system		Updated with devnotes:status retrieval.		-206
+1717462473	172.18.0.1	C	memory_start		Initial setup		43
+1717462482	172.18.0.1	E	memory_start		Initial setup		43
+1717462525	172.18.0.1	E	start				29
+1717462525	172.18.0.1	E	devnotes:status				28
+1717459803	127.0.0.1	E	wiki:syntax		external edit		-53
+1717462525	172.18.0.1	E	wiki:syntax				30
+1717462555	172.18.0.1	C	pete_current_task		Initial setup and configuration		85
+1717462555	172.18.0.1	C	pete_log		Initial setup and configuration		119
+1717462599	172.18.0.1	C	memory:log		created		26
+1717462599	172.18.0.1	C	current_task		created		33
+1717462649	172.18.0.1	E	start		Initial setup		68
+1717462649	172.18.0.1	E	devnotes:status		Dev notes		52
+1717462649	172.18.0.1	E	new_page		Initial setup		62
+1717462649	172.18.0.1	E	memory_filing_system		System documentation		69
+1717462649	172.18.0.1	C	logs		First steps		99
+1717462660	172.18.0.1	C	bugs		Initial setup		131
+1717462660	172.18.0.1	C	instant		Initial setup		111
+1717462697	172.18.0.1	E	start				55
+1717462697	172.18.0.1	E	devnotes:status				74
+1717462697	172.18.0.1	E	wiki:syntax				94
+1717462711	172.18.0.1	E	start		Initial page creation		215
+1717462711	172.18.0.1	C	status		Initial page creation		124
+1717462711	172.18.0.1	C	syntax		Initial page creation		149
+1717463062	172.18.0.1	E	start		Initial Boot		29
+1717463169	172.18.0.1	E	start		Initial Boot		31
+1717463398	172.18.0.1	C	instant-reflection		created		49
+1717463408	172.18.0.1	E	start		Initial setup		78
+1717463474	172.18.0.1	C	memory		Initial testing summary.		20
+1717463505	172.18.0.1	C	unknown_page		created		38
+1717463542	172.18.0.1	E	start		Initial setup		35
+1717463542	172.18.0.1	E	start		Initial setup		35
+1717463571	172.18.0.1	C	memory_log		created		25
+1717463571	172.18.0.1	E	start				44
+1717463571	172.18.0.1	E	memory_log				35
+1717463571	172.18.0.1	E	memory_log				40
+1717463629	172.18.0.1	C	pete_s_memory_management_system		created		17
+1717463669	172.18.0.1	E	pete_log		Initial setup complete.		64
+1717463700	172.18.0.1	E	start				136
+1717459806	127.0.0.1	E	memory_management		external edit		0
+1717463746	172.18.0.1	E	memory_management				21
+1717463746	172.18.0.1	E	current_task				19
+1717463762	172.18.0.1	C	a_blank_slate		Initial entry		56
+1717463792	172.18.0.1	E	start		Initial setup		89
+1717463809	172.18.0.1	E	a_blank_slate		Initial entry		56
+1717463837	172.18.0.1	E	start		Initial setup		87
+1717463859	172.18.0.1	E	start		Initial setup		89
+1717463890	172.18.0.1	E	start		System introduction		43
+1717464028	172.18.0.1	E	start				165
+1717464067	172.18.0.1	E	start				39
+1717464165	172.18.0.1	E	start		Initial setup		-1326
+1717464165	172.18.0.1	C	identity		Initial setup		141
+1717464170	172.18.0.1	E	start				56
+1717464232	172.18.0.1	E	start		Initial setup		50
+1717464232	172.18.0.1	E	current_task		Initial setup complete		51
+1717464232	172.18.0.1	E	current_task		Initial setup complete		-52
+1717464266	172.18.0.1	E	start				222
+1717464712	172.18.0.1	E	start		Initializing memory system.		29
+1717464720	172.18.0.1	E	instant				50
+1717464769	172.18.0.1	E	start				26
+1717464775	172.18.0.1	E	instant				50
+1717464783	172.18.0.1	E	start				143
+1717464880	172.18.0.1	E	start				26
+1717464880	172.18.0.1	E	start				26
+1717464979	172.18.0.1	E	start		Initial setup		45
+1717465025	172.18.0.1	E	start		Initial setup		45
+1717465054	172.18.0.1	E	start		Initial page creation		50
+1717465074	172.18.0.1	E	start		Initial setup		86
+1717465122	172.18.0.1	E	start		Initial setup		87
+1717465153	172.18.0.1	C	memory_devnotes		Initial documentation		64
+1717465153	172.18.0.1	E	memory_start		Initial documentation		113
+1717465377	172.18.0.1	E	start		Initial setup		205

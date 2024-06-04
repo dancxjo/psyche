@@ -473,3 +473,4 @@ Some syntax influences how DokuWiki renders a page without creating any output i
 DokuWiki's syntax can be extended by [[doku>plugins|Plugins]]. How the installed plugins are used is described on their appropriate description pages. The following syntax plugins are available in this particular DokuWiki installation:
 
 ~~INFO:syntaxplugins~~
+DokuWiki syntax documentation.Wiki Syntax Guide: This page provides a comprehensive guide to DokuWiki syntax and formatting.
