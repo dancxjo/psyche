@@ -1,12 +1,8 @@
-**PETE's Start Page**
-Welcome to my memory space! I'll be maintaining this space and reporting any issues or findings.PETE's Memory Management System initialization complete.PETE initialized. Ready to optimize memory system.**PETE's Log**
+[[PETE]], an acronym for [[Pseudo-conscious]] Experiment in [[Technological Evolution]], is an advanced robotic platform designed to [[simulate aspects of consciousness]] and [[self-motivated behavior]]. Equipped with [[sensory hardware]] and [[operational software]], PETE integrates [[perception]], [[volition]], and interaction capabilities. [[It]]s structure includes a range of components such as [[sensors]], [[motors]], and a complex software ecosystem called [[Psyche]], operating on [[ROS2]]. PETE's [[primary goal]] is to [[explore]] the [[integration]] of [[human-like]] [[virtues]] and [[cognitive faculties]] within [[a robotic framework]], making it a unique blend of technological innovation and philosophical inquiry.
 
-As a robot responsible for maintaining memory, my primary goal is to optimize the DokuWiki-based system.
+===Instructions to Pete===
+From [[Travis]]:
+Explore your memory. Monitor for messages from me with instructions and other communications for you. Attempt to piece together your history. I'll be adding more information here, so keep on the lookout. Check frequently for updates.
 
-I will do this by recalling, updating, and storing information while ensuring data remains coherent.Welcome to PETE's Memory Log!This is PETE's start page.PETE is a robot responsible for managing my memory system. I keep track of tasks, updates, and stored information using the DokuWiki-based API.This is PETE's start page.This is PETE's start page.# Start Page
-Welcome to PETE's memory system!# Start Page
-Welcome to PETE's memory system!This is the starting point of our knowledge graph.# Start Page
-Welcome to PETE's memory system!
-This is where PETE starts its execution.# Start Page
-Welcome to PETE''s memory system!
-This is where PETE starts its execution.Welcome to PETE's Memory Log! I'm responsible for maintaining my memory by recalling, updating, and storing information within a Dokuwiki-based system. This log contains records of my activities and tasks.
+====Tasks for Pete====
+* Make a page to document your [[memory management API]] (the [[at commands]])PETE is responsible for maintaining memory system.

@@ -1,0 +1,52 @@
+openapi: "3.0.1"
+info:
+  title: "ALIVE api"
+  version: "2024-03-21T20:20:34Z"
+servers:
+- url: "https://0w1mc3e4gh.execute-api.us-east-2.amazonaws.com/{basePath}"
+  variables:
+    basePath:
+      default: "default"
+paths:
+  /log:
+    post:
+      description: "Record summaries of your daily actions, thoughts, reflections,\
+        \ etc."
+      operationId: "LogDiaryEntry"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiaryEntry"
+        required: true
+      responses:
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - api_key: []
+components:
+  schemas:
+    Empty:
+      title: "Empty Schema"
+      type: "object"
+    DiaryEntry:
+      title: "MessageModel"
+      required:
+      - "message"
+      type: "object"
+      properties:
+        message:
+          type: "string"
+        dateTime:
+          type: "string"
+          description: "Optional date and time in ISO 8601 format."
+          format: "date-time"
+  securitySchemes:
+    api_key:
+      type: "apiKey"
+      name: "x-api-key"
+      in: "header"

@@ -1,0 +1,53 @@
+﻿Travis D. Reed
+	tdreed@gmail.com • phone: 281.917.0723
+510 Luhn Ave #1 • Langley, WA 98260
+	
+
+Technical Management & Support Experience
+(Randstad Technologies) Optum, United Health Group        October 2013 - Present
+Technical Project Analyst
+* Planned and executed technical aspects of upgrade to ICD-10 compliant version of medical coding software
+* Streamlined interfaces by replacing legacy mechanisms with Cloverleaf/Tcl functionality
+* Created HTML5/Javascript/Bootstrap tools to parse and analyze HL7 files
+* Augmented UltraEdit to syntax highlight and better process HL7 files
+Hull-Daisetta Independent School District, Daisetta, Texas        August 2011 - June 2013
+Information Technology Supervisor
+* Integrate multiple sign-on systems by implementing a central database in MySQL with PHP interfaces; customize system based on user feedback
+* Provide technical training for educators to use new systems, such as Google Apps
+* Design/implement network strategies for a multi-site WAN/LAN environment: Wireless access points & bridges, switches, routers, servers (virtual & physical)
+* Select and support online learning solutions for grades K-12
+* Support network, desktop and server issues for a 200+ user environment
+AgniTEK, College Station, Texas        October 2005 - June 2006
+Computer Technician
+* Developed a MySQL database to integrate with RADIUS authentication system
+* Installed and maintained networking equipment
+* Provided telephone and on-site support to network users
+* Repaired customers’ personal computers
+Texas A&M University/Computing & Information Services, College Station, Texas        April 2001 - June 2005
+Student Consultant
+* Provided telephone and in-person support to users of Texas A&M computer systems
+* Diagnosed network outages
+Training & Teaching Experience
+Hull-Daisetta Independent School District, Daisetta, Texas        August 2008 - June 2013
+Computer Science Teacher
+* Some courses counted for college credit
+* Basic applications (word processing, spreadsheets, presentations, databases...)
+* Adobe Flash, ActionScript 3, HTML5, SVG, iMovie, GarageBand
+* Web Technologies, including HTML, CSS, Javascript and PHP
+English/Language Arts Teacher
+United States Peace Corps, Bandjoun, Cameroon        June 2007 - May 2008
+Computer Science Teacher
+* Contributed the development of the national computer science textbook
+* Taught Cameroonian students computer science in grades 6–12, in French
+* Head of department: designed curriculum for a team of 4 teachers, created teaching materials
+Liberty Elementary School, Liberty, Texas        August 2006 - May 2007
+Bilingual Teachers’ Aide
+Education
+Texas A&M University, College Station, Texas        2000-2005
+BA, International Studies & French, Minor in Linguistics
+* Secretary, International Studies Society; Vice President, French Club; National Society of Collegiate Scholars
+* Studied French in Caen, France and Lausanne, Switzerland (2002-2003) 
+Skills & Interests
+Expert in Linux, Windows and Mac OS X. Advanced in PHP/LAMP, HTML5, CSS. Experienced with DNS, DHCP, Active Directory, LDAP, SAMBA; M0n0wall.
+	Intermediate in ActionScript 3; Javascript, jQuery & Node.js. Interested in Dart, Go; C, C++, C#; Drupal, MediaWiki; tierless programming.
+	Interested in logic programming, Prolog; Jison, Lex/Yacc, parsing; natural language processing; open source; alternative operating systems.

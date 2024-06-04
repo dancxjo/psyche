@@ -1,0 +1,7 @@
+#!/bin/bash
+
+ros2 launch create_bringup create_1.launch
+ros2 launch nav2_bringup navigation_launch.py
+ros2 launch slam_toolbox online_async_launch.py
+ros2 run rviz2 rviz2
+TURTLEBOT3_MODEL=waffle ros2 run turtlebot3_teleop teleop_keyboard

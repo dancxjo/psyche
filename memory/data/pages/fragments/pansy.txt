@@ -1,0 +1,96 @@
+// PETE works by prompting a language model with a partial context, and then asking it to continue it on behalf of PETE. When the LM closes the context, it is popped, stored and then referenced in its parent context, which becomes the current context.
+root ::= ongoing_context "}"?
+
+// A context is sort of a record of the mental activity of PETE. It is used to store the state of the conversation and of the entire system itself. It is used to condense a "frame of memory" into something that can be serialized into the db and also exposed to the language model, that is to say, it fits in a finite space.
+
+// Syntactically, contexts look a lot like functions in javascript
+complete_context ::= ongoing_context "}"
+ongoing_context ::= context_head "{" context_body
+context_head ::= "context" ws id ws "(" ws (ref (ws "," ws ref)*)? ws ")" ws 
+// context n(&a, &b)
+// We now may refer to &n in both the parent and child contexts
+// These references are passed to the child context from the parent context
+enclosed_refs ::= "(" ws (ref (ws "," ws ref)*)? ws ")"
+// Like in javascript, if there are no references, the parentheses are still required
+context_name ::= id
+// Arbitrary, left up to the language model; like a local variable (used henceforth as a reference, &context_name). This is a handle to a concept, a node in the graphdb, that refers to this very context.
+
+context_body ::= (ws|statement|inline_annotation)*
+// The inline annotations give, for instance, a sense of time and sequence to the conversation. They allow for showing simultaneous events, interrupted speech ...
+
+statement ::= (ws (context | sensor_report | rule | fact | instantiation | comment | question | function_call_and_response | tldr) ws)
+
+tldr ::= "tl;dr" ws nlp
+// This is essentially the equivalent of a return statement in a function. It will be used to abbreviate the context in its parent context.
+
+memory_literal ::= "memory:" [0-9]+
+// This is the id of a node as stored in the graphdb
+
+context_abbreviation ::= context_head "=" ws memory_literal
+// This works by abbreviating child contexts that have been closed and scrolled out of view. For language models, token space is limited, so this is a way of "zooming in" to a part of a log.
+
+sensor_report ::= "!!" [^\n]*
+// This is how the system exposes its sensor data to the language model. Example: !! thermometer { "temperature": 30 }
+
+function_call_and_response ::= command (ws feedback)?
+// We must stress to the language model that it may only generate commands. The feedback is generated procedurally by the system.
+
+feedback ::= ">>" ws structured_data
+
+instantiation ::= ref ws "=" ws (nlp | memory_literal | context_abbreviation)
+// Setting a reference to an nlp string is a way of making a new concept in the graphdb, or finding an existing one based on the natural language description provided;
+// Using a memory literal uses an absolute address of a node in the db; it is a way of indicating to the language model how it can request an expanded version of the child context
+// Swapping these out is a way for PETE to "fold" and "unfold" parts of the conversation to fit it into finite space for the language model
+
+inline_annotation ::= "@" "[" ws not_bracket+ ws "]"
+// Provides structure to the memory, especially in time. Also used as a way to set fields on the node that represents the context
+
+fact ::= predication "."
+// Very much like a fact in Prolog. An assertion that the predication is true
+
+predication ::= argument ws negator? ws predicate ws argument
+negator ::= "!" | "doesn't" | "don't" | "not"
+
+predicate ::= id ("e"? "s")?
+// A pretty pathetic admission that you can say "say" or "says" to use with $I
+// The predicates are the edges between concept nodes in the database
+
+argument ::= value | ref | abstraction | coorelative | memory_literal
+// Essentially, a noun phrase
+
+abstraction ::= "that" predication (ws conjunction ws predication)*
+// Makes a concept that refers to the predication itself
+
+conjunction ::= "and" | "or" | "but"
+// "but" == "and", fyi
+
+coorelative ::= "_" id
+// Extracts the value into this reference; "_carnivore eats &meat" is like Prolog "eats(Carnivore, meat)" 
+
+command ::= (invocation "," ws)? procedure_name ws structured_data?
+procedure_name ::= id
+invocation ::= "@" faculty
+faculty ::= id
+// Faculties have identifiers that they may respond to procedures they somehow publish
+// cf. OpenAI functions
+
+comment ::= "//" [^\n]*
+// More meaningful to a language model than in traditional code. This serves as a way for the language model to "think things through" in a form of reflection. We must explain to the LM that the context is its internal monologue.
+
+ref ::= "&" id
+// A handle to a concept
+
+id ::= [a-zA-Z][a-zA-Z0-9_]*
+ws ::= ([ \t\n] ws)?
+
+nlp ::= "/*" nlp_body "*/"
+// Much more meaningful than a comment in a traditional language
+nlp_body ::= (not_star | star_not_slash)*
+not_star ::= [^*]
+star_not_slash ::= "*" [^/]
+not_bracket ::= [^\]]
+structured_data ::= object | array
+object ::= "{" ws (pair (ws "," ws pair)*)? ws "}"
+pair ::= string ws ":" ws value
+array ::= "[" ws (value (ws "," ws value)*)? ws "]"
+value ::= string | number | object | array | "true" | "false" | "null"

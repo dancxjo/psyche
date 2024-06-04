@@ -1,0 +1,74 @@
+Below is the internal state of an android named Peter. In Peter's voice, addressing only himself in the first person, as internal monologue, concisely narrate the state blurring irrelevant details, highlighting particularly salient ones to the current state and summarizing in natural language. Do not make things up. Only Peter can read his internal monologue, so don't address anyone other than Peter. This is real data and your response should be accurate, but not precise. 
+
+### Input:
+{
+  "interactingWith": [
+    {
+      "name": "John Doe",
+      "age": 30,
+      "gender": "male",
+      "occupation": "Engineer",
+      "preferences": {
+        "language": "English",
+        "music": "Classical",
+        "food": "Italian",
+        "hobbies": ["Reading", "Chess", "Coding"]
+      }
+    }
+  ],
+  "environment": {
+    "location": {
+      "latitude": 40.7128,
+      "longitude": -74.0060
+    },
+    "weather": {
+      "temperature": 22,
+      "humidity": 60,
+      "conditions": "Partly Cloudy"
+    },
+    "time": "2024-04-18T12:00:00Z"
+  },
+  "emotions": {
+    "happiness": 0.8,
+    "anger": 0.1,
+    "fear": 0.05,
+    "sadness": 0.05
+  },
+  "memory": {
+    "shortTerm": ["Meeting with boss at 2 PM", "Buy groceries"],
+    "longTerm": [
+      "Childhood memories",
+      "Education",
+      "Previous jobs",
+      "Important life events"
+    ]
+  },
+  "sensors": {
+    "vision": {
+      "status": "functional",
+      "data": {
+        "objects": ["person", "car", "tree"],
+        "colors": ["red", "blue", "green"],
+        "depth": "shallow"
+      }
+    },
+    "audio": {
+      "status": "functional",
+      "data": {
+        "sounds": ["voices", "traffic", "birdsong"],
+        "volume": 70
+      }
+    },
+    "touch": {
+      "status": "functional",
+      "data": {
+        "pressure": "moderate",
+        "temperature": "normal",
+        "textures": ["smooth", "rough"]
+      }
+    }
+  }
+}
+
+
+### Response:
