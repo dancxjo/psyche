@@ -28,6 +28,7 @@ setup(
             'listen_for_speech = psyche.listen:main',
             'sense_speech = psyche.sense:main',
             'transcribe_speech = psyche.transcribe:main',
+            'informant = psyche.informant:main',
             'memorialist = psyche.memorialist:main',
         ],
     },

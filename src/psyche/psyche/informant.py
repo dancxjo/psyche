@@ -1,3 +1,4 @@
+import glob
 from .language_processor import LanguageProcessor
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import FAISS
@@ -18,24 +19,20 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
 
-
 class Informant(LanguageProcessor):
     """
     A language processor with a chain that uses the RAG system to answer questions.
     """
     def setup_documents(self):
-        current_file_path = os.path.abspath(__file__)
-        self_dir = os.path.dirname(current_file_path)
-        supposed_source_path = os.path.dirname(os.path.abspath(self_dir + '/../../'))
-        self.declare_parameter('source_path', supposed_source_path)
-        source_path = self.get_parameter('source_path').get_parameter_value().string_value
+        self.declare_parameter('path', '/psyche/memory/data/pages')
+        path = self.get_parameter('path').get_parameter_value().string_value
+        self.declare_parameter('glob', '**/*.txt')
+        glob = self.get_parameter('glob').get_parameter_value().string_value
         
-        self.loader = DirectoryLoader(source_path, glob="**/*.py")
+        self.loader = DirectoryLoader(path, glob=glob)
         self.raw_docs = self.loader.load()
-        self.text_splitter = RecursiveCharacterTextSplitter.from_language(
-            language=Language.PYTHON, chunk_size=50, chunk_overlap=0
-        )
-        self.split_docs = self.text_splitter.split_documents(self.raw_docs)
+        # self.text_splitter = RecursiveCharacterTextSplitter.split_documents()
+        self.split_docs = RecursiveCharacterTextSplitter.split_documents(self.raw_docs)
         self.documents = self.split_docs
         self.get_logger().info('Documents loaded and split.')        
 
@@ -65,12 +62,16 @@ class Informant(LanguageProcessor):
         self.setup_embeddings()
         self.setup_retriever()
         
-        self.declare_parameter('rag_prompt_template', 'You are an assistant for answering questions about a specific domain. Use the following pieces of retrieved context to answer the question. If you don\'t know the answer, just say that you don\'t know. Use three sentences maximum and keep the answer concise.\n\nQuestion: {question}\n\nContext: {context}\n\nAnswer: ')
-        rag_prompt_template = self.get_parameter('rag_prompt_template').get_parameter_value().string_value
-        self.prompt = PromptTemplate.from_template(rag_prompt_template)
-        
-        # TODO: These depend on the prompt template
-        self.rag = {"context": self.retriever, "question": RunnablePassthrough()} | self.prompt | self.llm | self.output_parser
-        self.chain = self.rag
+        self.rag = {"context": self.retriever, "prompt": RunnablePassthrough()}
+        self.prompt = PromptTemplate.from_template("The following context might be relevant later on: {context}\n\n{prompt}")
+
+        self.chain = self.rag | self.chain
         self.get_logger().info('Processing chain created with RAG system.')
         
+def main(args=None):
+    rclpy.init(args=args)
+    node = Informant('memory_assisted', 'recall')
+    rclpy.spin(node)
+
+if __name__ == '__main__':
+    main()

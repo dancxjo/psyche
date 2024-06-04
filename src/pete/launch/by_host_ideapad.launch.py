@@ -34,18 +34,24 @@ def generate_launch_description():
                 # {"model_type": "openai"},
             ],
         ),
+        # Node(
+        #     package="psyche",
+        #     executable="memorialist",
+        #     name="memorialist",
+        #     output="screen",
+        #     parameters=[
+        #         {"output_topic": "/memory_management"},
+        #         {"input_topics": ["/memory", "/memory_management", "/context", "/instant"]},
+        #         {"update_interval": 5.0}
+        #     ]
+        # ),
         Node(
             package="psyche",
-            executable="memorialist",
-            name="memorialist",
-            output="screen",
-            parameters=[
-                {"output_topic": "/memory_management"},
-                {"input_topics": ["/memory", "/memory_management", "/context", "/instant"]},
-                {"update_interval": 5.0}
-            ]
+            executable="informant",
+            name="informant",
+            output="screen",        
         ),
-                Node(
+        Node(
             package="psyche",
             executable="distill",
             name="the_witness",
@@ -56,7 +62,7 @@ def generate_launch_description():
                 "narrative": "These are your recent sensations. Distill them into a coherent 'instant.' Use the raw data to tell a (true) story.",
                 "input_topic_list": ["/sense_of_self", "/sensation"],
                 "output_topic": "/instant",
-                "update_interval": 60.0,  # This should be longer than the time it takes to generate an instant but otherwise as short as possible
+                "update_interval": 5.0,  # This should be longer than the time it takes to generate an instant but otherwise as short as possible
             }]
         ),
         Node(
@@ -70,7 +76,7 @@ def generate_launch_description():
                 "narrative": "These are your understandings from the most recent instants of your life. Contextualize them into a coherent 'scene.' Use the raw data to tell a (true) story. Continue from the last response to this prompt, adding to it, revising it or moving on from it as necessary.",
                 "input_topic_list": ["/sense_of_self", "/sensation", "/context"],
                 "output_topic": "/context",
-                "update_interval": 3.0 * 60,  # This should be longer than the time it takes to generate a scene but otherwise as short as possible
+                "update_interval": 60.0,  # This should be longer than the time it takes to generate a scene but otherwise as short as possible
             }]
         )
     ])
