@@ -60,14 +60,14 @@ class Informant(LanguageProcessor):
         self.retriever = self.db.as_retriever()
     
     def setup_chain(self):
-        self.setup_documents()
         self.setup_embeddings()
+        self.setup_documents()
         self.setup_retriever()
         
         self.rag = {"context": self.retriever, "prompt": RunnablePassthrough()}
         self.prompt = PromptTemplate.from_template("The following context might be relevant later on: {context}\n\n{prompt}")
 
-        self.chain = self.rag | self.chain
+        self.chain = self.rag | self.prompt | self.llm | self.output_parser
         self.get_logger().info('Processing chain created with RAG system.')
         
 def main(args=None):
