@@ -39,10 +39,10 @@ class Distiller(Node):
         
         self.action_client = ActionClient(self, PlainTextInference, "/instruct")
         
-        self.output_pub = self.create_publisher(String, self.output_topic, 10)
+        self.output_pub = self.create_publisher(String, self.output_topic, 4)
         self.input_subs = []
         self.input_queue = {}
-        self.input_subs = [self.create_subscription(String, topic, self.queue_message_callback(topic), 10) for topic in self.input_topic_list]
+        self.input_subs = [self.create_subscription(String, topic, self.queue_message_callback(topic), 4) for topic in self.input_topic_list]
         
         self.timer = self.create_timer(self.update_interval, self.update)
         self.update()
@@ -81,6 +81,7 @@ class Distiller(Node):
         for topic, messages in self.input_queue.items():
             inputs[topic] = [self.transform_topic(topic, msg) for msg in messages]
     
+        self.input_queue = {}
         inputs = self.transform_inputs(inputs)
         self.action_client.wait_for_server()
         goal = PlainTextInference.Goal(prompt=self.prompt.format(
