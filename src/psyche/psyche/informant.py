@@ -65,7 +65,7 @@ class Informant(LanguageProcessor):
         self.setup_retriever()
         
         self.rag = {"context": self.retriever, "prompt": RunnablePassthrough()}
-        self.prompt = PromptTemplate.from_template("You are the robot Pete. Use the following context to complete the comply with the prompt that follows.\n\nContext: {context}\n\nPrompt: {prompt}")
+        self.prompt = PromptTemplate.from_template("Use the following context to complete the comply with the prompt that follows.\n\nContext: {context}\n\nPrompt: {prompt}")
 
         self.chain = self.rag | self.prompt | self.llm | self.output_parser
         self.get_logger().info('Processing chain created with RAG system.')
