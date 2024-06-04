@@ -28,7 +28,8 @@ class Distiller(Node):
             """),
             ('input_topics', ['/identity', '/context']),
             ('output_topic', ''),
-            ('update_interval', 60.0)
+            ('update_interval', 60.0),
+            ('action_server_name', '/instruct')
         ])
         
         self.narrative = self.get_parameter('narrative').get_parameter_value().string_value
@@ -36,8 +37,9 @@ class Distiller(Node):
         self.output_topic = self.get_parameter('output_topic').get_parameter_value().string_value
         self.update_interval = self.get_parameter('update_interval').get_parameter_value().double_value
         self.prompt = self.get_parameter('prompt').get_parameter_value().string_value
+        self.action_server_name = self.get_parameter('action_server_name').get_parameter_value().string_value
         
-        self.action_client = ActionClient(self, PlainTextInference, "/instruct")
+        self.action_client = ActionClient(self, PlainTextInference, self.action_server_name)
         
         self.output_pub = self.create_publisher(String, self.output_topic, 4)
         self.input_subs = []

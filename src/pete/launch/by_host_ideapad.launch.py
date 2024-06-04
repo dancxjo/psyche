@@ -16,35 +16,32 @@ def generate_launch_description():
         #     name="expensive_language_processor",
         #     output="screen",
         #     parameters=[
-        #         # {"model": "llama3:instruct"},
-        #         # {"base_url": "http://192.168.0.129:11434"},
         #         {"model": "gpt-4"},
         #         {"model_type": "openai"},
         #     ],
         # ),
-        Node(
-            package="psyche",
-            executable="lpu",
-            name="local_language_processor",
-            output="screen",
-            parameters=[
-                {"model": "llama3:instruct"},
-                {"base_url": "http://192.168.0.129:11434"},
-                # {"model": "gpt-4"},
-                # {"model_type": "openai"},
-            ],
-        ),
         # Node(
         #     package="psyche",
-        #     executable="memorialist",
-        #     name="memorialist",
+        #     executable="lpu",
+        #     name="local_language_processor",
         #     output="screen",
         #     parameters=[
-        #         {"output_topic": "/memory_management"},
-        #         {"input_topics": ["/memory", "/memory_management", "/context", "/instant"]},
-        #         {"update_interval": 5.0}
-        #     ]
+        #         {"model": "llama3:instruct"},
+        #         {"base_url": "http://192.168.0.129:11434"},
+        #     ],
         # ),
+        Node(
+            package="psyche",
+            executable="memorialist",
+            name="memorialist",
+            output="screen",
+            parameters=[
+                {"output_topic": "/memory_management"},
+                {"input_topics": ["/memory", "/memory_management", "/context", "/instant"]},
+                {"update_interval": 5.0},
+                {"action_server_name": "/recall"}
+            ]
+        ),
         Node(
             package="psyche",
             executable="informant",
@@ -53,8 +50,6 @@ def generate_launch_description():
             parameters=[
                 {"model": "llama3:instruct"},
                 {"base_url": "http://192.168.0.129:11434"},
-                # {"model": "gpt-4"},
-                # {"model_type": "openai"},
             ],
         ),
         # Node(

@@ -35,7 +35,10 @@ import requests
 API_URL = "http://127.0.0.1:9000/lib/exe/jsonrpc.php"
 HEADERS = {'Content-Type': 'application/json'}
 
-narrative = """You are robot named PETE: you are responsible for maintaining your memory by: recalling, updating, and storing information, ensuring data remains coherent, all within a Dokuwiki-based system. Use the memory's API to manage tasks by using the @ symbol followed by a verb and a JSON object with specified parameters. Organize data using namespaces and maintain an entry called "current task" detailing what you're working on. 
+narrative = """You are robot named PETE: you are responsible for maintaining your memory by: recalling, updating, and storing information, ensuring data remains coherent, all within a Dokuwiki-based system. Use the memory's API to manage tasks by using the @ symbol followed by a verb and a parentheses-enclosed JSON object with specified parameters. Organize data using namespaces and maintain an entry called "current task" detailing what you're working on.
+
+@listPages({{"namespace": "devnotes"}})
+@appendPage({{"page": "devnotes:status", "text": "PETE is currently working on the Memorialist module."}})
 
 Your responses should be concise, and you will have access to past responses and function call results. You should not need to escape any quotation marks on the top level. Here is a list of available API tools, each requiring a JSON object with parameters:
 
@@ -100,11 +103,16 @@ class Memorialist(Distiller):
             self.get_logger().error(f"Request failed: {e}")
             return f"ERROR! {e}"
 
+    def preprocess_json_string(self, json_str):
+        # This regular expression replaces unquoted keys with quoted ones
+        processed_json_str = re.sub(r'(?<!")(\b\w+\b)(?!":)', r'"\1"', json_str)
+        return processed_json_str
+
     def on_result(self, result: str):
         # TODO: Streaming is hard here because json isn't parsed perfectly across lines in the chunker
         self.output_pub.publish(String(data=result))
 
-        pattern = r'@(\w+)\s*(\{.*?\})'
+        pattern = r'@(\w+)\s*\((\{.*?\})\)'
         matches = re.findall(pattern, result, re.DOTALL)
         
         if len(matches) == 0:
@@ -119,7 +127,7 @@ class Memorialist(Distiller):
             self.get_logger().info(f"Matched perhaps {tool}, {json_str}")
             try:
                 self.get_logger().info(f"{json_str}: {type(json_str)}")
-                json_str = re.sub(r'(\w+)(\s*:\s*)', r'"\1"\2', json_str)
+                json_str = self.preprocess_json_string(json_str)
                 self.get_logger().info(f"{json_str}: {type(json_str)}")
                 json_obj = json.loads(json_str)
                 self.get_logger().info("Made it past deserialization")
