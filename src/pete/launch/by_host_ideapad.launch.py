@@ -16,8 +16,10 @@ def generate_launch_description():
             name="language_processor",
             output="screen",
             parameters=[
-                {"model": "llama3:instruct"},
-                {"base_url": "http://192.168.0.129:11434"},
+                # {"model": "llama3:instruct"},
+                # {"base_url": "http://192.168.0.129:11434"},
+                {"model": "gpt-4"},
+                {"model_type": "openai"},
             ],
         ),
         Node(
@@ -28,7 +30,7 @@ def generate_launch_description():
             parameters=[
                 {"output_topic": "/memory_management"},
                 {"input_topics": ["/memory", "/memory_management"]},
-                {"update_interval": 2.0}
+                {"update_interval": 5.0}
             ]
         ),
     ])
