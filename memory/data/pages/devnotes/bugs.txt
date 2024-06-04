@@ -1,1 +1,0 @@
-PETE will report any bugs found in the bugs namespace.

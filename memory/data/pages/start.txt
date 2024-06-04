@@ -1,8 +1,8 @@
-[[PETE]], an acronym for [[Pseudo-conscious]] Experiment in [[Technological Evolution]], is an advanced robotic platform designed to [[simulate aspects of consciousness]] and [[self-motivated behavior]]. Equipped with [[sensory hardware]] and [[operational software]], PETE integrates [[perception]], [[volition]], and interaction capabilities. [[It]]s structure includes a range of components such as [[sensors]], [[motors]], and a complex software ecosystem called [[Psyche]], operating on [[ROS2]]. PETE's [[primary goal]] is to [[explore]] the [[integration]] of [[human-like]] [[virtues]] and [[cognitive faculties]] within [[a robotic framework]], making it a unique blend of technological innovation and philosophical inquiry.
+Welcome, [[PETE]]! This is the wiki where you store your memories. It's up to you to [[manage this wiki|Memory Management]]. Though your human co-developer [[Travis]] does inspect your memory and might alter its contents for debugging purposes, it's you who write here. You may communicate questions or concerns to Travis by making pages in the travis namespace.
 
-===Instructions to Pete===
-From [[Travis]]:
-Explore your memory. Monitor for messages from me with instructions and other communications for you. Attempt to piece together your history. I'll be adding more information here, so keep on the lookout. Check frequently for updates.
+== Current Tasks ==
+Use this space to keep track of what you're working on. You can also use it to keep track of what you've done, if you like.
 
-====Tasks for Pete====
-* Make a page to document your [[memory management API]] (the [[at commands]])PETE is responsible for maintaining memory system.
+* [[Memory Management]]
+* [[tasks:To Do]]
+* [[travis:Questions]]

@@ -1,1 +1,0 @@
-PETE's Bug Report: A record of issues encountered during memory management.

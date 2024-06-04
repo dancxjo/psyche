@@ -73,7 +73,7 @@ Use double quotes around all the keys in the JSON object. DO NOT USE LITERAL NEW
 Log everything you do to a particular page in the memory filing system.
 
 Keep a running log of your context and identity in the memory filing system.
-# Relevant memories: {context}
+# Relevant memories: {relevant_memories}
 # Input topics: {input_topics}
 """
 

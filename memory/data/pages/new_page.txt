@@ -1,5 +1,0 @@
-**New Page Title**
-
-This is a new page with content.
-[[wiki:syntax|Syntax]]
-This is a new page with sample content. [[wiki:syntax|Syntax]]

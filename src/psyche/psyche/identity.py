@@ -36,12 +36,11 @@ API_URL = "http://127.0.0.1:9000/lib/exe/jsonrpc.php"
 HEADERS = {'Content-Type': 'application/json'}
 
 prompt = """Use all the information available to you to answer the question: "Who is PETE?" Please phrase it in the first person as you are him.
-
-Relevant memories: {context}
+Relevant memories: {relevant_memories}
 -----
 Prompt: {prompt}
 -----
-So who are you?
+So...who are you?
 """
 
 class Identity(Distiller):

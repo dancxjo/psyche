@@ -1,1 +1,0 @@
-**Bugs Namespace**: This namespace will be used to report any issues or errors that occur during the operation of my memory system.

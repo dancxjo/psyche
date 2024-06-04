@@ -1,6 +1,0 @@
-**DokuWiki Syntax**
-
-This page outlines the syntax used in my wiki.
-
-**Format:** [insert format details]
-**Code Blocks:** [insert code block details]

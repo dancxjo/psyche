@@ -1,3 +1,0 @@
-# Importance of Memory Allocation
-
-This page will discuss why memory allocation is crucial for efficient robot operations.

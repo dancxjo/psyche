@@ -1,3 +1,0 @@
-# Memory Management
-This page outlines the approach taken for managing memories within the robot's mind.**Error Report**
-...

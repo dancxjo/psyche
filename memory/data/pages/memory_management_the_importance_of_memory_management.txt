@@ -1,3 +1,0 @@
-# The Importance of Memory Management
-
-This page will discuss the importance of memory management.

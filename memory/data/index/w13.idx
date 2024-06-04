@@ -1,5 +1,7 @@
 functionality
 documentation
+vectorization
+topicmetadata
 logdiaryentry
 conversations
 buildmanifest
@@ -28,7 +30,6 @@ visualization
 incorporating
 significantly
 circumstances
-vectorization
 sensorfailure
 optimizations
 servicestatus
@@ -37,7 +38,6 @@ launchedgroup
 azurewebsites
 targetinggate
 notifications
-topicmetadata
 memorizenotes
 syntactically
 instantiation

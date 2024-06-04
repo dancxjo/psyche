@@ -19,7 +19,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
 from langchain_experimental.text_splitter import SemanticChunker
-
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 class Informant(LanguageProcessor):
     """
@@ -33,9 +33,17 @@ class Informant(LanguageProcessor):
         
         self.loader = DirectoryLoader(path, glob=glob, loader_cls=TextLoader)
         self.raw_docs = self.loader.load()
-        self.text_splitter = SemanticChunker(self.embeddings)
-        self.split_docs = self.text_splitter.split_documents(self.raw_docs)
+        self.text_splitter1 = RecursiveCharacterTextSplitter(
+            chunk_size=512,
+            chunk_overlap=256,
+            length_function=len,
+            is_separator_regex=False,
+        )
+        self.text_splitter2 = SemanticChunker(self.embeddings)
+        self.split_docs1 = self.text_splitter1.split_documents(self.raw_docs)
+        self.split_docs = self.text_splitter2.split_documents(self.split_docs1)
         self.documents = self.split_docs
+        self.get_logger().info(f'Documents loaded and split. {self.documents}')
         self.get_logger().info('Documents loaded and split.')        
 
     def setup_embeddings(self):
@@ -57,7 +65,7 @@ class Informant(LanguageProcessor):
     
     def setup_retriever(self):
         self.db = FAISS.from_documents(self.split_docs, self.real_embeddings)
-        self.retriever = self.db.as_retriever()
+        self.retriever = self.db.as_retriever(search_kwargs={"k": 10})
     
     def setup_chain(self):
         self.setup_embeddings()
@@ -65,9 +73,12 @@ class Informant(LanguageProcessor):
         self.setup_retriever()
         
         self.rag = {"context": self.retriever, "prompt": RunnablePassthrough()}
-        self.prompt = PromptTemplate.from_template("Use the following context to complete the comply with the prompt that follows.\n\nContext: {context}\n\nPrompt: {prompt}")
-
-        self.chain = self.rag | self.prompt | self.llm | self.output_parser
+        
+        rag_prompt = PromptTemplate.from_template(
+            "What information is relevant to anser the following prompt? {prompt}"
+        )
+        
+        self.chain = self.rag | rag_prompt | self.prompt | self.llm | self.output_parser
         self.get_logger().info('Processing chain created with RAG system.')
         
 def main(args=None):

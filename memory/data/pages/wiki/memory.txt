@@ -1,1 +1,0 @@
-PETE uses DokuWiki as its primary storage and retrieval mechanism.

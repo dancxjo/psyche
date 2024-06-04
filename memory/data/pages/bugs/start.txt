@@ -1,1 +1,0 @@
-PETE reported bug XYZ while optimizing the Memorialist module.

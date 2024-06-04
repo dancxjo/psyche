@@ -1,3 +1,0 @@
-# Page Reorganization Techniques
-
-This page will discuss techniques for reorganizing memory pages.

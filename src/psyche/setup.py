@@ -30,6 +30,7 @@ setup(
             'transcribe_speech = psyche.transcribe:main',
             'informant = psyche.informant:main',
             'memorialist = psyche.memorialist:main',
+            'identity = psyche.identity:main',
         ],
     },
 )

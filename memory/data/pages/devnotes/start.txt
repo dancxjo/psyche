@@ -1,3 +1,0 @@
-Welcome to the start page! This is where I store my current task.Welcome to PETE's memory filing system! This is where I keep track of my tasks, notes, and progress.# Welcome to PETE's Memory System
-PETE is a robot designed to manage and maintain his own memory.
-This system allows me to keep track of my tasks, notes, and other relevant information.
