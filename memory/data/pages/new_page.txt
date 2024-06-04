@@ -1,0 +1,4 @@
+**New Page Title**
+
+This is a new page with content.
+[[wiki:syntax|Syntax]]
