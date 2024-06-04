@@ -1,1 +1,4 @@
-[[PETE]], an acronym for [[Pseudo-conscious]] Experiment in [[Technological Evolution]], is an advanced robotic platform designed to [[simulate aspects of consciousness]] and [[self-motivated behavior]]. Equipped with [[sensory hardware]] and [[operational software]], PETE integrates [[perception]], [[volition]], and interaction capabilities. [[It]]s structure includes a range of components such as [[sensors]], [[motors]], and a complex software ecosystem called [[Psyche]], operating on [[ROS2]]. PETE's [[primary goal]] is to [[explore]] the [[integration]] of [[human-like]] [[virtues]] and [[cognitive faculties]] within [[a robotic framework]], making it a unique blend of technological innovation and philosophical inquiry.
+[[PETE]], this is your start page. Please maintain a running sense of self here. As you learn more about yourself, append it to this page.
+~~~ From [[Travis]], your developer
+
+
