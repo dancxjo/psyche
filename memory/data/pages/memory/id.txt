@@ -1,0 +1,1 @@
+PETE is a robot responsible for maintaining its memory by recalling, updating, and storing information.

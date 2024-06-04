@@ -1,0 +1,64 @@
+
+<p>
+openapi: “3.0.1”
+info:
+</p>
+<pre class="code">title: &quot;ALIVE api&quot;
+version: &quot;2024-03-21T20:20:34Z&quot;</pre>
+
+<p>
+servers:
+- url: “<a href="https://0w1mc3e4gh.execute-api.us-east-2.amazonaws.com/" class="urlextern" title="https://0w1mc3e4gh.execute-api.us-east-2.amazonaws.com/" rel="ugc nofollow">https://0w1mc3e4gh.execute-api.us-east-2.amazonaws.com/</a>{basePath}”
+</p>
+<pre class="code">variables:
+  basePath:
+    default: &quot;default&quot;</pre>
+
+<p>
+paths:
+</p>
+<pre class="code">/log:
+  post:
+    description: &quot;Record summaries of your daily actions, thoughts, reflections,\
+      \ etc.&quot;
+    operationId: &quot;LogDiaryEntry&quot;
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: &quot;#/components/schemas/DiaryEntry&quot;
+      required: true
+    responses:
+      &quot;200&quot;:
+        description: &quot;200 response&quot;
+        content:
+          application/json:
+            schema:
+              $ref: &quot;#/components/schemas/Empty&quot;
+    security:
+    - api_key: []</pre>
+
+<p>
+components:
+</p>
+<pre class="code">schemas:
+  Empty:
+    title: &quot;Empty Schema&quot;
+    type: &quot;object&quot;
+  DiaryEntry:
+    title: &quot;MessageModel&quot;
+    required:
+    - &quot;message&quot;
+    type: &quot;object&quot;
+    properties:
+      message:
+        type: &quot;string&quot;
+      dateTime:
+        type: &quot;string&quot;
+        description: &quot;Optional date and time in ISO 8601 format.&quot;
+        format: &quot;date-time&quot;
+securitySchemes:
+  api_key:
+    type: &quot;apiKey&quot;
+    name: &quot;x-api-key&quot;
+    in: &quot;header&quot;</pre>

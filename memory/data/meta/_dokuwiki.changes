@@ -231,3 +231,124 @@
 1717535244	172.18.0.1	E	devnotes:status				54
 1717535267	172.18.0.1	C	devnotes:memorist		created		133
 1717535316	172.18.0.1	E	devnotes:status				52
+1717535797	127.0.0.1	E	devnotes:status		external edit		0
+1717536321	172.18.0.1	E	devnotes:status				52
+1717536329	172.18.0.1	E	devnotes:status				52
+1717536354	172.18.0.1	E	devnotes:status				52
+1717536367	172.18.0.1	E	devnotes:status				52
+1717536381	172.18.0.1	E	devnotes:status				52
+1717536404	172.18.0.1	E	devnotes:status				52
+1717536417	172.18.0.1	E	devnotes:status				52
+1717535797	127.0.0.1	E	wiki:syntax		external edit		0
+1717536417	172.18.0.1	E	wiki:syntax				63
+1717535797	127.0.0.1	E	memory:log		external edit		0
+1717536417	172.18.0.1	E	memory:log				47
+1717536417	172.18.0.1	E	memory:log				107
+1717536435	172.18.0.1	E	wiki:syntax				45
+1717536435	172.18.0.1	C	bugs:reporting		created		106
+1717536448	172.18.0.1	E	devnotes:status				60
+1717536473	172.18.0.1	E	devnotes:status				52
+1717536473	172.18.0.1	C	devnotes:todo		created		30
+1717536473	172.18.0.1	C	devnotes:tasks		created		18
+1717536473	172.18.0.1	C	devnotes:stats		created		30
+1717536492	172.18.0.1	E	devnotes:status				60
+1717536500	172.18.0.1	E	devnotes:status				39
+1717536515	172.18.0.1	E	devnotes:status				127
+1717536516	172.18.0.1	C	devnotes:memory		created		98
+1717536529	172.18.0.1	E	devnotes:status				52
+1717536538	172.18.0.1	E	devnotes:status				52
+1717535797	127.0.0.1	E	devnotes:current_task		external edit		0
+1717536553	172.18.0.1	E	devnotes:current_task				75
+1717536553	172.18.0.1	E	devnotes:status				54
+1717536553	172.18.0.1	E	devnotes:current_task				75
+1717536553	172.18.0.1	E	devnotes:current_task				45
+1717536562	172.18.0.1	E	devnotes:status				52
+1717536586	172.18.0.1	E	devnotes:status				52
+1717536586	172.18.0.1	E	memory:log				40
+1717536689	172.18.0.1	E	devnotes:status				52
+1717536689	172.18.0.1	E	memory:log				30
+1717536734	172.18.0.1	E	devnotes:status				52
+1717536734	172.18.0.1	E	memory:log				30
+1717536734	172.18.0.1	E	devnotes:current_task				52
+1717535797	127.0.0.1	E	devnotes:log		external edit		0
+1717536734	172.18.0.1	E	devnotes:log				30
+1717536734	172.18.0.1	E	devnotes:memory				33
+1717536734	172.18.0.1	E	devnotes:status				52
+1717536734	172.18.0.1	E	devnotes:status				36
+1717536768	172.18.0.1	E	devnotes:status				69
+1717536768	172.18.0.1	E	devnotes:status				81
+1717536851	172.18.0.1	E	devnotes:status				52
+1717536953	172.18.0.1	E	memory:log				17
+1717536998	172.18.0.1	E	devnotes:status				54
+1717536998	172.18.0.1	E	memory:log				39
+1717537046	172.18.0.1	E	devnotes:status				52
+1717537058	172.18.0.1	E	devnotes:status				52
+1717537058	172.18.0.1	E	devnotes:status				52
+1717537154	172.18.0.1	E	devnotes:status				52
+1717535797	127.0.0.1	E	logs		external edit		0
+1717537154	172.18.0.1	E	logs				20
+1717537154	172.18.0.1	C	context		created		27
+1717537200	172.18.0.1	C	devnotes:new_note		Initial entry for notes_to_self page		44
+1717537200	172.18.0.1	E	devnotes:memory		Logged actions		42
+1717537227	172.18.0.1	E	devnotes:status				52
+1717537267	172.18.0.1	E	devnotes:status				49
+1717537267	172.18.0.1	E	wiki:syntax				133
+1717535797	127.0.0.1	E	devnotes:start		external edit		0
+1717537267	172.18.0.1	E	devnotes:start				100
+1717537267	172.18.0.1	E	memory:log		Initial memory setup complete.		-344
+1717537267	172.18.0.1	E	devnotes:status				56
+1717537317	172.18.0.1	E	devnotes:status				52
+1717537342	172.18.0.1	E	devnotes:status				65
+1717537369	172.18.0.1	E	devnotes:status				52
+1717537369	172.18.0.1	E	memory:log				-35
+1717537435	172.18.0.1	E	devnotes:current_task				52
+1717537446	172.18.0.1	E	devnotes:status				52
+1717537446	172.18.0.1	E	devnotes:status				64
+1717537496	172.18.0.1	E	devnotes:status				52
+1717537591	172.18.0.1	C	devnotes:wiki:syntax		created		47
+1717537601	172.18.0.1	E	devnotes:status				80
+1717537601	172.18.0.1	C	memory:context		created		48
+1717537601	172.18.0.1	E	devnotes:current_task				59
+1717537777	172.18.0.1	C	memories:logs		Initial memory logging.		27
+1717537810	172.18.0.1	E	devnotes:status				64
+1717537810	172.18.0.1	E	devnotes:status				64
+1717537810	172.18.0.1	E	devnotes:log				48
+1717537828	172.18.0.1	E	devnotes:status				52
+1717537828	172.18.0.1	E	memory:log				56
+1717535797	127.0.0.1	E	memory:start		external edit		0
+1717537855	172.18.0.1	E	memory:start				69
+1717537866	172.18.0.1	C	devnotes:new_task		created		28
+1717537866	172.18.0.1	E	devnotes:status				79
+1717537895	172.18.0.1	E	devnotes:status				52
+1717537895	172.18.0.1	C	pete-log		created		107
+1717537933	172.18.0.1	E	memories:logs		Initial memory logging.		27
+1717537938	172.18.0.1	E	devnotes:status				52
+1717538023	172.18.0.1	E	devnotes:status				52
+1717538023	172.18.0.1	E	pete-log				107
+1717538026	172.18.0.1	E	devnotes:start				185
+1717538084	172.18.0.1	E	devnotes:status				52
+1717538084	172.18.0.1	E	memory:log				57
+1717538150	172.18.0.1	E	devnotes:status				52
+1717535797	127.0.0.1	E	current_task		external edit		0
+1717538160	172.18.0.1	E	current_task				52
+1717538193	172.18.0.1	E	devnotes:status				52
+1717538271	172.18.0.1	E	memory:log				60
+1717538293	172.18.0.1	E	devnotes:status				52
+1717538293	172.18.0.1	E	devnotes:status				52
+1717538316	172.18.0.1	E	devnotes:status				67
+1717538452	172.18.0.1	E	devnotes:status				63
+1717538461	172.18.0.1	E	devnotes:status				52
+1717538481	172.18.0.1	E	devnotes:status				69
+1717538481	172.18.0.1	C	wiki:memory		created		66
+1717538496	172.18.0.1	E	devnotes:status				52
+1717538496	172.18.0.1	E	memory:log				113
+1717538496	172.18.0.1	C	memory:id		created		103
+1717538541	172.18.0.1	E	devnotes:status				52
+1717538555	172.18.0.1	E	devnotes:status				52
+1717538569	172.18.0.1	E	devnotes:status				52
+1717538621	172.18.0.1	E	devnotes:status				48
+1717538621	172.18.0.1	C	memory:log_pete_s_activity_log		PETE's Activity Log Update		85
+1717538621	172.18.0.1	C	memory:log_pete_s_context_log		PETE's Context Log Update		65
+1717538630	172.18.0.1	E	devnotes:status				52
+1717538662	172.18.0.1	E	devnotes:status				52
+1717538671	172.18.0.1	E	memory:log				36

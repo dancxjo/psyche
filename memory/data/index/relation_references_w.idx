@@ -1,3 +1,4 @@
+fragments:default
 wiki:syntax
 playground:playground
 wiki:pagename
@@ -31,4 +32,3 @@ pete
 travis
 memory_management_api
 at_commands
-memorialist_module
