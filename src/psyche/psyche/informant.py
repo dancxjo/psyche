@@ -18,6 +18,8 @@ from langchain_core.prompts import PromptTemplate
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
+from langchain_experimental.text_splitter import SemanticChunker
+
 
 class Informant(LanguageProcessor):
     """
@@ -29,10 +31,10 @@ class Informant(LanguageProcessor):
         self.declare_parameter('glob', '**/*.txt')
         glob = self.get_parameter('glob').get_parameter_value().string_value
         
-        self.loader = DirectoryLoader(path, glob=glob)
+        self.loader = DirectoryLoader(path, glob=glob, loader_cls=TextLoader)
         self.raw_docs = self.loader.load()
-        # self.text_splitter = RecursiveCharacterTextSplitter.split_documents()
-        self.split_docs = RecursiveCharacterTextSplitter.split_documents(self.raw_docs)
+        self.text_splitter = SemanticChunker(self.embeddings)
+        self.split_docs = self.text_splitter.split_documents(self.raw_docs)
         self.documents = self.split_docs
         self.get_logger().info('Documents loaded and split.')        
 

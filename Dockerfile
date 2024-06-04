@@ -30,7 +30,8 @@ RUN pip install -qU \
     sentence_splitter \
     langchain-text-splitters \
     faiss-cpu \
-    langchainhub
+    langchainhub \
+    langchain_experimental
 
 # Set up workspace and build
 RUN mkdir -p /psyche
