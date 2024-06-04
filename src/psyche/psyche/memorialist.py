@@ -105,8 +105,9 @@ class Memorialist(Distiller):
 
     def preprocess_json_string(self, json_str):
         # This regular expression replaces unquoted keys with quoted ones
-        processed_json_str = re.sub(r'(?<!")(\b\w+\b)(?!":)', r'"\1"', json_str)
-        return processed_json_str
+        # processed_json_str = re.sub(r'(?<!")(\b\w+\b)(?!":)', r'"\1"', json_str)
+        # return processed_json_str
+        return json_str
 
     def on_result(self, result: str):
         # TODO: Streaming is hard here because json isn't parsed perfectly across lines in the chunker
