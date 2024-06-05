@@ -37,7 +37,8 @@ RUN pip install -qU \
     langchain_experimental \
     gpiod \
     SpeechRecognition \
-    openai-whisper
+    openai-whisper \
+    pyaudio
 
 # Set up workspace and build
 RUN mkdir -p /psyche

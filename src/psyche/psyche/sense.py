@@ -72,3 +72,11 @@ class Sense(Node):
         # Format the message as a string or another type depending on your application
         msg = String(data=f"{self.get_parameter('sensor_id').get_parameter_value().string_value}: {reading}")
         self.publisher.publish(msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = Sense()
+    rclpy.spin(node)
+
+if __name__ == '__main__':
+    main()

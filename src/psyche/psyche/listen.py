@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 import speech_recognition as sr
-from pete_interfaces.msg import Sensation
+from psyche_interfaces.msg import Sensation
 from std_msgs.msg import ByteMultiArray
 from datetime import datetime
 from speech_recognition import AudioData

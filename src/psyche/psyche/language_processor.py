@@ -146,7 +146,7 @@ class LanguageProcessor(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    node = LanguageProcessor()
+    node = LanguageProcessor('language_processor')
 
     rclpy.spin(node)
 

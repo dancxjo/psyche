@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String, ByteMultiArray
-from pete_interfaces.msg import Sensation
+from psyche_interfaces.msg import Sensation
 import uuid
 import datetime
 
