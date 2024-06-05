@@ -360,3 +360,6 @@
 1717541789	172.18.0.1	D	test		removed		-11
 1717541797	127.0.0.1	D	pete		removed - external edit (Unknown date)		-733
 1717541798	172.18.0.1	C	pete		created		776
+1717554335	172.18.0.1	D	wiki:syntax		removed		-22069
+1717555099	127.0.0.1	D	memory		removed - external edit (Unknown date)		-20
+1717555100	172.18.0.1	C	memory		created		861

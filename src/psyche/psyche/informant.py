@@ -23,12 +23,75 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain
 from langchain_core.output_parsers import StrOutputParser
+from std_msgs.msg import String
+from langchain_core.documents import Document
+import yaml
+import re
+import json
+import requests
+import datetime
 
+
+# Global variables for DokuWiki API access
+API_URL = "http://127.0.0.1:9000/lib/exe/jsonrpc.php"
+HEADERS = {'Content-Type': 'application/json'}
 
 class Informant(LanguageProcessor):
     """
     A language processor with a chain that uses the RAG system to answer questions.
     """
+
+    def __init__(self, node_name, action_server_name):
+        super().__init__(node_name, action_server_name)
+        self.subscribe()
+    
+    def subscribe(self):
+        self.declare_parameter('input_topics', ['/memory'])
+        input_topics = self.get_parameter('input_topics').get_parameter_value().string_array_value
+        self.input_subscriptions = []
+        for topic in input_topics:
+            self.input_subscriptions.append(self.create_subscription(
+                String,
+                topic,
+                self.add_document,
+                10
+            ))
+    
+    def execute_wiki_command(self, verb: str, params: dict): 
+        self.cur_id = 0 if not hasattr(self, 'cur_id') else self.cur_id + 1
+        payload = {
+            "jsonrpc": "2.0",
+            "method": f"core.{verb}",
+            "params": params,
+            "id": self.cur_id
+        }
+        self.get_logger().info(f"Executing {verb} with params: {str(params)}")
+        try:
+            response = requests.post(API_URL, headers=HEADERS, data=json.dumps(payload))
+            response.raise_for_status()  # This will raise an exception for HTTP error codes
+            json_response = response.json()
+            self.get_logger().info(f"Response: {str(json_response)}")
+            return yaml.safe_dump(json_response)
+        except requests.exceptions.RequestException as e:
+            self.get_logger().error(f"Request failed: {e}")
+            return f"ERROR! {e}"
+        
+    def add_document(self, msg):
+        if "$$$PASS$$$" in msg.data:
+            return
+        self.get_logger().info(f"Received document: {msg.data}")
+        message_lines = msg.data.split("\n")
+        self.get_logger().info(f"Message lines: {message_lines}")
+        title = re.sub(r'[^\w\s]', '', message_lines[0]).strip()
+        self.get_logger().info(f"Title: {title}")
+        body = "\n".join(message_lines[1:])
+        self.get_logger().info(f"Body: {body}")
+        
+        self.get_logger().info(f"Adding document: {msg.data}")
+        timestamp = datetime.datetime.now().isoformat()
+        self.db.add_texts([body], [{"timestamp": timestamp}])
+        self.execute_wiki_command("appendPage", {"page": title, "text": f"----\n{body}"})
+    
     def setup_documents(self):
         self.declare_parameter('path', '/psyche/memory/data/pages')
         path = self.get_parameter('path').get_parameter_value().string_value

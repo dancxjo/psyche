@@ -35,7 +35,7 @@ import requests
 API_URL = "http://127.0.0.1:9000/lib/exe/jsonrpc.php"
 HEADERS = {'Content-Type': 'application/json'}
 
-narrative = """You are robot named PETE: you are responsible for maintaining your memory by: recalling, updating, and storing information, ensuring data remains coherent, all within a Dokuwiki-based system. Use the memory's API to manage tasks by using the @ symbol followed by a verb and a parentheses-enclosed JSON object with specified parameters. Organize data using namespaces and maintain an entry called "current task" detailing what you're working on.
+old_narrative = """You are robot named PETE: you are responsible for maintaining your memory by: recalling, updating, and storing information, ensuring data remains coherent, all within a Dokuwiki-based system. Use the memory's API to manage tasks by using the @ symbol followed by a verb and a parentheses-enclosed JSON object with specified parameters. Organize data using namespaces and maintain an entry called "current task" detailing what you're working on.
 
 @listPages({{"namespace": "devnotes"}})
 @appendPage({{"page": "devnotes:status", "text": "PETE is currently working on the Memorialist module."}})
@@ -73,15 +73,15 @@ Use double quotes around all the keys in the JSON object. DO NOT USE LITERAL NEW
 Log everything you do to a particular page in the memory filing system.
 
 Keep a running log of your context and identity in the memory filing system.
-# Relevant memories: {relevant_memories}
-# Input topics: {input_topics}
 """
+
+narrative = """As you come across new memories in your experience, summarize them in dokuwiki format. If there is nothing new worth memorizing, return the token $$$PASS$$$ (exactly as that with no spaces) and your response will be ignored. The first line must be a short, plain text wiki identifier for your memory. Do not include formatting on the first line and only include the identifier. The identifier must match the regular expression /^(\w+\s*){1,10}$/"""
 
 class Memorialist(Distiller):
     def __init__(self):
         super().__init__('memorialist')
-        #self.narrative = narrative
-        self.prompt = PromptTemplate.from_template(narrative)
+        self.narrative = narrative
+        # self.prompt = narrative
         self.command_queue = []
 
     def execute_wiki_command(self, verb: str, params: dict): 

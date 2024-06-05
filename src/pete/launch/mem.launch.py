@@ -30,18 +30,18 @@ def generate_launch_description():
         #         {"base_url": "http://192.168.0.129:11434"},
         #     ],
         # ),
-        # Node(
-        #     package="psyche",
-        #     executable="memorialist",
-        #     name="memorialist",
-        #     output="screen",
-        #     parameters=[
-        #         {"output_topic": "/memory_management"},
-        #         {"input_topics": ["/memory", "/memory_management", "/context", "/instant"]},
-        #         {"update_interval": 5.0},
-        #         {"action_server_name": "/recall"}
-        #     ]
-        # ),
+        Node(
+            package="psyche",
+            executable="memorialist",
+            name="memorialist",
+            output="screen",
+            parameters=[
+                {"output_topic": "/memory"},
+                {"input_topics": ["/sense_of_self", "/memory", "/context", "/instant"]},
+                {"update_interval": 2.0},
+                {"action_server_name": "/recall"}
+            ]
+        ),
         # The informant knows (through RAG) the content of the wiki
         Node(
             package="psyche",
@@ -51,6 +51,7 @@ def generate_launch_description():
             parameters=[
                 {"model": "llama3:instruct"},
                 {"base_url": "http://192.168.0.129:11434"},
+                {"input_topics": ["/memory"]},
             ],
         ),
         Node(
@@ -61,7 +62,7 @@ def generate_launch_description():
             parameters=[
                 {"output_topic": "/sense_of_self"},
                 {"input_topics": ["/context", "/instant"]},
-                {"update_interval": 5.0},
+                {"update_interval": 15.0 * 60},
                 {"action_server_name": "/recall"}
             ]
         ),
