@@ -4,8 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile
     network_mode: host
-    # devices:
-    # - "/dev/ttyUSB0:/dev/ttyUSB0"
+    devices:
+      - "/dev/bus/usb/003/018:/dev/bus/usb/003/018" # USB-Serial Controller
+      - "/dev/bus/usb/003/019:/dev/bus/usb/003/019" # USB Audio Device
     volumes:
       - ./memory:/psyche/memory
     environment:

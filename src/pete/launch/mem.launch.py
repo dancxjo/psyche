@@ -28,6 +28,7 @@ def generate_launch_description():
             parameters=[
                 {"model": "llama3:instruct"},
                 {"base_url": "http://192.168.0.129:11434"},
+<<<<<<< Updated upstream
                 {"action_server_name": "/instruct"},
             ],
         ),
@@ -65,6 +66,22 @@ def generate_launch_description():
                 {"action_server_name": "/recall"}
             ]
         ),
+=======
+            ],
+        ),
+        # Node(
+        #     package="psyche",
+        #     executable="memorialist",
+        #     name="memorialist",
+        #     output="screen",
+        #     parameters=[
+        #         {"output_topic": "/memory_management"},
+        #         {"input_topics": ["/memory", "/memory_management", "/context", "/instant"]},
+        #         {"update_interval": 5.0},
+        #         {"action_server_name": "/recall"}
+        #     ]
+        # ),
+>>>>>>> Stashed changes
         # The informant knows (through RAG) the content of the wiki
         Node(
             package="psyche",
