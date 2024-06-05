@@ -9,19 +9,13 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 # This is off-board on our local server. As much as possible, limit this to extremely heavy lifting
 def generate_launch_description():
     return LaunchDescription([
-        Node(
-            package="psyche",
-            executable="transcribe_speech",
-            name="transcription_service",
-            output="screen",
-        ),
-        Node(
-            package="psyche",
-            executable="stream_voice",
-            name="tts_service",
-            output="screen",
-            parameters=[{
-                'port': 8000,
-            }]
-        ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([
+                    PathJoinSubstitution([
+                        FindPackageShare('pete'),
+                        'launch',
+                        f'{script}.launch.py'
+                    ])
+                ])
+            ) for script in ['stt', 'tts']
     ])

@@ -100,7 +100,7 @@ class TTSNode(Node):
                                     ('language', 'en'),
                                     ('model_path', '/usr/local/share/tts/models/xtts_v2'),
                                     ('device', 'cuda' if torch.cuda.is_available() else 'cpu'),
-                                    ('chunk_size', 1024)
+                                    ('chunk_size', 1024),
                                 ])
         self.subscription = self.create_subscription(String, 'voice', self.voice_callback, 10)
         self.publisher = self.create_publisher(ByteMultiArray, 'streamed_voice', 10)

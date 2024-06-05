@@ -31,6 +31,7 @@ setup(
             'informant = psyche.informant:main',
             'memorialist = psyche.memorialist:main',
             'identity = psyche.identity:main',
+            'stream_voice = psyche.stream:main',
         ],
     },
 )
