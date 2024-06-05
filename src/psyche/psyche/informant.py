@@ -19,7 +19,11 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
 from langchain_experimental.text_splitter import SemanticChunker
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter        
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_retrieval_chain
+from langchain_core.output_parsers import StrOutputParser
+
 
 class Informant(LanguageProcessor):
     """
@@ -34,14 +38,14 @@ class Informant(LanguageProcessor):
         self.loader = DirectoryLoader(path, glob=glob, loader_cls=TextLoader)
         self.raw_docs = self.loader.load()
         self.text_splitter1 = RecursiveCharacterTextSplitter(
-            chunk_size=512,
-            chunk_overlap=256,
+            chunk_size=128,
+            chunk_overlap=16,
             length_function=len,
             is_separator_regex=False,
         )
-        self.text_splitter2 = SemanticChunker(self.embeddings)
-        self.split_docs1 = self.text_splitter1.split_documents(self.raw_docs)
-        self.split_docs = self.text_splitter2.split_documents(self.split_docs1)
+        # self.text_splitter2 = SemanticChunker(self.embeddings)
+        self.split_docs = self.text_splitter1.split_documents(self.raw_docs)
+        # self.split_docs = self.text_splitter2.split_documents(self.split_docs1)
         self.documents = self.split_docs
         self.get_logger().info(f'Documents loaded and split. {self.documents}')
         self.get_logger().info('Documents loaded and split.')        
@@ -71,14 +75,29 @@ class Informant(LanguageProcessor):
         self.setup_embeddings()
         self.setup_documents()
         self.setup_retriever()
-        
-        self.rag = {"context": self.retriever, "prompt": RunnablePassthrough()}
-        
+
         rag_prompt = PromptTemplate.from_template(
-            "What information is relevant to anser the following prompt? {prompt}"
+            """You are PETE, a robot. You have access to your raw memory data. Using the information in your memory and any included input in the prompt, answer or comply with the prompt as best you can.
+            
+            Raw memory data: {context}
+            ----
+            Prompt: {input}
+            ----
+            Reminder: Return only a concise and word-efficient summary or "I don't know".
+            Summary: """
         )
-        
-        self.chain = self.rag | rag_prompt | self.prompt | self.llm | self.output_parser
+        combined_docs_chain = create_stuff_documents_chain(self.llm, rag_prompt)
+        retrieval_chain = create_retrieval_chain(self.retriever, combined_docs_chain)
+
+        response = retrieval_chain.invoke({"input": "Who is PETE?"})
+        self.get_logger().info(f"Response: {response}")
+
+        rag_chain = retrieval_chain
+
+        self.prompt = PromptTemplate.from_template("{relevant_memories}\n\n{input}")
+
+        self.chain = rag_chain | (lambda input: {"relevant_memories": input.get("answer"), "input": input.get("input")}) | self.prompt | self.llm | self.output_parser
+
         self.get_logger().info('Processing chain created with RAG system.')
         
 def main(args=None):

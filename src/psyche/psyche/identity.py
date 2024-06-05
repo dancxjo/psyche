@@ -35,19 +35,12 @@ import requests
 API_URL = "http://127.0.0.1:9000/lib/exe/jsonrpc.php"
 HEADERS = {'Content-Type': 'application/json'}
 
-prompt = """Use all the information available to you to answer the question: "Who is PETE?" Please phrase it in the first person as you are him.
-Relevant memories: {relevant_memories}
------
-Prompt: {prompt}
------
-So...who are you?
-"""
+prompt = """Use all the information available to you to answer the question: "Who is PETE?" Please phrase it in the first person as you are him. So...who are you? Extra points for economy of words. Use only a few sentences."""
 
 class Identity(Distiller):
     def __init__(self):
         super().__init__('identity')
-
-        self.prompt = PromptTemplate.from_template(prompt)
+        self.prompt = prompt
 
     def on_result(self, result: str):
         self.output_pub.publish(String(data=result))

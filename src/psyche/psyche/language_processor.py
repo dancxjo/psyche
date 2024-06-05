@@ -21,7 +21,7 @@ class LanguageProcessor(Node):
         Initializes the node, the language model, and the action server.
         """
         super().__init__(node_name)
-        self.prompt = PromptTemplate.from_template("{prompt}")
+        self.prompt = PromptTemplate.from_template("{input}")
         self.initialize_langchain()
         self._action_server = ActionServer(
             self,
@@ -74,7 +74,7 @@ class LanguageProcessor(Node):
         """
         Extracts the input from the goal handle.
         """
-        return {"prompt": goal_handle.request.prompt}
+        return {"input": goal_handle.request.prompt}
 
     def report_chunk(self, goal_handle, chunk, chunk_level=0):
         feedback_msg = PlainTextInference.Feedback()

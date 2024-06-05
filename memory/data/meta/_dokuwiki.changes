@@ -352,3 +352,11 @@
 1717538630	172.18.0.1	E	devnotes:status				52
 1717538662	172.18.0.1	E	devnotes:status				52
 1717538671	172.18.0.1	E	memory:log				36
+1717541612	172.18.0.1	C	test		created		11
+1717541205	127.0.0.1	E	start		external edit		-591
+1717541745	172.18.0.1	E	start				6
+1717540937	127.0.0.1	C	wiki:pete		created - external edit		776
+1717541779	172.18.0.1	D	wiki:pete		removed		-776
+1717541789	172.18.0.1	D	test		removed		-11
+1717541797	127.0.0.1	D	pete		removed - external edit (Unknown date)		-733
+1717541798	172.18.0.1	C	pete		created		776
