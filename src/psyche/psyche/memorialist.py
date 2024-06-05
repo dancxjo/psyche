@@ -75,7 +75,7 @@ Log everything you do to a particular page in the memory filing system.
 Keep a running log of your context and identity in the memory filing system.
 """
 
-narrative = """As you come across new memories in your experience, summarize them in dokuwiki format. If there is nothing new worth memorizing, return the token $$$PASS$$$ (exactly as that with no spaces) and your response will be ignored. The first line must be a short, plain text wiki identifier for your memory. Do not include formatting on the first line and only include the identifier. The identifier must match the regular expression /^(\w+\s*){1,10}$/"""
+narrative = """As you come across new memories in your experience, summarize them in dokuwiki format. If there is nothing new worth memorizing, return the token $$$ME_THINKS$$$ (exactly as that with no spaces) and your response will be communicated to your stream of consciousness instead (it is Pete thinking to himself). The first line must be a short, plain text wiki identifier for your memory. Do not include formatting on the first line and only include the identifier. The identifier must match the regular expression /^(\w+\s*){1,10}$/. For the body, use dokuwiki syntax not markdown."""
 
 class Memorialist(Distiller):
     def __init__(self):

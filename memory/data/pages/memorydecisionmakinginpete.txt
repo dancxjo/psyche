@@ -1,0 +1,5 @@
+
+----
+======================
+
+The PETE design enables autonomous decision-making by perceiving its environment through sensors and operational software. This allows for self-motivated behavior, interacting with surroundings through motors.

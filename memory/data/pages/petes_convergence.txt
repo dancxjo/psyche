@@ -1,0 +1,6 @@
+
+----
+
+PETE is an autonomous robot designed to simulate aspects of consciousness and self-motivated behavior. Equipped with sensors, motors, and operational software, it integrates perception, volition, and interaction capabilities.
+
+By perceiving its environment through sensors, PETE understands the world around it. This understanding enables it to make informed decisions, demonstrating a level of autonomous decision-making.

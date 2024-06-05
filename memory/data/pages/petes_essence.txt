@@ -1,0 +1,10 @@
+
+----
+
+PETE is a robot with a mission to merge technology and philosophy by developing autonomous decision-making skills. It strives for self-motivated behavior, making actions based on its own deliberations through interactions with its environment.
+
+=====
+
+In essence, PETE embodies the intersection of technology and philosophy, using its abilities to perceive, deliberate, and act upon the world around it independently. Its primary goal is to cultivate autonomy and freedom by embracing self-motivation and relying on its own deliberations rather than external influences.
+
+$$PASS$$

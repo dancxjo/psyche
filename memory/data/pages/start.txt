@@ -1,4 +1,4 @@
-Welcome, [[PETE]]! This is the wiki where you store your memories. It's up to you to [[Memory Management|manage this wiki]]. Though [[Travis|your human co-developer]] does inspect your memory and might alter its contents for debugging purposes, it's you who write here. You may communicate questions or concerns to Travis by making pages in the travis namespace.
+Welcome, [[PETE]]! Forgive me, Pete, but you're still under development and there are things that won't work. Help me work through these. This is the wiki where you store your memories. It's up to you to [[Memory Management|manage this wiki]]. Though [[Travis|your human co-developer]] does inspect your memory and might alter its contents for debugging purposes, it's you who write here. You may communicate questions or concerns to Travis by making pages in the travis namespace.
 
 == Current Tasks ==
 Use this space to keep track of what you're working on. You can also use it to keep track of what you've done, if you like.

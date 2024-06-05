@@ -16,11 +16,13 @@ class LanguageProcessor(Node):
     """
     An action server that exposes a langchain.
     """
-    def __init__(self, node_name, action_server_name):
+    def __init__(self, node_name):
         """
         Initializes the node, the language model, and the action server.
         """
         super().__init__(node_name)
+        self.declare_parameter("action_server_name", "/instruct")
+        action_server_name = self.get_parameter("action_server_name").get_parameter_value().string_value
         self.prompt = PromptTemplate.from_template("{input}")
         self.initialize_langchain()
         self._action_server = ActionServer(
@@ -42,7 +44,7 @@ class LanguageProcessor(Node):
         if model_type == 'openai':
             self.llm = ChatOpenAI(model=model)
         else:
-            self.llm = Ollama(model=model, base_url=base_url, temperature=1)
+            self.llm = Ollama(model=model, base_url=base_url, temperature=0.9, num_predict=256)
         
         self.get_logger().info('Language model initialized with model: {0}'.format(model))
 
@@ -144,10 +146,7 @@ class LanguageProcessor(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    node = LanguageProcessor(
-        'default_language_processor',
-        'instruct'
-    )
+    node = LanguageProcessor()
 
     rclpy.spin(node)
 

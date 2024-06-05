@@ -30,6 +30,7 @@ import re
 import json
 import requests
 import datetime
+import re
 
 
 # Global variables for DokuWiki API access
@@ -44,6 +45,7 @@ class Informant(LanguageProcessor):
     def __init__(self, node_name, action_server_name):
         super().__init__(node_name, action_server_name)
         self.subscribe()
+        self.thoughts = self.create_publisher(String, '/thought', 10)
     
     def subscribe(self):
         self.declare_parameter('input_topics', ['/memory'])
@@ -77,7 +79,9 @@ class Informant(LanguageProcessor):
             return f"ERROR! {e}"
         
     def add_document(self, msg):
-        if "$$$PASS$$$" in msg.data:
+        if re.search(r"(\$\s*)+ME_THINKS(\$\s*)+", msg.data):
+            self.get_logger().info("Client asked to skip this response. Consider throttling.")
+            self.thoughts.publish(msg)
             return
         self.get_logger().info(f"Received document: {msg.data}")
         message_lines = msg.data.split("\n")
@@ -90,7 +94,7 @@ class Informant(LanguageProcessor):
         self.get_logger().info(f"Adding document: {msg.data}")
         timestamp = datetime.datetime.now().isoformat()
         self.db.add_texts([body], [{"timestamp": timestamp}])
-        self.execute_wiki_command("appendPage", {"page": title, "text": f"----\n{body}"})
+        self.execute_wiki_command("appendPage", {"page": title, "text": f"\n----\n{body}\n"})
     
     def setup_documents(self):
         self.declare_parameter('path', '/psyche/memory/data/pages')
