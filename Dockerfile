@@ -12,7 +12,10 @@ RUN apt-get install -y \
     ros-iron-diagnostic-updater \
     libgpiod-dev \
     gpiod \
-    ros-iron-xacro
+    ros-iron-xacro \
+    python3-pyaudio \
+    alsa-utils \
+    libportaudio2 
 
 # Convenience tools
 RUN apt-get install -y \
@@ -37,8 +40,7 @@ RUN pip install -qU \
     langchain_experimental \
     gpiod \
     SpeechRecognition \
-    openai-whisper \
-    pyaudio
+    openai-whisper
 
 # Set up workspace and build
 RUN mkdir -p /psyche
