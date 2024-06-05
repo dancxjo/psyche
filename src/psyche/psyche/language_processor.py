@@ -16,12 +16,12 @@ class LanguageProcessor(Node):
     """
     An action server that exposes a langchain.
     """
-    def __init__(self, node_name):
+    def __init__(self, node_name, action_server_name="/instruct"):
         """
         Initializes the node, the language model, and the action server.
         """
         super().__init__(node_name)
-        self.declare_parameter("action_server_name", "/instruct")
+        self.declare_parameter("action_server_name", action_server_name)
         action_server_name = self.get_parameter("action_server_name").get_parameter_value().string_value
         self.prompt = PromptTemplate.from_template("{input}")
         self.initialize_langchain()
