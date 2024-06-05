@@ -19,7 +19,7 @@ def generate_launch_description():
             parameters=[{
                 "node_name": "the_spokesperson",
                 "action_server_name": "/recall",
-                "narrative": "This is what's happening now. Any text you emit will be spoken out loud in the real world. To suppress your voice, include anywhere in your response the exact token $$$ME_THINKS$$$. Make sure you pay attention to time so that you don't overwhelm your interlocutor. Use the methinks to time yourself. Only speak one sentence at a time.",
+                "narrative": "This is what's happening now. Any text you emit will be spoken out loud in the real world. To suppress your voice, return an empty response. Make sure you pay attention to time so that you don't overwhelm your interlocutor. Use the methinks to time yourself. Only speak one sentence at a time. Only reply with an empty response or one sentence that will be read aloud.",
                 "input_topic_list": ["/sense_of_self", "/instant", "/context"],
                 "output_topic": "/voice",
                 "update_interval": 3.0          # Faster than this causes the robot to talk waaaayyy too fast
