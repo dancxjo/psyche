@@ -16,6 +16,9 @@ def generate_launch_description():
            executable="listen_for_speech", 
            name="speech_segmenter",
            output="screen",
+           parameters=[{
+               "device_index": 0
+           }]
         ),
         
         # Reporting of the transcribed speech to the psyche (i.e. "/sensation")

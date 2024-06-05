@@ -26,7 +26,7 @@ class Distiller(Node):
             
             Interpretation:    
             """),
-            ('input_topics', ['/identity', '/context']),
+            ('input_topics', ['/sense_of_self', '/context']),
             ('output_topic', ''),
             ('update_interval', 60.0),
             ('action_server_name', '/instruct')
