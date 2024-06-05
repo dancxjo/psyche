@@ -20,6 +20,9 @@ def generate_launch_description():
         #         {"model_type": "openai"},
         #     ],
         # ),
+
+
+        # The main lpu that runs offboard
         Node(
             package="psyche",
             executable="lpu",
@@ -28,10 +31,11 @@ def generate_launch_description():
             parameters=[
                 {"model": "llama3:instruct"},
                 {"base_url": "http://192.168.0.129:11434"},
-<<<<<<< Updated upstream
                 {"action_server_name": "/instruct"},
             ],
         ),
+        
+        # The onboard lpu
         Node(
             package="psyche",
             executable="lpu",
@@ -43,46 +47,8 @@ def generate_launch_description():
                 {"action_server_name": "/instruct_local"},
             ],
         ),
-        Node(
-            package="psyche",
-            executable="lpu",
-            name="local_language_processor",
-            output="screen",
-            parameters=[
-                {"model": "phi3"},
-                {"base_url": "http://127.0.0.1:11434"},
-                {"action_server_name": "/jabber"},
-            ],
-        ),
-        Node(
-            package="psyche",
-            executable="memorialist",
-            name="memorialist",
-            output="screen",
-            parameters=[
-                {"output_topic": "/memory"},
-                {"input_topics": ["/sense_of_self", "/memory", "/context", "/instant", "/thought"]},
-                {"update_interval": 2.0},
-                {"action_server_name": "/recall"}
-            ]
-        ),
-=======
-            ],
-        ),
-        # Node(
-        #     package="psyche",
-        #     executable="memorialist",
-        #     name="memorialist",
-        #     output="screen",
-        #     parameters=[
-        #         {"output_topic": "/memory_management"},
-        #         {"input_topics": ["/memory", "/memory_management", "/context", "/instant"]},
-        #         {"update_interval": 5.0},
-        #         {"action_server_name": "/recall"}
-        #     ]
-        # ),
->>>>>>> Stashed changes
-        # The informant knows (through RAG) the content of the wiki
+
+        # The informant knows (through RAG) the content of the wiki and thus has a "memory"
         Node(
             package="psyche",
             executable="informant",
@@ -95,6 +61,22 @@ def generate_launch_description():
                 {"action_server_name": "/recall"}
             ],
         ),
+
+        # The memorialist releases new /memory
+        Node(
+            package="psyche",
+            executable="memorialist",
+            name="memorialist",
+            output="screen",
+            parameters=[
+                {"output_topic": "/memory"},
+                {"input_topics": ["/sense_of_self", "/memory", "/context", "/instant", "/thought"]},
+                {"update_interval": 2.0},
+                {"action_server_name": "/recall"}   # We use an informant instead of a plain /instruct
+            ]
+        ),
+
+        # The identity node is the core of the psyche. It maintains a /sense_of_self which informs all other faculties
         Node(
             package="psyche",
             executable="identity",
@@ -103,10 +85,12 @@ def generate_launch_description():
             parameters=[
                 {"output_topic": "/sense_of_self"},
                 {"input_topics": ["/context", "/instant", "/thought"]},
-                {"update_interval": 5.0 * 60},
-                {"action_server_name": "/recall"}
+                {"update_interval": 5.0 * 60},      # It can update every five minutes
+                {"action_server_name": "/recall"}   # It is well informed
             ]
         ),
+        
+        # The witness integrates buffered sensations into the current /instant
         Node(
             package="psyche",
             executable="distill",
@@ -114,13 +98,15 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "node_name": "the_witness",
-                "action_server_name": "/instruct",
+                "action_server_name": "/recall",
                 "narrative": "These are your recent sensations. Distill them into a coherent 'instant.' Use the raw data to tell a (true) story.",
                 "input_topic_list": ["/sense_of_self", "/sensation", "/thought", "/voice"],
                 "output_topic": "/instant",
-                "update_interval": 25.0,  # This should be longer than the time it takes to generate an instant but otherwise as short as possible
+                "update_interval": 30.0,    # Ideally this would be fast
             }]
         ),
+        
+        # The contextualizer consolidates a buffer of recent /instant\s into a /context 
         Node(
             package="psyche",
             executable="distill",
@@ -130,11 +116,13 @@ def generate_launch_description():
                 "node_name": "the_contextualizer",
                 "action_server_name": "/recall",
                 "narrative": "These are your understandings from the most recent instants of your life. Contextualize them into a coherent 'scene.' Use the raw data to tell a (true) story. Continue from the last response to this prompt, adding to it, revising it or moving on from it as necessary.",
-                "input_topic_list": ["/sense_of_self", "/sensation", "/context"],
+                "input_topic_list": ["/sense_of_self", "/sensation", "/context", "/thought", "/instant"],
                 "output_topic": "/context",
-                "update_interval": 60.0,  # This should be longer than the time it takes to generate a scene but otherwise as short as possible
+                "update_interval": 2 * 60.0,
             }]
         ),
+        
+        # This node monitors others and speaks directly; todo: should stream sentence by sentence
         Node(
             package="psyche",
             executable="distill",
@@ -146,7 +134,7 @@ def generate_launch_description():
                 "narrative": "This is what's happening now. Any text you emit will be spoken out loud in the real world. To suppress your voice, include anywhere in your response the exact token $$$ME_THINKS$$$. Make sure you pay attention to time so that you don't overwhelm your interlocutor. Use the methinks to time yourself.",
                 "input_topic_list": ["/sense_of_self", "/instant", "/context"],
                 "output_topic": "/voice",
-                "update_interval": 3.0
+                "update_interval": 3.0          # Faster than this causes the robot to talk waaaayyy too fast
             }]
         )
     ])
