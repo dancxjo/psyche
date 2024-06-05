@@ -9,7 +9,10 @@ RUN apt-get install -y \
     ros-iron-rmw-cyclonedds-cpp \
     ros-dev-tools \
     python3-colcon-common-extensions \
-    ros-iron-diagnostic-updater 
+    ros-iron-diagnostic-updater \
+    libgpiod-dev \
+    gpiod \
+    ros-iron-xacro
 
 # Convenience tools
 RUN apt-get install -y \
@@ -31,7 +34,10 @@ RUN pip install -qU \
     langchain-text-splitters \
     faiss-cpu \
     langchainhub \
-    langchain_experimental
+    langchain_experimental \
+    gpiod \
+    SpeechRecognition \
+    openai-whisper
 
 # Set up workspace and build
 RUN mkdir -p /psyche
