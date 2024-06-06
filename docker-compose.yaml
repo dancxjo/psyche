@@ -7,7 +7,8 @@ services:
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
       - "/dev/snd:/dev/snd"
-      #- "/dev/bus/usb/003/005:/dev/bus/usb/003/005" # USB Audio Device
+      - "/dev/gpiochip0:/dev/gpiochip0"
+      - "/dev/gpiochip1:/dev/gpiochip1"
     volumes:
       - ./memory:/psyche/memory
     environment:

@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Empty
 from psyche_interfaces.msg import Sensation
-from sense import Sense
+from psyche import Sense
 
 class ButtonSense(Sense):
     """

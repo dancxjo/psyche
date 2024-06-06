@@ -26,7 +26,7 @@ setup(
             'lpu = psyche.language_processor:main',
             'distill = psyche.distiller:main',
             'listen_for_speech = psyche.listen:main',
-            'sense_speech = psyche.sense:main',
+            'sense = psyche.sense:main',
             'transcribe_speech = psyche.transcribe:main',
             'informant = psyche.informant:main',
             'memorialist = psyche.memorialist:main',
