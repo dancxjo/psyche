@@ -1,5 +1,5 @@
-ARG ROS_REPO=ros
-FROM ${ROS_REPO}:iron
+ARG ROS_REPO=arm64v8
+FROM ${ROS_REPO}/ros:iron
 
 RUN apt-get update && \
     apt-get upgrade -y 
