@@ -1,3 +1,6 @@
+*.meta
+*.metadata
+
 # Colcon artifacts
 /install
 /build
