@@ -17,8 +17,8 @@ class MetabolismSense(Sense):
         self.set_parameters([
             rclpy.node.Parameter('sensor_id', rclpy.Parameter.Type.STRING, 'battery_sensor'),
             rclpy.node.Parameter('input_topics', rclpy.Parameter.Type.STRING_ARRAY, [
-                '/battery/capacity', '/battery/charge', '/battery/charge_ratio',
-                '/battery/charging_state', '/battery/current', '/battery/temperature', '/battery/voltage']),
+                'battery/capacity', 'battery/charge', 'battery/charge_ratio',
+                'battery/charging_state', 'battery/current', 'battery/temperature', 'battery/voltage']),
             rclpy.node.Parameter('input_types', rclpy.Parameter.Type.STRING_ARRAY, [
                 'std_msgs.msg.Float32', 'std_msgs.msg.Float32', 'std_msgs.msg.Float32',
                 'create_msgs.msg.ChargingState', 'std_msgs.msg.Float32', 'std_msgs.msg.Int16', 'std_msgs.msg.Float32']),
@@ -31,7 +31,7 @@ class MetabolismSense(Sense):
         """
         Extract data from messages and generate descriptive sensations based on the type of battery information received.
         """
-        description = f"{topic.split('/')[-1].replace('_', ' ').capitalize()}: {msg.data}"
+        description = f"{topic.split('')[-1].replace('_', ' ').capitalize()}: {msg.data}"
         self.publish_sensation(description)
 
     def publish_sensation(self, description):

@@ -20,7 +20,7 @@ def generate_launch_description():
                 'reliability': "high",
                 'processing_notes': "No data payload, triggered by physical button press; the clean_button is your play button, the dock_button is your advance button",
                 'input_types': ['std_msgs.msg.Empty', 'std_msgs.msg.Empty'],
-                'input_topics': ['/clean_button', '/dock_button'],
+                'input_topics': ['clean_button', 'dock_button'],
             }]
         ),
     

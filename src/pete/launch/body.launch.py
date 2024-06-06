@@ -34,7 +34,7 @@ def generate_launch_description():
                 'max_range': 4.0,
                 'field_of_view_deg': 15.0,
                 'frame_id': 'base_link',
-                'output_topic': '/ultrasonic_sensor/forward_distance',
+                'output_topic': 'ultrasonic_sensor/forward_distance',
                 'timer_period_sec': 0.1,
             }]
         ),

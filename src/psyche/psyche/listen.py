@@ -9,7 +9,7 @@ from speech_recognition import AudioData
 class AudioSegmenter(Node):
     def __init__(self):
         super().__init__('audio_segmenter')
-        self.segment_publisher = self.create_publisher(ByteMultiArray, '/audio/segmented', 10)
+        self.segment_publisher = self.create_publisher(ByteMultiArray, 'audio/segmented', 10)
         self.recognizer = sr.Recognizer()
 
         self.declare_parameters(namespace='',

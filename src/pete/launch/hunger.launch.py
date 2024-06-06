@@ -19,7 +19,7 @@ def generate_launch_description():
                 'sensor_id': "Your sense of hunger",
                 'reliability': "high",
                 'processing_notes': "",
-                'input_topics': ['/battery/capacity', '/battery/charge', '/battery/charge_ratio', '/battery/charging_state', '/battery/current', '/battery/temperature', '/battery/voltage'],
+                'input_topics': ['battery/capacity', 'battery/charge', 'battery/charge_ratio', 'battery/charging_state', 'battery/current', 'battery/temperature', 'battery/voltage'],
                 'input_types': ['std_msgs.msg.Float32', 'std_msgs.msg.Float32', 'std_msgs.msg.Float32', 'create_msgs.msg.ChargingState', 'std_msgs.msg.Float32', 'std_msgs.msg.Int16', 'std_msgs.msg.Float32'],
                 'update_interval': 15.0,
                 # 'accumulation_method': "distilled",

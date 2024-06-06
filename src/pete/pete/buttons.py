@@ -16,7 +16,7 @@ class ButtonSense(Sense):
         # Override default sensor ID and setup specific input topics and message types
         self.set_parameters([
             rclpy.node.Parameter('sensor_id', rclpy.Parameter.Type.STRING, 'button_sensor'),
-            rclpy.node.Parameter('input_topics', rclpy.Parameter.Type.STRING_ARRAY, ['/clean_button', '/dock_button']),
+            rclpy.node.Parameter('input_topics', rclpy.Parameter.Type.STRING_ARRAY, ['clean_button', 'dock_button']),
             rclpy.node.Parameter('input_types', rclpy.Parameter.Type.STRING_ARRAY, ['std_msgs.msg.Empty', 'std_msgs.msg.Empty']),
             rclpy.node.Parameter('reliability', rclpy.Parameter.Type.STRING, 'high'),
             rclpy.node.Parameter('processing_notes', rclpy.Parameter.Type.STRING, 'No data payload, triggered by physical button press')
@@ -27,9 +27,9 @@ class ButtonSense(Sense):
         """
         Process the received message based on the topic to identify the action triggered by the button press.
         """
-        if topic == '/clean_button':
+        if topic == 'clean_button':
             self.publish_sensation('clean')
-        elif topic == '/dock_button':
+        elif topic == 'dock_button':
             self.publish_sensation('dock')
 
     def publish_sensation(self, action):

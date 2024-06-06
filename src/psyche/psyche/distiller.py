@@ -26,10 +26,10 @@ class Distiller(Node):
             
             Interpretation:    
             """),
-            ('input_topics', ['/sense_of_self', '/context']),
+            ('input_topics', ['sense_of_self', 'context']),
             ('output_topic', ''),
             ('update_interval', 60.0),
-            ('action_server_name', '/instruct')
+            ('action_server_name', 'instruct')
         ])
         
         self.narrative = self.get_parameter('narrative').get_parameter_value().string_value
@@ -45,18 +45,21 @@ class Distiller(Node):
         self.input_subs = []
         self.input_queue = {}
         self.input_subs = [self.create_subscription(String, topic, self.queue_message_callback(topic), 4) for topic in self.input_topic_list]
-        
+        self.get_logger().info(f'Listening to {self.input_topic_list}')
         self.timer = self.create_timer(self.update_interval, self.update)
+        self.get_logger().info(f'Timer set to {self.update_interval} seconds')
         self.update()
 
     def queue_message_callback(self, topic):
         def callback(msg):
+            self.get_logger().info(f'Got message on {topic}: {msg.data}')
             self.queue_message(msg, topic)
         return callback
                 
     # This should be overridden by the subclass
     def transform_topic(self, topic_name: str, msg):
         """Render the message from the specified topic into a string"""
+        self.get_logger().info(f'transforming topic {topic_name}')
         if type(msg) == String:
             return msg.data
         
@@ -66,26 +69,35 @@ class Distiller(Node):
         return str(msg)
     
     def queue_message(self, msg, topic):
+        self.get_logger().info(f'Queueing message on {topic}: {msg.data}')
         if topic not in self.input_queue:
             self.input_queue[topic] = []
         self.input_queue[topic].append(msg)
     
     def transform_inputs(self, inputs):
         '''A hook to transform the inputs before they are passed to the prompt'''
-        return yaml.dump(inputs, default_flow_style=False)
+        self.get_logger().info('Transforming inputs')
+        dumped = yaml.dump(inputs, default_flow_style=False)
+        self.get_logger().info(f'Dumped inputs: {dumped}')
+        return dumped
     
     def update(self):
+        self.get_logger().info('Updating')
         if not self.prompt:
             self.get_logger().error('No prompt set')
             raise ValueError('No prompt set')
         
         inputs = {}
         for topic, messages in self.input_queue.items():
+            self.get_logger().info(f'Processing {len(messages)} messages on {topic}')
             inputs[topic] = [self.transform_topic(topic, msg) for msg in messages]
     
         self.input_queue = {}
+        self.get_logger().info(f"Inputs: {inputs}")
         inputs = self.transform_inputs(inputs)
+        self.get_logger().info(f'Prompt: {self.prompt}; awaiting action server {self.action_server_name}')
         self.action_client.wait_for_server()
+        self.get_logger().info(f"Action server {self.action_server_name} found")
         goal = PlainTextInference.Goal(prompt=self.prompt.format(
             narrative=self.narrative,
             output_topic=self.output_topic,
@@ -142,6 +154,8 @@ class Distiller(Node):
     
     def on_feedback(self, feedback_msg):
         feedback = feedback_msg.feedback
+        
+        self.get_logger().info(f'Feedback: {feedback.chunk.chunk}')
         
         if feedback.chunk.level == 0:
             self.on_chunk(feedback.chunk.chunk)

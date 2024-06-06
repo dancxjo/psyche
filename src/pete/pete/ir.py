@@ -16,7 +16,7 @@ class IRSense(Sense):
         # Override default sensor ID and set up specific input topic and message type
         self.set_parameters([
             rclpy.node.Parameter('sensor_id', rclpy.Parameter.Type.STRING, 'ir_omni_sensor'),
-            rclpy.node.Parameter('input_topics', rclpy.Parameter.Type.STRING_ARRAY, ['/ir_omni']),
+            rclpy.node.Parameter('input_topics', rclpy.Parameter.Type.STRING_ARRAY, ['ir_omni']),
             rclpy.node.Parameter('input_types', rclpy.Parameter.Type.STRING_ARRAY, ['std_msgs.msg.UInt16']),
             rclpy.node.Parameter('reliability', rclpy.Parameter.Type.STRING, 'medium'),
             rclpy.node.Parameter('processing_notes', rclpy.Parameter.Type.STRING, 'IR character data; 0 means no character received')

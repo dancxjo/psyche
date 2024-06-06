@@ -20,7 +20,7 @@ class ProprioceptionSense(Sense):
         self.set_parameters([
             rclpy.node.Parameter('sensor_id', rclpy.Parameter.Type.STRING, 'proprioception_sensor'),
             rclpy.node.Parameter('input_topics', rclpy.Parameter.Type.STRING_ARRAY, [
-                '/bumper', '/cliff', '/joint_states', '/odom', '/wheeldrop', '/tf']),
+                'bumper', 'cliff', 'joint_states', 'odom', 'wheeldrop', 'tf']),
             rclpy.node.Parameter('input_types', rclpy.Parameter.Type.STRING_ARRAY, [
                 'create_msgs.msg.Bumper', 'create_msgs.msg.Cliff', 'sensor_msgs.msg.JointState',
                 'nav_msgs.msg.Odometry', 'std_msgs.msg.Empty', 'tf2_msgs.msg.TFMessage']),
@@ -33,10 +33,10 @@ class ProprioceptionSense(Sense):
         """
         Handle messages from various sensors and formats them into sensations.
         """
-        if isinstance(msg, Empty) and topic == '/wheeldrop':
+        if isinstance(msg, Empty) and topic == 'wheeldrop':
             description = "Wheel drop detected"
         else:
-            description = f"{topic.split('/')[-1].replace('_', ' ').capitalize()} data received"
+            description = f"{topic.split('')[-1].replace('_', ' ').capitalize()} data received"
         
         self.publish_sensation(description)
 

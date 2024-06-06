@@ -15,9 +15,9 @@ class Sense(Node):
             ('sensor_id', 'default_sensor'),
             ('reliability', 'unrated'),
             ('processing_notes', ''),
-            ('input_topics', ['/thought'],),
+            ('input_topics', ['thought'],),
             ('input_types', ['std_msgs.msg.String']),
-            ('output_topic', '/sensation'),
+            ('output_topic', 'sensation'),
             ('update_interval', 0.0), # 0 means changes report immediately,
             ('accumulation_method', 'latest'),
         ])
@@ -146,9 +146,12 @@ class Sense(Node):
 
     def process_accumulation(self, topic, accumulation):
         method = self.get_parameter('accumulation_method').get_parameter_value().string_value
-        distiller = self.distill if method == 'distilled' else self.consider
-        self.summarize(distiller, topic, accumulation)        
-        distiller.wait_for_server()
+        if method == 'distilled' or method == 'considered':
+            distiller = self.distill if method == 'distilled' else self.consider
+            self.summarize(distiller, topic, accumulation)        
+            distiller.wait_for_server()
+        else:
+            self.publish_sensation(topic, accumulation)
 
     def clear_accumulations(self):
         '''Hook to maybe cache the last accumulation for a while before clearing it.'''
@@ -161,8 +164,10 @@ class Sense(Node):
         self.clear_accumulations()
 
     def publish_sensation(self, topic, reading):
+        self.get_logger().info(f"Publishing sensation: {reading}")
         # Format the message as a string or another type depending on your application
         msg = self.format_message(reading, topic)
+        self.get_logger().info(f"Publishing sensation: {msg}")
         self.publisher.publish(msg)
 
 def main(args=None):

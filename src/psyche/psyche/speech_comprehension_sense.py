@@ -9,13 +9,13 @@ class SpeechComprehension(Node):
     def __init__(self):
         super().__init__('auditory_comprehension')        
         self.transcript_sub = self.create_subscription(
-            String, '/audio/transcription', self.publish_transcription, 10
+            String, 'audio/transcription', self.publish_transcription, 10
         )
         self.segment_sub = self.create_subscription(
-            ByteMultiArray, '/audio/segmented', self.publish_segment, 10
+            ByteMultiArray, 'audio/segmented', self.publish_segment, 10
         )
         self.sensation_pub = self.create_publisher(
-            Sensation, '/sensation', 10
+            Sensation, 'sensation', 10
         )
         self.current_audio_id = uuid.uuid4()  # Generate a unique identifier for the audio event
 

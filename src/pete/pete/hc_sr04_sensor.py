@@ -22,7 +22,7 @@ class UltrasonicSensorNode(Node):
         self.declare_parameter('frame_id', 'base_link')
         self.declare_parameter('echo_chip', "/dev/gpiochip1")
         self.declare_parameter('trigger_chip', "/dev/gpiochip2")
-        self.declare_parameter('output_topic', '/ultrasonic_sensor/distance')
+        self.declare_parameter('output_topic', 'ultrasonic_sensor/distance')
         self.declare_parameter('timer_period_sec', 0.1)
 
         self.trigger_pin = self.get_parameter('trigger_pin').value

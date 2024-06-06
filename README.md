@@ -47,7 +47,7 @@ class Sense(Node):
             ('processing_notes', ''),
             ('input_topics', []),
             ('input_types', []),
-            ('output_topic', '/sensation'),
+            ('output_topic', 'sensation'),
             ('update_interval', 0),
             ('threshold', 1.0)
         ])

@@ -45,10 +45,10 @@ class Informant(LanguageProcessor):
     def __init__(self, node_name, action_server_name):
         super().__init__(node_name, action_server_name)
         self.subscribe()
-        self.thoughts = self.create_publisher(String, '/thought', 10)
+        self.thoughts = self.create_publisher(String, 'thought', 10)
     
     def subscribe(self):
-        self.declare_parameter('input_topics', ['/memory'])
+        self.declare_parameter('input_topics', ['memory'])
         input_topics = self.get_parameter('input_topics').get_parameter_value().string_array_value
         self.input_subscriptions = []
         for topic in input_topics:
@@ -97,7 +97,7 @@ class Informant(LanguageProcessor):
         self.execute_wiki_command("appendPage", {"page": title, "text": f"\n----\n{body}\n"})
     
     def setup_documents(self):
-        self.declare_parameter('path', '/psyche/memory/data/pages')
+        self.declare_parameter('path', 'psyche/memory/data/pages')
         path = self.get_parameter('path').get_parameter_value().string_value
         self.declare_parameter('glob', '**/*.txt')
         glob = self.get_parameter('glob').get_parameter_value().string_value
