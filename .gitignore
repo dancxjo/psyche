@@ -7,7 +7,7 @@
 /log
 
 # Shell scripts for specific, non-ROS2 hosts
-/launch
+# /launch
 
 # PETE's ongoing memory should be kept secure
 # /memory
