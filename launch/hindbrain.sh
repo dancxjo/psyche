@@ -1,0 +1,20 @@
+#!/bin/bash
+
+## This is a small SBC with GPIO pins and lots of ports
+### This is the device the robot is always with
+
+# It runs OLLAMA, as a backup in case everything else crashes. It's very slow and CPU only, so se need to use a small model
+screen -Smd ollama bash -c "OLLAMA_DEBUG=false OLLAMA_HOST='0.0.0.0:11434' OLLAMA_KEEP_ALIVE=1h ollama serve"
+
+### It also is connected to a Coral TPU...we'll use this to do live training, hopefully
+### Ultimately, we'd like to see as much converge on this device as possible
+### However, since this is ROS, we can distribute the processes, as long as we have access to the right devices
+
+### We forward many of our devices to this host
+screen -Smd container bash -c "docker compose /psyche/hindbrain.yaml up"
+
+
+## Finally, we loop forever playing the voice
+while true; do
+    cvlc tcp://192.168.0.129:8000
+done
