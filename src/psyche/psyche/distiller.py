@@ -94,8 +94,8 @@ class Distiller(Node):
     
         self.input_queue = {}
         self.get_logger().info(f"Inputs: {inputs}")
-        inputs = self.transform_inputs(inputs)
-        if inputs == '' or inputs == '{}' or inputs == '' or inputs == '[]':
+        inputs = (self.transform_inputs(inputs)).strip()
+        if inputs == '' or inputs == '{}' or inputs == '' or inputs == '[]' or inputs == {} or inputs == []:
             self.get_logger().info('No inputs--skipping prompt')
             return
         prompt=self.prompt.format(
