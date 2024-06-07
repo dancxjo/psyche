@@ -13,8 +13,7 @@ screen -Smd ollama bash -c "OLLAMA_DEBUG=false OLLAMA_HOST='0.0.0.0:11434' OLLAM
 ### We forward many of our devices to this host
 screen -Smd container bash -c "docker compose -f /psyche/hindbrain.yaml up"
 
-
 ## Finally, we loop forever playing the voice
 while true; do
-    cvlc tcp://192.168.0.129:8000
+    cvlc tcp://192.168.0.132:8000
 done
