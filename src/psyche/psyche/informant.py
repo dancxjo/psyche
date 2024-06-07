@@ -97,7 +97,7 @@ class Informant(LanguageProcessor):
         self.execute_wiki_command("appendPage", {"page": title, "text": f"\n----\n{body}\n"})
     
     def setup_documents(self):
-        self.declare_parameter('path', 'psyche/memory/data/pages')
+        self.declare_parameter('path', '/psyche/memory/data/pages')
         path = self.get_parameter('path').get_parameter_value().string_value
         self.declare_parameter('glob', '**/*.txt')
         glob = self.get_parameter('glob').get_parameter_value().string_value
