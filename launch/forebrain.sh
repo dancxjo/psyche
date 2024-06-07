@@ -9,4 +9,4 @@ screen -Smd ollama bash -c "OLLAMA_DEBUG=false OLLAMA_HOST='0.0.0.0:11434' OLLAM
 ## Other services will be launched inside the container, which we'll launch forthwith
 ## This will contain the actual ROS2 instance.
 ##
-screen -Smd container bash -c "docker compose /psyche/forebrain.yaml up"
+screen -Smd container bash -c "docker compose -f /psyche/forebrain.yaml up"

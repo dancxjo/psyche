@@ -11,7 +11,7 @@ screen -Smd ollama bash -c "OLLAMA_DEBUG=false OLLAMA_HOST='0.0.0.0:11434' OLLAM
 ### However, since this is ROS, we can distribute the processes, as long as we have access to the right devices
 
 ### We forward many of our devices to this host
-screen -Smd container bash -c "docker compose /psyche/hindbrain.yaml up"
+screen -Smd container bash -c "docker compose -f /psyche/hindbrain.yaml up"
 
 
 ## Finally, we loop forever playing the voice
