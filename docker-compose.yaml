@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - ROS_REPO=${ROS_REPO}
     network_mode: host
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
