@@ -22,7 +22,7 @@ def generate_launch_description():
                 'input_topics': ['context', 'instant', 'audio/transcription'],
                 'input_types': ['std_msgs.msg.Float32', 'std_msgs.msg.Float32', 'std_msgs.msg.Float32', 'create_msgs.msg.ChargingState', 'std_msgs.msg.Float32', 'std_msgs.msg.Int16', 'std_msgs.msg.Float32'],
                 'update_interval': 15.0,
-                # 'accumulation_method': "distilled",
+                'accumulation_method': "queue",
             }]
         ),
 
