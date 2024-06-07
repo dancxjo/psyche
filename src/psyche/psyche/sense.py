@@ -126,6 +126,9 @@ class Sense(Node):
         
         Can you make sense of them?
         """
+        distiller.wait_for_server()
+        self.get_logger().info(f"Action server {distiller.action_server_name} found")
+
         future = distiller.send_goal_async(goal_msg)
         future.add_done_callback(self.make_callback(topic))
 
@@ -149,7 +152,6 @@ class Sense(Node):
         if method == 'distilled' or method == 'considered':
             distiller = self.distill if method == 'distilled' else self.consider
             self.summarize(distiller, topic, accumulation)        
-            distiller.wait_for_server()
         else:
             self.publish_sensation(topic, accumulation)
 
