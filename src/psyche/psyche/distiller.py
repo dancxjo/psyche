@@ -95,12 +95,13 @@ class Distiller(Node):
         self.input_queue = {}
         self.get_logger().info(f"Inputs: {inputs}")
         inputs = self.transform_inputs(inputs)
-        self.get_logger().info(f'Prompt: {self.prompt}; awaiting action server {self.action_server_name}')
-        goal = PlainTextInference.Goal(prompt=self.prompt.format(
+        prompt=self.prompt.format(
             narrative=self.narrative,
             output_topic=self.output_topic,
             input_topics=inputs
-        ))
+        )
+        self.get_logger().info(f'Prompt: {prompt}; awaiting action server {self.action_server_name}')
+        goal = PlainTextInference.Goal(prompt=prompt)
         self.action_client.wait_for_server()
         self.get_logger().info(f"Action server {self.action_server_name} found")
         future = self.action_client.send_goal_async(goal, feedback_callback=self.on_feedback)
