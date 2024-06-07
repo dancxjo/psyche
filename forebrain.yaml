@@ -4,18 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - ROS_REPO=${ROS_REPO}
+        - ROS_REPO=osrf/ros:iron-desktop
     network_mode: host
-    # devices:
-    # - "/dev/ttyUSB0:/dev/ttyUSB0"
-    # - "/dev/snd:/dev/snd"
-    # - "/dev/gpiochip0:/dev/gpiochip0"
-    # - "/dev/gpiochip1:/dev/gpiochip1"
-    # - "/dev/gpiochip0:/dev/gpiochip2"
-    # - "/dev/gpiochip1:/dev/gpiochip3"
-    # - "/dev/gpiochip0:/dev/gpiochip4"
-    # - "/dev/gpiochip1:/dev/gpiochip5"
-
     volumes:
       - ./memory:/psyche/memory
     environment:

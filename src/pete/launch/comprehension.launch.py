@@ -28,4 +28,21 @@ def generate_launch_description():
         #     name="transcription_sense",
         #     output="screen",
         # ),
+        
+                Node(
+            package="psyche",
+            executable="sense",
+            name="hunger",
+            output="screen",
+            parameters=[{
+                'sensor_id': "Speech comprehension",
+                'reliability': "low",
+                'processing_notes': "Provided by whisper. You're liable to have misheard. Try to piece together the conversation from context.",
+                'input_topics': ['context', 'instant', 'audio/transcription'],
+                'input_types': ['std_msgs.msg.Float32', 'std_msgs.msg.Float32', 'std_msgs.msg.Float32', 'create_msgs.msg.ChargingState', 'std_msgs.msg.Float32', 'std_msgs.msg.Int16', 'std_msgs.msg.Float32'],
+                'update_interval': 15.0,
+                # 'accumulation_method': "distilled",
+            }]
+        ),
+
     ])

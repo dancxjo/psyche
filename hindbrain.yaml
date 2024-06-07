@@ -1,0 +1,22 @@
+services:
+  psyche:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - ROS_REPO=arm64v8
+    network_mode: host
+    devices:
+    - "/dev/ttyUSB0:/dev/ttyUSB0"
+    - "/dev/snd:/dev/snd"
+    - "/dev/gpiochip0:/dev/gpiochip0"
+    - "/dev/gpiochip1:/dev/gpiochip1"
+    - "/dev/gpiochip0:/dev/gpiochip2"
+    - "/dev/gpiochip1:/dev/gpiochip3"
+    - "/dev/gpiochip0:/dev/gpiochip4"
+    - "/dev/gpiochip1:/dev/gpiochip5"
+    - "/dev/gpiochip0:/dev/gpiochip6"
+    - "/dev/gpiochip1:/dev/gpiochip7"
+    - "/dev/gpiochip0:/dev/gpiochip8"
+    - "/dev/gpiochip1:/dev/gpiochip9"
+    - "/dev/gpiochip0:/dev/gpiochip10"
