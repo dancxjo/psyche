@@ -21,7 +21,7 @@ I need to make the following senses, to summarize these topics:
        * ir_omni
 
 == TODO ==
-    * Disable sending the recall action from a distiller when the input is blank
+    * <del>Disable sending the recall action from a distiller when the input is blank</del>
     * Add proprioception sense
     * Add sensor node for IMU
     * Add IMU sensor to proprioception

@@ -93,11 +93,12 @@ class Distiller(Node):
             inputs[topic] = [self.transform_topic(topic, msg) for msg in messages]
     
         self.input_queue = {}
-        self.get_logger().info(f"Inputs: {inputs}")
+        self.get_logger().debug(f"Inputs: {inputs}")
         inputs = (self.transform_inputs(inputs)).strip()
         if inputs == '' or inputs == '{}' or inputs == '' or inputs == '[]' or inputs == {} or inputs == []:
-            self.get_logger().info('No inputs--skipping prompt')
+            self.get_logger().debug('No inputs--skipping prompt')
             return
+        self.get_logger().info(f'Prompting with inputs: {inputs}')
         prompt=self.prompt.format(
             narrative=self.narrative,
             output_topic=self.output_topic,
