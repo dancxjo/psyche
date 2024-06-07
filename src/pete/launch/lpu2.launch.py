@@ -18,7 +18,7 @@ def generate_launch_description():
             output="screen",        
             parameters=[
                 {"model": "llama3:instruct"},
-                {"base_url": "http://192.168.0.129:11434"},
+                {"base_url": "http://192.168.0.132:11434"},
                 {"input_topics": ["/memory"]},  # This updates the rag and the wiki
                 {"action_server_name": "/recall"}
             ],
