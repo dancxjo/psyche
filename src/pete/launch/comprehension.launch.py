@@ -22,10 +22,10 @@ def generate_launch_description():
         ),
         
         # Reporting of the transcribed speech to the psyche (i.e. "/sensation")
-        Node(
-            package="psyche",
-            executable="sense_speech",
-            name="transcription_sense",
-            output="screen",
-        ),
+        # Node(
+        #     package="psyche",
+        #     executable="sense_speech",
+        #     name="transcription_sense",
+        #     output="screen",
+        # ),
     ])
