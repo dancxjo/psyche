@@ -22,17 +22,4 @@ def generate_launch_description():
             ],
         ),
         
-        # The informant knows (through RAG) the content of the wiki and thus has a "memory"
-        Node(
-            package="psyche",
-            executable="informant",
-            name="informant",
-            output="screen",        
-            parameters=[
-                {"model": "llama3:instruct"},
-                {"base_url": "http://192.168.0.129:11434"},     # Primary lpu...should really point to a different action server
-                {"input_topics": ["/memory"]},  # This updates the rag and the wiki
-                {"action_server_name": "/recall"}
-            ],
-        ),
     ])
