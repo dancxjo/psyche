@@ -76,13 +76,13 @@ class Distiller(Node):
     
     def transform_inputs(self, inputs):
         '''A hook to transform the inputs before they are passed to the prompt'''
-        self.get_logger().info('Transforming inputs')
+        self.get_logger().debug('Transforming inputs')
         dumped = yaml.dump(inputs, default_flow_style=False)
-        self.get_logger().info(f'Dumped inputs: {dumped}')
+        self.get_logger().debug(f'Dumped inputs: {dumped}')
         return dumped
     
     def update(self):
-        self.get_logger().info('Updating')
+        self.get_logger().debug('Updating')
         if not self.prompt:
             self.get_logger().error('No prompt set')
             raise ValueError('No prompt set')

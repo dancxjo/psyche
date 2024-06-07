@@ -10,29 +10,10 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 # The onboard processing of listening for speech and later reporting it to the psyche as a sensation
 def generate_launch_description():
     return LaunchDescription([
-        # Audio segmenter
         Node(
-           package="psyche",
-           executable="listen_for_speech", 
-           name="speech_segmenter",
-           output="screen",
-           parameters=[{
-               "device_index": 0
-           }]
-        ),
-        
-        # Reporting of the transcribed speech to the psyche (i.e. "/sensation")
-        # Node(
-        #     package="psyche",
-        #     executable="sense_speech",
-        #     name="transcription_sense",
-        #     output="screen",
-        # ),
-        
-                Node(
             package="psyche",
             executable="sense",
-            name="hunger",
+            name="speech_comprehension",
             output="screen",
             parameters=[{
                 'sensor_id': "Speech comprehension",

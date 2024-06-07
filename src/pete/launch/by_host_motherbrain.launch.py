@@ -17,5 +17,5 @@ def generate_launch_description():
                         f'{script}.launch.py'
                     ])
                 ])
-            ) for script in ['hunger', 'comprehension', 'body']
+            ) for script in ['hunger', 'comprehension', 'listen_for_speech', 'body']
     ])
