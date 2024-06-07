@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - ROS_REPO=arm64v8
+        - ROS_REPO=arm64v8/ros:iron
     network_mode: host
     devices:
     - "/dev/ttyUSB0:/dev/ttyUSB0"
