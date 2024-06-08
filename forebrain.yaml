@@ -11,15 +11,15 @@ services:
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
 
-  memory:
-    image: crazymax/dokuwiki:latest
-    ports:
-      - "9000:8000"
-    volumes:
-      - ./memory:/data
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Los_Angeles
-      - MEMORY_LIMIT=256M
-      - UPLOAD_MAX_SIZE=16M
+  # memory:
+  #   image: crazymax/dokuwiki:latest
+  #   ports:
+  #     - "9000:8000"
+  #   volumes:
+  #     - ./memory:/data
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=America/Los_Angeles
+  #     - MEMORY_LIMIT=256M
+  #     - UPLOAD_MAX_SIZE=16M
