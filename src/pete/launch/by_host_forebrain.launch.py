@@ -16,5 +16,5 @@ def generate_launch_description():
                         f'{script}.launch.py'
                     ])
                 ])
-            ) for script in ['combobulation', 'comprehension', 'identity', 'memory', 'sentience', 'speech', 'lpu2']
+            ) for script in ['lpu2', 'listen_for_speech']
     ])

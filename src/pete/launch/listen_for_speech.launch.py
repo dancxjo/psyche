@@ -17,7 +17,7 @@ def generate_launch_description():
            name="speech_segmenter",
            output="screen",
            parameters=[{
-               "device_index": 3
+               "device_index": 0
            }]
         ),
     ])
