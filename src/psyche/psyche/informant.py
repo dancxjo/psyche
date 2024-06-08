@@ -113,7 +113,7 @@ class Informant(LanguageProcessor):
         # self.text_splitter2 = SemanticChunker(self.embeddings)
         self.split_docs = self.text_splitter1.split_documents(self.raw_docs)
         # self.split_docs = self.text_splitter2.split_documents(self.split_docs1)
-        self.documents = self.split_docs
+        self.documents = self.raw_docs
         self.get_logger().info(f'Documents loaded and split. {self.documents}')
         self.get_logger().info('Documents loaded and split.')        
 
