@@ -70,7 +70,7 @@ class SongPlayer(Node):
         process_song(self, msg.data)
 
         # Publish the defined song
-        defined_song_msg = String()
+        defined_song_msg = PlaySong(song=0)
         defined_song_msg.data = 'Defined song: %s' % msg.data
         self.publisher_define_song.publish(defined_song_msg)
 
