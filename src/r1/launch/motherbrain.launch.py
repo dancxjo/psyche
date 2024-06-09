@@ -9,6 +9,16 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 
 def generate_launch_description():
     return LaunchDescription([
+        IncludeLaunchDescription(
+            XMLLaunchDescriptionSource([
+                    PathJoinSubstitution([
+                        FindPackageShare('create_bringup'),
+                        'launch',
+                        'create_1.launch'
+                    ])
+                ])
+        ),
+           
         Node(
             package="psyche",
             executable="heartbeat",
@@ -30,6 +40,20 @@ def generate_launch_description():
                 {"base_url": "http://192.168.0.133:11434"},
                 {"action_server_name": "instruct"}
             ],
+        ),
+
+        Node(
+            package="psyche",
+            executable="distill",
+            name="the_gourmet",
+            output="screen",
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": "You are serving as a constituent of the mind of a robot. Below are the readings from the robot's power topics. Narrate them for the robot in the first person present. Using only the information here, describe the current instant as the robot is experiencing it. Do not describe anything other than the sensations presented here. Be succinct. Describe them in terms of sensations of hunger, satiety. Recommend actions like docking and undocking when the time is appropriate.\n\n{input_topics}\n\nInterpretation:\n",
+                "input_topics": ["battery/capacity", "battery/charge", "battery/charge_ratio", "battery/temperature", "battery/charging_state", "battery/current", "battery/voltage"],
+                "output_topic": "sensation",
+                "update_interval": 30.0,
+            }]
         ),
 
         Node(
