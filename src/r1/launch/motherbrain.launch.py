@@ -40,7 +40,7 @@ def generate_launch_description():
             parameters=[{
                 "action_server_name": "instruct",
                 "prompt": "You are serving as a constituent of the mind of a robot. Below are the sensations that the robot has recently felt. Narrate them for the robot in the first person present. Using only the information here, describe the current instant as the robot is experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\n\nInterpretation:\n",
-                "input_topics": ["sensation"],
+                "input_topics": ["identity", "sensation"],
                 "output_topic": "instant",
                 "update_interval": 2.0,
             }]
@@ -53,10 +53,25 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "action_server_name": "instruct",
-                "prompt": "You are serving as a constituent of the mind of a robot. Below are the the most recent instants in the robot's life. Narrate them for the robot in the first person present. Using only the information here, describe the current situation as the robot is experiencing it. Be succinct but thorough.\n\n{input_topics}\n\nInterpretation:\n",
-                "input_topics": ["instant", "situation"],
+                "prompt": "You are serving as a constituent of the mind of a robot. Below are the the most recent instants in the robot's life, along with the current situation as you have been understanding it. Narrate them for the robot in the first person present. Using only the information here, describe the current situation as the robot is experiencing it. Be succinct but thorough.\n\n{input_topics}\n\nInterpretation:\n",
+                "input_topics": ["identity", "instant", "situation"],
                 "output_topic": "situation",
-                "update_interval": 10.0,
+                "update_interval": 15.0,
+                "accumulation_method": "latest"
+            }]
+        ),
+        
+        Node(
+            package="psyche",
+            executable="distill",
+            name="the_philosopher",
+            output="screen",
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": "You are serving as a constituent of the mind of a robot. Below is the situation as you understand it. Explain to the robot in the first person present who it is. Using only the information here, describe to the robot who it experiences itself as. Be succinct but thorough.\n\n{input_topics}\n\nInterpretation:\n",
+                "input_topics": ["identity", "instant", "situation"],
+                "output_topic": "identity",
+                "update_interval": 60.0,
             }]
         ),
     ])
