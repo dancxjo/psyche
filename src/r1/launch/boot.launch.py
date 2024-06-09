@@ -136,11 +136,27 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "action_server_name": "instruct",
-                "prompt": "You are serving as a constituent of the mind of a robot. Below is the situation as you understand it. In one to five emojis, represent the current emotional state of the robot.\n\n{input_topics}\n\nInterpretation:\n",
+                "prompt": "You are serving as a constituent of the mind of a robot. Below is the situation as you understand it. In one emoji and no other words or symbols, represent the current emotional state of the robot.\n\n{input_topics}\n\nOne emoji and nothing else:\n",
                 "input_topics": ["identity", "instant", "situation"],
                 "output_topic": "feeling",
                 "update_interval": 1.0,
                 "accumulation_method": "latest",                
             }]
         ),
+
+        Node(
+            package="psyche",
+            executable="distill",
+            name="the_musician",
+            output="screen",
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": "You are serving as a constituent of the mind of a robot. Below is the situation as you understand it and how you're feeling about it. Represent the robot's current feelings in song. You must return valid JSON in the following format and nothing more! If you have no appropriate song to play, simply return the token ""null"". Otherwise, specify your song as an array of between 1 and 16 notes. Each note in the array is an object with two fields:\n* `note` an unsigned 8-bit integer defined by the MIDI note numbering scheme (notes outside the range of [31-127] are rest notes)\n* `duration` a positive floating point number representing the duration of the note in seconds\n\n{input_topics}\n\nInterpretation:\n",
+                "input_topics": ["identity", "feeling", "instant", "situation"],
+                "output_topic": "song",
+                "update_interval": 30.0,
+                "accumulation_method": "latest",                
+            }]
+        ),
+
     ])
