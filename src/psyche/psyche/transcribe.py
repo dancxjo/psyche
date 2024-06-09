@@ -20,35 +20,35 @@ class Transcriber(Node):
         self.segment_sub = self.create_subscription(ByteMultiArray, 'audio/segmented', self.queue_segment, 10)
         self.transcription_pub = self.create_publisher(String, 'audio/transcription', 10)
         self.recognizer = sr.Recognizer()
-        self.get_logger().info('Audio transcriber node started')
+        self.get_logger().debug('Audio transcriber node started')
 
         # Set up a timer to process segments every second (or other suitable interval)
         self.timer = self.create_timer(1.0, self.start_transcribing)
 
     def start_transcribing(self):
         if self.segments_to_transcribe:
-            self.get_logger().info('Transcribing segment')
+            self.get_logger().debug('Transcribing segment')
             segment = self.segments_to_transcribe.pop(0)
-            self.get_logger().info(f'Processing audio')
+            self.get_logger().debug(f'Processing audio')
             self.process_audio(segment)
-            self.get_logger().info('Finished transcribing segment')
+            self.get_logger().debug('Finished transcribing segment')
     
     def queue_segment(self, msg):
-        self.get_logger().info('Queuing segment')
+        self.get_logger().debug('Queuing segment')
         self.segments_to_transcribe.append(msg.data)
-        self.get_logger().info(f'Segment queued {len(self.segments_to_transcribe)}')
+        self.get_logger().debug(f'Segment queued {len(self.segments_to_transcribe)}')
 
     def transcribe_audio_whisper(self, audio, language, model):
         try:
             transcription = self.recognizer.recognize_whisper(audio, language=language, model=model)
-            self.get_logger().info(f"Transcription: {transcription}")
+            self.get_logger().debug(f"Transcription: {transcription}")
             if transcription.strip() != "":
                 self.publish_transcription(transcription)
         except Exception as e:
             self.get_logger().error(f"Failed to transcribe audio: {str(e)}")
 
     def process_audio(self, audio_data_list):
-        self.get_logger().info(f'Processing audio {type(audio_data_list)}')
+        self.get_logger().debug(f'Processing audio {type(audio_data_list)}')
 
         language = self.get_parameter('language').get_parameter_value().string_value
         model = self.get_parameter('model').get_parameter_value().string_value
@@ -72,7 +72,7 @@ class Transcriber(Node):
             self.get_logger().error(f"Failed to transcribe audio: {str(e)}")
         
     def publish_transcription(self, transcription):
-        self.get_logger().info('Publishing transcription')
+        self.get_logger().debug('Publishing transcription')
         self.transcription_pub.publish(String(data=transcription))
 
 def main(args=None):

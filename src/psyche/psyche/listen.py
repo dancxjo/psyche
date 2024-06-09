@@ -36,14 +36,14 @@ class AudioSegmenter(Node):
                     continue  # No speech was detected
 
     def publish_segment(self, audio):
-        self.get_logger().info('Publishing segmented audio')
+        self.get_logger().debug('Publishing segmented audio')
         wav_data = audio.get_wav_data()
 
         byte_array_msg = ByteMultiArray()
         byte_array_msg.data = wav_data
 
         self.segment_publisher.publish(byte_array_msg)
-        self.get_logger().info(f'Published {len(byte_array_msg.data)} bytes of WAV audio data')
+        self.get_logger().debug(f'Published {len(byte_array_msg.data)} bytes of WAV audio data')
 
 def main(args=None):
     rclpy.init(args=args)

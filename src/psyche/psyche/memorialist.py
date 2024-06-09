@@ -92,12 +92,12 @@ class Memorialist(Distiller):
             "params": params,
             "id": self.cur_id
         }
-        self.get_logger().info(f"Executing {verb} with params: {str(params)}")
+        self.get_logger().debug(f"Executing {verb} with params: {str(params)}")
         try:
             response = requests.post(API_URL, headers=HEADERS, data=json.dumps(payload))
             response.raise_for_status()  # This will raise an exception for HTTP error codes
             json_response = response.json()
-            self.get_logger().info(f"Response: {str(json_response)}")
+            self.get_logger().debug(f"Response: {str(json_response)}")
             return yaml.safe_dump(json_response)
         except requests.exceptions.RequestException as e:
             self.get_logger().error(f"Request failed: {e}")
@@ -117,23 +117,23 @@ class Memorialist(Distiller):
         matches = re.findall(pattern, result, re.DOTALL)
         
         if len(matches) == 0:
-            self.get_logger().info("No commands in result")
+            self.get_logger().debug("No commands in result")
             return
             
-        self.get_logger().info(f"Commands found: {matches}")
+        self.get_logger().debug(f"Commands found: {matches}")
         
         for match in matches:
             tool = match[0]
             json_str = match[1]
-            self.get_logger().info(f"Matched perhaps {tool}, {json_str}")
+            self.get_logger().debug(f"Matched perhaps {tool}, {json_str}")
             try:
-                self.get_logger().info(f"{json_str}: {type(json_str)}")
+                self.get_logger().debug(f"{json_str}: {type(json_str)}")
                 json_str = self.preprocess_json_string(json_str)
-                self.get_logger().info(f"{json_str}: {type(json_str)}")
+                self.get_logger().debug(f"{json_str}: {type(json_str)}")
                 json_obj = json.loads(json_str)
-                self.get_logger().info("Made it past deserialization")
+                self.get_logger().debug("Made it past deserialization")
                 results = self.execute_wiki_command(tool, json_obj)
-                self.get_logger().info(f"Got back {results}")
+                self.get_logger().debug(f"Got back {results}")
                 self.output_pub.publish(String(data=results))
             except json.JSONDecodeError:
                 self.output_pub.publish(String(data=f"Invalid JSON object: {json_str}"))

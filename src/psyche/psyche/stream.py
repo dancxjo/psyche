@@ -120,7 +120,7 @@ class TTSNode(Node):
         """
         Callback function for voice commands. Processes the text and streams the resulting audio.
         """
-        self.get_logger().info('Received voice command: "%s"' % msg.data)
+        self.get_logger().debug('Received voice command: "%s"' % msg.data)
         self.process_speech(msg.data)
 
     def process_speech(self, text):

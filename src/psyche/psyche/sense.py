@@ -100,7 +100,7 @@ class Sense(Node):
     def process_message(self, msg, topic):
         if self.update_interval == 0.0:
             # Report immediately
-            self.get_logger().info(f"Reporting immediately: {msg}")
+            self.get_logger().debug(f"Reporting immediately: {msg}")
             self.publish_sensation(topic, msg)
             return
         
@@ -116,7 +116,7 @@ class Sense(Node):
         Can you make sense of them?
         """
         distiller.wait_for_server()
-        self.get_logger().info(f"Action server {distiller.action_server_name} found")
+        self.get_logger().debug(f"Action server {distiller.action_server_name} found")
 
         future = distiller.send_goal_async(goal_msg)
         future.add_done_callback(self.make_callback(topic))
@@ -143,16 +143,16 @@ class Sense(Node):
         self.accumulated_readings = {}
 
     def publish_accumulation(self):
-        self.get_logger().info(f"Publishing accumulated sensations")
+        self.get_logger().debug(f"Publishing accumulated sensations")
         for topic, accumulation in self.accumulated_readings.items():
             self.process_accumulation(topic, accumulation)
         self.clear_accumulations()
 
     def publish_sensation(self, topic, reading):
-        self.get_logger().info(f"Publishing sensation: {reading}")
+        self.get_logger().debug(f"Publishing sensation: {reading}")
         # Format the message as a string or another type depending on your application
         msg = self.format_message(reading, topic)
-        self.get_logger().info(f"Publishing sensation: {msg}")
+        self.get_logger().debug(f"Publishing sensation: {msg}")
         self.publisher.publish(msg)
 
 def main(args=None):

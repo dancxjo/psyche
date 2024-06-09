@@ -47,15 +47,15 @@ class LanguageProcessor(Node):
         else:
             self.llm = Ollama(model=model, base_url=base_url, temperature=0.9, num_predict=256)
         
-        self.get_logger().info('Language model initialized with model: {0}'.format(model))
+        self.get_logger().debug('Language model initialized with model: {0}'.format(model))
 
     def setup_output_parser(self):
         self.output_parser = StrOutputParser()
-        self.get_logger().info('Output parser initialized.')
+        self.get_logger().debug('Output parser initialized.')
 
     def setup_chain(self):
         self.chain = self.prompt | self.llm | self.output_parser
-        self.get_logger().info('Processing chain created.')
+        self.get_logger().debug('Processing chain created.')
 
     def initialize_langchain(self):
         """
@@ -69,7 +69,7 @@ class LanguageProcessor(Node):
         """
         Receives and processes a goal using the language model chain.
         """
-        self.get_logger().info(f'Streaming to {self.action_server_name}...')
+        self.get_logger().debug(f'Streaming to {self.action_server_name}...')
         result = self.stream(goal_handle)
         return result
 
@@ -128,7 +128,7 @@ class LanguageProcessor(Node):
                         sentence_buffer = sentence_buffer[end:]
                         
                     if goal_handle.is_cancel_requested:
-                        self.get_logger().info('Goal canceled by client.')
+                        self.get_logger().debug('Goal canceled by client.')
                         goal_handle.canceled()
                         return result
                     

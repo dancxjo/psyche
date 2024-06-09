@@ -25,7 +25,7 @@ class SongPlayer(Node):
         )
 
     def song_callback(self, msg):
-        self.get_logger().info('Received song: %s' % msg.data)
+        self.get_logger().debug('Received song: %s' % msg.data)
         # Process the received song here
         def process_song(self, song):
             try:
@@ -69,13 +69,9 @@ class SongPlayer(Node):
         # Call the process_song function in song_callback
         process_song(self, msg.data)
 
-        # Publish the defined song
-        defined_song_msg = PlaySong(song=0)
-        defined_song_msg.data = 'Defined song: %s' % msg.data
-        self.publisher_define_song.publish(defined_song_msg)
-
+        play_it_sam = PlaySong(song=0)
         # Publish the song to be played
-        self.publisher_play_song.publish(msg)
+        self.publisher_play_song.publish(play_it_sam)
 
 def main(args=None):
     rclpy.init(args=args)
