@@ -12,5 +12,11 @@ def generate_launch_description():
         Node(
             package="psyche",
             executable="heartbeat",
+            name="heartbeat",
+            output="screen",
+            parameters=[
+                {"processing_notes": "You are under development. This may feel funny."},
+                {"update_interval": 1.0},
+            ],
         ),
     ])

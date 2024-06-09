@@ -23,13 +23,12 @@ class Heartbeat(Sense):
         new_sensation.reliability = self.get_parameter('reliability').get_parameter_value().string_value
         new_sensation.data = f"It is {datetime.datetime.now().isoformat()} and you are alive."
         new_sensation.processing_notes = self.get_parameter('processing_notes').get_parameter_value().string_value
-        new_sensation.timestamp = datetime.datetime.now().isoformat()
         self.get_logger().info(f"Publishing heartbeat: {new_sensation.data}")
         self.publisher.publish(new_sensation)
 
 def main(args=None):
     rclpy.init(args=args)
-    node = Sense()
+    node = Heartbeat()
     rclpy.spin(node)
 
 if __name__ == '__main__':
