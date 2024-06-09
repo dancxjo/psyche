@@ -9,17 +9,17 @@ class Sense(Node):
     """
     A sense subscribes to one or more sensors and publishes processed sensations on a timer and/or when a change is detected.
     """
-    def __init__(self):
-        super().__init__('generic_sensor')
+    def __init__(self, node_name="sense", sensor_id='default_sensor', reliability='unrated', processing_notes='', input_topics=['thought'], input_types=['std_msgs.msg.String'], output_topic='sensation', update_interval=0.0, accumulation_method='latest'):
+        super().__init__(node_name)
         self.declare_parameters('', [
-            ('sensor_id', 'default_sensor'),
-            ('reliability', 'unrated'),
-            ('processing_notes', ''),
-            ('input_topics', ['thought'],),
-            ('input_types', ['std_msgs.msg.String']),
-            ('output_topic', 'sensation'),
-            ('update_interval', 0.0), # 0 means changes report immediately,
-            ('accumulation_method', 'latest'),
+            ('sensor_id', sensor_id),
+            ('reliability', reliability),
+            ('processing_notes', processing_notes),
+            ('input_topics', input_topics),
+            ('input_types', input_types),
+            ('output_topic', output_topic),
+            ('update_interval', update_interval), # 0 means changes report immediately,
+            ('accumulation_method', accumulation_method),
         ])
 
         # Retrieve parameters

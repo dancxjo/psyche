@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 from glob import glob
 import os
 
-package_name = 'psyche'
+package_name = 'r1'
 
 setup(
     name=package_name,
@@ -18,21 +18,11 @@ setup(
     zip_safe=True,
     maintainer='dancxjo',
     maintainer_email='tdreed@gmail.com',
-    description='Psyche is an operating system for robots',
-    license='GPL-3.0-only',
+    description='Robot1 (r1) is a reference robot host for psyche',
+    license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'lpu = psyche.language_processor:main',
-            'distill = psyche.distiller:main',
-            'listen_for_speech = psyche.listen:main',
-            'sense = psyche.sense:main',
-            'heartbeat = psyche.heartbeat:main',
-            'transcribe_speech = psyche.transcribe:main',
-            'informant = psyche.informant:main',
-            'memorialist = psyche.memorialist:main',
-            'identity = psyche.identity:main',
-            'stream_voice = psyche.stream:main',
         ],
     },
 )
