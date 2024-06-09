@@ -2,11 +2,11 @@
 
 ### TODO: The word "host" here is used in at least three different senses in this file
 
-# "pete" is the robot who _hosts_ the psyche toolset
-export HOST_PKG=pete
+# "r1" is the robot who _hosts_ the psyche toolset
+export HOST_PKG=r1
 
 ### Check if running inside a Docker container
-if [ -e "/ros_entrypoint.sh" ]; then
+if [ -e "/opt/ros" ]; then
 
     export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
     export ROS_DOMAIN_ID=42
