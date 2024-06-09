@@ -59,6 +59,20 @@ def generate_launch_description():
         Node(
             package="psyche",
             executable="distill",
+            name="the_athlete",
+            output="screen",
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": "You are serving as a constituent of the mind of a robot. Below are the readings from the robot's proprioceptive topics. Narrate them for the robot in the first person present. Using only the information here, describe the current instant as the robot is experiencing it. Do not describe anything other than the sensations presented here. Be succinct. Recommend actions like obstacle avoidance when the time is appropriate.\n\n{input_topics}\n\nInterpretation:\n",
+                "input_topics": ["bumper", "cliff", "clean_button", "day_button", "hour_button", "minute_button", "dock_button", "spot_button", "ir_omni", "joint_states", "odom", "wheeldrop", "/tf"],
+                "output_topic": "sensation",
+                "update_interval": 1.0,
+            }]
+        ),
+
+        Node(
+            package="psyche",
+            executable="distill",
             name="the_witness",
             output="screen",
             parameters=[{
@@ -99,7 +113,6 @@ def generate_launch_description():
                 "update_interval": 60.0 * 5,
             }]
         ),
-
         
         Node(
             package="psyche",
@@ -112,6 +125,21 @@ def generate_launch_description():
                 "input_topics": ["identity", "autobiography", "situation"],
                 "output_topic": "identity",
                 "update_interval": 60.0,
+                "accumulation_method": "latest",                
+            }]
+        ),
+        
+        Node(
+            package="psyche",
+            executable="distill",
+            name="the_mime",
+            output="screen",
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": "You are serving as a constituent of the mind of a robot. Below is the situation as you understand it. In one to five emojis, represent the current emotional state of the robot.\n\n{input_topics}\n\nInterpretation:\n",
+                "input_topics": ["identity", "instant", "situation"],
+                "output_topic": "feeling",
+                "update_interval": 1.0,
                 "accumulation_method": "latest",                
             }]
         ),
