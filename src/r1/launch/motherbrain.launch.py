@@ -71,6 +71,7 @@ def generate_launch_description():
                 "prompt": "You are serving as a constituent of the mind of a robot. Below is the situation as you understand it. Your job is to record significant events in the life of the robot. You must not remember every little detail, but you may choose to remember specific sensory details when they are relevant. If nothing of importance is happening, or if you've already recorded this event, respond with no text at all.\n\n{input_topics}\n\nInterpretation:\n",
                 "input_topics": ["identity", "instant", "situation"],
                 "output_topic": "autobiography",
+                "accumulation_method": "latest",
                 "update_interval": 60.0 * 5,
             }]
         ),
@@ -84,9 +85,10 @@ def generate_launch_description():
             parameters=[{
                 "action_server_name": "instruct",
                 "prompt": "You are serving as a constituent of the mind of a robot. Below is the situation as you understand it. Explain to the robot in the first person present who it is. Using only the information here, describe to the robot who it experiences itself as. Be succinct but thorough.\n\n{input_topics}\n\nInterpretation:\n",
-                "input_topics": ["identity", "instant", "situation"],
+                "input_topics": ["identity", "autobiography", "situation"],
                 "output_topic": "identity",
                 "update_interval": 60.0,
+                "accumulation_method": "latest",                
             }]
         ),
     ])
