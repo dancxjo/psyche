@@ -16,13 +16,14 @@ class LanguageProcessor(Node):
     """
     An action server that exposes a langchain.
     """
-    def __init__(self, node_name, action_server_name="/instruct"):
+    def __init__(self, node_name, action_server_name="instruct"):
         """
         Initializes the node, the language model, and the action server.
         """
         super().__init__(node_name)
         self.declare_parameter("action_server_name", action_server_name)
         action_server_name = self.get_parameter("action_server_name").get_parameter_value().string_value
+        self.action_server_name = action_server_name
         self.prompt = PromptTemplate.from_template("{input}")
         self.initialize_langchain()
         self._action_server = ActionServer(
@@ -68,7 +69,7 @@ class LanguageProcessor(Node):
         """
         Receives and processes a goal using the language model chain.
         """
-        self.get_logger().info('Executing goal...')
+        self.get_logger().info(f'Streaming to {self.action_server_name}...')
         result = self.stream(goal_handle)
         return result
 

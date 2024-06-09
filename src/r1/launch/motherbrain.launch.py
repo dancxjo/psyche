@@ -19,4 +19,44 @@ def generate_launch_description():
                 {"update_interval": 1.0},
             ],
         ),
+        
+        Node(
+            package="psyche",
+            executable="lpu",
+            name="basic_lpu",
+            output="screen",
+            parameters=[
+                {"model": "llava:13b"},
+                {"base_url": "http://192.168.0.133:11434"},
+                {"action_server_name": "instruct"}
+            ],
+        ),
+
+        Node(
+            package="psyche",
+            executable="distill",
+            name="the_witness",
+            output="screen",
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": "You are serving as a constituent of the mind of a robot. Below are the sensations that the robot has recently felt. Narrate them for the robot in the first person present. Using only the information here, describe the current instant as the robot is experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\n\nInterpretation:\n",
+                "input_topics": ["sensation"],
+                "output_topic": "instant",
+                "update_interval": 2.0,
+            }]
+        ),
+
+        Node(
+            package="psyche",
+            executable="distill",
+            name="the_combobulator",
+            output="screen",
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": "You are serving as a constituent of the mind of a robot. Below are the the most recent instants in the robot's life. Narrate them for the robot in the first person present. Using only the information here, describe the current situation as the robot is experiencing it. Be succinct but thorough.\n\n{input_topics}\n\nInterpretation:\n",
+                "input_topics": ["instant", "situation"],
+                "output_topic": "situation",
+                "update_interval": 10.0,
+            }]
+        ),
     ])

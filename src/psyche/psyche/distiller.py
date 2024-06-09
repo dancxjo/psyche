@@ -33,7 +33,7 @@ class Distiller(Node):
         ])
         
         self.narrative = self.get_parameter('narrative').get_parameter_value().string_value
-        self.input_topic_list = self.get_parameter('input_topics').get_parameter_value().string_array_value
+        self.input_topics = self.get_parameter('input_topics').get_parameter_value().string_array_value
         self.output_topic = self.get_parameter('output_topic').get_parameter_value().string_value
         self.update_interval = self.get_parameter('update_interval').get_parameter_value().double_value
         self.prompt = self.get_parameter('prompt').get_parameter_value().string_value
@@ -42,10 +42,12 @@ class Distiller(Node):
         self.action_client = ActionClient(self, PlainTextInference, self.action_server_name)
         
         self.output_pub = self.create_publisher(String, self.output_topic, 4)
-        self.input_subs = []
         self.input_queue = {}
-        self.input_subs = [self.create_subscription(String, topic, self.queue_message_callback(topic), 4) for topic in self.input_topic_list]
-        self.get_logger().info(f'Listening to {self.input_topic_list}')
+        self.input_subs = []
+        for topic in self.input_topics:
+            self.input_queue[topic] = []
+            self.input_subs.append(self.create_subscription(String, topic, self.queue_message_callback(topic), 4))            
+        self.get_logger().info(f'Listening to {self.input_topics}')
         self.timer = self.create_timer(self.update_interval, self.update)
         self.get_logger().info(f'Timer set to {self.update_interval} seconds')
         self.update()
@@ -82,7 +84,7 @@ class Distiller(Node):
         return dumped
     
     def update(self):
-        self.get_logger().debug('Updating')
+        self.get_logger().info('Distilling...')
         if not self.prompt:
             self.get_logger().error('No prompt set')
             raise ValueError('No prompt set')
@@ -160,7 +162,7 @@ class Distiller(Node):
     def on_feedback(self, feedback_msg):
         feedback = feedback_msg.feedback
         
-        self.get_logger().info(f'Feedback: {feedback.chunk.chunk}')
+        self.get_logger().debug(f'Feedback: {feedback.chunk.chunk}')
         
         if feedback.chunk.level == 0:
             self.on_chunk(feedback.chunk.chunk)

@@ -1,6 +1,5 @@
 import rclpy
 from rclpy.node import Node
-from psyche_interfaces.msg import Sensation
 from std_msgs.msg import String
 from rclpy.action import ActionClient
 from psyche_interfaces.action import PlainTextInference
@@ -9,12 +8,10 @@ class Sense(Node):
     """
     A sense subscribes to one or more sensors and publishes processed sensations on a timer and/or when a change is detected.
     """
-    def __init__(self, node_name="sense", sensor_id='default_sensor', reliability='unrated', processing_notes='', input_topics=['thought'], input_types=['std_msgs.msg.String'], output_topic='sensation', update_interval=0.0, accumulation_method='latest'):
+    def __init__(self, node_name="sense", format='{msg.topic}: {msg.data}', input_topics=[], input_types=[], output_topic='sensation', update_interval=0.0, accumulation_method='queue'):
         super().__init__(node_name)
         self.declare_parameters('', [
-            ('sensor_id', sensor_id),
-            ('reliability', reliability),
-            ('processing_notes', processing_notes),
+            ('format', format),
             ('input_topics', input_topics),
             ('input_types', input_types),
             ('output_topic', output_topic),
@@ -23,6 +20,7 @@ class Sense(Node):
         ])
 
         # Retrieve parameters
+        self.format = self.get_parameter('format').get_parameter_value().string_value
         self.input_topics = self.get_parameter('input_topics').get_parameter_value().string_array_value
         self.input_types = self.get_parameter('input_types').get_parameter_value().string_array_value
         self.output_topic = self.get_parameter('output_topic').get_parameter_value().string_value
@@ -35,7 +33,7 @@ class Sense(Node):
         self.subscribers = []
         self.setup_subscribers()
 
-        self.publisher = self.create_publisher(Sensation, self.output_topic, 10)
+        self.publisher = self.create_publisher(String, self.output_topic, 10)
     
         # The plain distiller uses the uninformed instruct llm
         self.distill = ActionClient(self, PlainTextInference, 'instruct')
@@ -62,17 +60,8 @@ class Sense(Node):
             self.process_message(msg, topic)
         return callback
 
-    def format_message(self, msg, topic) -> Sensation:
-        idx = self.input_topics.index(topic)
-        mt = self.input_types[idx]
-        data = str(msg)
-        s = Sensation()
-        s.sensor_id = self.get_parameter('sensor_id').get_parameter_value().string_value
-        s.for_topic = topic
-        s.reliability = self.get_parameter('reliability').get_parameter_value().string_value
-        s.data = data
-        s.processing_notes = self.get_parameter('processing_notes').get_parameter_value().string_value
-        return s
+    def format_message(self, msg, topic) -> String:
+        return String(data = self.format(msg, topic))
 
     def queue_reading(self, msg, topic):
         if topic not in self.queued_readings:
@@ -138,13 +127,7 @@ class Sense(Node):
         return callback
  
     def on_summary(self, topic, summary):
-        sensation = Sensation() # I wish python used the new keyword :(
-        sensation.sensor_id = self.get_parameter('sensor_id').get_parameter_value().string_value
-        sensation.for_topic = topic
-        sensation.reliability = self.get_parameter('reliability').get_parameter_value().string_value
-        sensation.data = summary
-        sensation.processing_notes = self.get_parameter('processing_notes').get_parameter_value().string_value
-        
+        sensation = String(data=summary)
         self.publish_sensation(topic, sensation)
 
     def process_accumulation(self, topic, accumulation):
