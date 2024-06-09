@@ -66,7 +66,7 @@ def generate_launch_description():
                 "prompt": "You are serving as a constituent of the mind of a robot. Below are the sensations that the robot has recently felt. Narrate them for the robot in the first person present. Using only the information here, describe the current instant as the robot is experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\n\nInterpretation:\n",
                 "input_topics": ["identity", "sensation"],
                 "output_topic": "instant",
-                "update_interval": 2.0,
+                "update_interval": 2.5,
             }]
         ),
 
@@ -92,7 +92,7 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "action_server_name": "instruct",
-                "prompt": "You are serving as a constituent of the mind of a robot. Below is the situation as you understand it. Your job is to record significant events in the life of the robot. You must not remember every little detail, but you may choose to remember specific sensory details when they are relevant. If nothing of importance is happening, or if you've already recorded this event, respond with no text at all.\n\n{input_topics}\n\nInterpretation:\n",
+                "prompt": "You are serving as a constituent of the mind of a robot. Below is the situation as you understand it. Your job is to record significant events in the life of the robot. You must not remember every little detail, but you may choose to remember specific sensory details when they are relevant. If nothing of importance is happening, or if you've already recorded this event, respond with the token $$$PASS$$$. Use the first person to describe this as the robot.\n\n{input_topics}\n\nInterpretation:\n",
                 "input_topics": ["identity", "instant", "situation"],
                 "output_topic": "autobiography",
                 "accumulation_method": "latest",
