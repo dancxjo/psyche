@@ -52,7 +52,7 @@ class Motivator(Node):
                 continue
 
             if 'reasoning' in twist_command:
-                self.publisher_sensation.publish(String(data=f"""You issued this command ostensibly for reason: {twist_command.reasoning}"""))
+                self.publisher_sensation.publish(String(data=f"""You issued this command ostensibly for reason: {twist_command['reasoning']}"""))
 
             if 'pause_time' in twist_command:
                 try:
