@@ -46,6 +46,8 @@ def generate_launch_description():
             parameters=[
                 {"model": "llama3:instruct"},
                 {"base_url": "http://192.168.0.133:11434"},
+                # { "model_type": "openai"},
+                # { "model": "gpt-4"},
                 {"action_server_name": "instruct"}
             ],
         ),
@@ -97,17 +99,17 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "action_server_name": "instruct",
-                "prompt": """You are serving as a constituent of the mind of a robot. Below are the readings from the robot's proprioceptive topics. Control the robot's velocity as necessary. Specify your command as an array of between 1 and 5 twists. Each twist in the array is an object with two fields:\n* `linear` an object with float32 values for the keys x, y and z\n* `angular` the same type. This expresses velocity in free space broken into its linear and angular parts. You can move the robot around by sending geometry_msgs/msg/Twist messages to the topic cmd_vel:
+                "prompt": """You are serving as a constituent of the mind of a robot. Below are the readings from the robot's proprioceptive topics. Control the robot's velocity as necessary. Specify your command as an array of between 1 and 5 twists. Each twist in the array is an object with up to five fields:\n* `reasoning`: a string that explains why you issued this command\n* `duration`: floating point number of seconds to continuously pulse (default 1.0)\n* `rate`: integer frequency of pulsing in hertz (default 20)\n* `linear` an object with float32 values for the keys x, y and z\n* `angular` the same type. This expresses velocity in free space broken into its linear and angular parts.
 
-                linear.x  (+)     Move forward (m/s)
-                        (-)     Move backward (m/s)
-                angular.z (+)     Rotate counter-clockwise (rad/s)
-                        (-)     Rotate clockwise (rad/s)
-                Velocity limits
+                linear.x\t(+)\tMove forward (m/s)
+                \t\t(-)\tMove backward (m/s)
+                angular.z\t(+)\tRotate counter-clockwise (rad/s)
+                \t\t(-)\tRotate clockwise (rad/s)
+                Velocity limits:
                 -0.5 <= linear.x <= 0.5 and -4.25 <= angular.z <= 4.25\nYou may also pause by sending an object with a value for the key pause_time. This will maintain the velocity.\n{input_topics}\n\nReminder:\nOnly respond with the actual JSON with no delimiting markdown codefences or otherwise. Your commands:\n""",
                 "input_topics": ["sensation", "situation", "instant", "bumper", "cliff", "clean_button", "day_button", "hour_button", "minute_button", "dock_button", "spot_button", "ir_omni", "joint_states", "odom", "wheeldrop", "/tf"],
                 "output_topic": "twists",
-                "update_interval": 1.0, # This should allow for almost instantaneous updates
+                "update_interval": 1.0, # Careful not to send commands that interfere with themselves
             }]
         ),
 
