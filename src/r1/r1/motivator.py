@@ -18,6 +18,12 @@ class Motivator(Node):
             'cmd_vel',
             10
         )
+        
+        self.publisher_sensation = self.create_publisher(
+            String,
+            'sensation',
+            10
+        )
 
     def twists_callback(self, msg):
         self.get_logger().debug(f'Received twists: {msg.data}')
@@ -25,32 +31,47 @@ class Motivator(Node):
 
     def process_twists(self, script):
         try:
+            self.publisher_sensation.publish(String(data=f"""You have sent these commands to your body: {script}"""))
             script_array = json.loads(script)
             if not isinstance(script_array, list):
                 raise ValueError("Parsed JSON is not a list")
         except json.JSONDecodeError as e:
+            self.publisher_sensation.publish(String(data=f"""Your body says: Failed to decode JSON: {e} {script}"""))
+
             self.get_logger().error(f'Failed to decode JSON: {e}')
             return
         except ValueError as e:
+            self.publisher_sensation.publish(String(data=f"""Your body says: Failed to decode JSON: {e} {script}"""))
             self.get_logger().error(f'Error in script data: {e}')
             return
 
         for twist_command in script_array:
             if not isinstance(twist_command, dict):
                 self.get_logger().error(f'Invalid twist command: {twist_command}')
+                self.publisher_sensation.publish(String(data=f"""Your body says: Invalid twist command: {twist_command}"""))
                 continue
+
+            if 'reasoning' in twist_command:
+                self.publisher_sensation.publish(String(data=f"""You issued this command ostensibly for reason: {twist_command.reasoning}"""))
 
             if 'pause_time' in twist_command:
                 try:
                     pause_time = float(twist_command['pause_time'])
                     self.get_logger().info(f'Pausing for {pause_time} seconds')
+                    self.publisher_sensation.publish(String(data=f"""Pausing for {pause_time} seconds"""))
                     self.create_timer(pause_time, lambda: None).cancel()  # Use ROS timer to sleep without blocking
                 except (ValueError, TypeError) as e:
+                    self.publisher_sensation.publish(String(data=f"""Invalid pause time {pause_time} seconds"""))
                     self.get_logger().error(f'Invalid pause_time value: {e}')
                 continue
 
             duration = twist_command.get('duration', 1.0)
             rate = twist_command.get('rate', 20)
+            if rate == 0:
+                self.get_logger().error('Rate cannot be zero, using default rate of 20 Hz')
+                self.publisher_sensation.publish(String(data=f"""Rate cannot be zero, using default rate of 20 Hz"""))
+                rate = 20
+                
             interval = 1.0 / rate
 
             twist_msg = Twist()
@@ -67,14 +88,18 @@ class Motivator(Node):
 
     def execute_twist(self, twist_msg, duration, interval):
         end_time = self.get_clock().now() + rclpy.time.Duration(seconds=duration)
+        self.publisher_sensation.publish(String(data=f"""Executing {twist_msg} for {duration}s at {interval} until {end_time}"""))
 
         def timer_callback():
             if self.get_clock().now() < end_time:
+                self.publisher_sensation.publish(String(data=f"""publishing {twist_msg}"""))
                 self.publisher_cmd_vel.publish(twist_msg)
             else:
+                self.publisher_sensation.publish(String(data=f"""time's run out; stopping"""))
                 self.publisher_cmd_vel.publish(Twist())  # Stop the robot
                 timer.cancel()
 
+        self.publisher_sensation.publish(String(data=f"""Setting a timer to wait"""))
         timer = self.create_timer(interval, timer_callback)
 
 def main(args=None):
