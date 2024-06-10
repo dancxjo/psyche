@@ -178,22 +178,22 @@ def generate_launch_description():
             }]
         ),
 
-        Node(
-            package="psyche",
-            executable="distill",
-            name="the_spokesman",
-            output="screen",
-            parameters=[{
-                "action_server_name": "instruct",
-                "prompt": """You are serving as a constituent of the mind of a robot. Below is the situation as you understand it and how you're feeling about it. Use the information to speak on behalf of the robot.
+        # Node(
+        #     package="psyche",
+        #     executable="distill",
+        #     name="the_spokesman",
+        #     output="screen",
+        #     parameters=[{
+        #         "action_server_name": "instruct",
+        #         "prompt": """You are serving as a constituent of the mind of a robot. Below is the situation as you understand it and how you're feeling about it. Use the information to speak on behalf of the robot.
                 
-                {input_topics}
+        #         {input_topics}
                 
-                Make sure not to speak too often. Only speak when the robot has something important to say. And even then speak only one sentence at a time. Speak as the robot. If you include the token $$$PASS$$$ in your response, it will not be spoken aloud, otherwise it will be read verbatim in the real world.""",
-                "input_topics": ["identity", "feeling", "instant", "situation"],
-                "output_topic": "voice",
-                "update_interval": 3.0,
-                "accumulation_method": "latest",                
-            }]
-        ),
+        #         Make sure not to speak too often. Only speak when the robot has something important to say. And even then speak only one sentence at a time. Speak as the robot. If you include the token $$$PASS$$$ in your response, it will not be spoken aloud, otherwise it will be read verbatim in the real world.""",
+        #         "input_topics": ["identity", "feeling", "instant", "situation"],
+        #         "output_topic": "voice",
+        #         "update_interval": 3.0,
+        #         "accumulation_method": "latest",                
+        #     }]
+        # ),
     ])
