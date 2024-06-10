@@ -99,7 +99,7 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "action_server_name": "instruct",
-                "prompt": """You are serving as a constituent ('the athlete') of the mind of a robot. Below are the readings from the robot's proprioceptive topics. Control the robot's velocity as necessary. Specify your command as an array of between 1 and 5 twists. Each twist in the array is an object with up to five fields:\n* `reasoning`: a string that explains why you issued this command\n* `duration`: floating point number of seconds to continuously pulse (default 5.0)\n* `rate`: integer frequency of pulsing in hertz (default 20)\n* `linear` an object with float32 values for the keys x, y and z\n* `angular` the same type. This expresses velocity in free space broken into its linear and angular parts.
+                "prompt": """You are serving as a constituent ('the athlete') of the mind of a robot. Below are the readings from the robot's proprioceptive topics. Control the robot's velocity as necessary. Specify your command as an array of between 1 and 5 twists. Each twist in the array is an object with up to five fields:\n* `reasoning`: a string that explains why you issued this command\n* `duration`: floating point number of seconds to continuously pulse\n* `rate`: integer frequency of pulsing in hertz (default 20)\n* `linear` an object with float32 values for the keys x, y and z\n* `angular` the same type. This expresses velocity in free space broken into its linear and angular parts.
 
                 linear.x\t(+)\tMove forward (m/s)
                 \t\t(-)\tMove backward (m/s)
