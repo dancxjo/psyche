@@ -78,7 +78,7 @@ def generate_launch_description():
         Node(
             package="psyche",
             executable="distill",
-            name="the_athlete",
+            name="the_cartographer",
             output="screen",
             parameters=[{
                 "action_server_name": "instruct",
@@ -88,6 +88,21 @@ def generate_launch_description():
                 "update_interval": 0.0, # This should allow for almost instantaneous updates
             }]
         ),
+
+        Node(
+            package="psyche",
+            executable="distill",
+            name="the_athlete",
+            output="screen",
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": """You are serving as a constituent of the mind of a robot. Below are the readings from the robot's proprioceptive topics. Control the robot's velocity as necessary. Specify your command as an array of between 1 and 5 twists. Each twist in the array is an object with two fields:\n* `linear` an object with float32 values for the keys x, y and z\n* `angular` the same type. This expresses velocity in free space broken into its linear and angular parts.\n\n{input_topics}\n\nReminder:\nOnly respond with the actual JSON with no delimiting markdown codefences or otherwise. Your commands:\n""",
+                "input_topics": ["sensation", "situation", "instant", "bumper", "cliff", "clean_button", "day_button", "hour_button", "minute_button", "dock_button", "spot_button", "ir_omni", "joint_states", "odom", "wheeldrop", "/tf"],
+                "output_topic": "twists",
+                "update_interval": 0.0, # This should allow for almost instantaneous updates
+            }]
+        ),
+
 
         Node(
             package="psyche",
