@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             "play_song = r1.play_song:main",
+            "motivate = r1.motivator:main",
         ],
     },
 )
