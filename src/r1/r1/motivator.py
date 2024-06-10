@@ -65,7 +65,7 @@ class Motivator(Node):
                     self.get_logger().error(f'Invalid pause_time value: {e}')
                 continue
 
-            duration = twist_command.get('duration', 1.0)
+            duration = twist_command.get('duration', 5.0)
             rate = twist_command.get('rate', 20)
             if rate == 0:
                 self.get_logger().error('Rate cannot be zero, using default rate of 20 Hz')
