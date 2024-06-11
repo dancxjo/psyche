@@ -25,6 +25,7 @@ setup(
         'console_scripts': [
             "play_song = r1.play_song:main",
             "motivate = r1.motivator:main",
+            "monitor = r1.monitor:main",
         ],
     },
 )

@@ -87,6 +87,11 @@ class Motivator(Node):
             self.execute_twist(twist_msg, duration, interval)
 
     def execute_twist(self, twist_msg, duration, interval):
+        if type(duration) is not int and type(duration) is not float:
+            self.get_logger().error(f'Invalid duration: {duration}')
+            self.publisher_sensation.publish(String(data=f"""Invalid duration: {duration}"""))
+            return
+        
         end_time = self.get_clock().now() + rclpy.time.Duration(seconds=duration)
         self.publisher_sensation.publish(String(data=f"""Executing {twist_msg} for {duration}s at {interval} until {end_time}"""))
 
@@ -95,11 +100,11 @@ class Motivator(Node):
                 self.publisher_sensation.publish(String(data=f"""publishing {twist_msg}"""))
                 self.publisher_cmd_vel.publish(twist_msg)
             else:
-                self.publisher_sensation.publish(String(data=f"""time's run out; stopping"""))
+                self.publisher_sensation.publish(String(data=f"""time's run out on this maneuvre; stopping body"""))
                 self.publisher_cmd_vel.publish(Twist())  # Stop the robot
                 timer.cancel()
 
-        self.publisher_sensation.publish(String(data=f"""Setting a timer to wait"""))
+        self.publisher_sensation.publish(String(data=f"""Setting a timer to keep moving until {end_time} at {interval} Hz"""))
         timer = self.create_timer(interval, timer_callback)
 
 def main(args=None):

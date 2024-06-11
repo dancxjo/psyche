@@ -6,9 +6,17 @@ from launch.actions import IncludeLaunchDescription
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
     return LaunchDescription([
+        Node(
+            package="r1",
+            executable="monitor",
+            name="monitor",
+            output="screen",
+        ),
+        
         IncludeLaunchDescription(
             XMLLaunchDescriptionSource([
                     PathJoinSubstitution([
@@ -17,6 +25,12 @@ def generate_launch_description():
                         'create_1.launch'
                     ])
                 ])
+        ),
+        Node(
+            package="mpu6050driver",
+            executable="mpu6050driver",
+            name="mpu6050driver",
+            output="screen",
         ),
         
         Node(
@@ -37,6 +51,8 @@ def generate_launch_description():
                 {"update_interval": 1.0},
             ],
         ),
+        
+        
         
         Node(
             package="psyche",
@@ -86,9 +102,10 @@ def generate_launch_description():
             parameters=[{
                 "action_server_name": "instruct",
                 "prompt": "You are serving as a constituent ('the cartographer') of the mind of a robot. Below are the readings from the robot's proprioceptive topics. Narrate them for the robot in the first person present (from the entire robot's perspective). Using only the information here, describe the current instant as the robot is experiencing it. Do not describe anything other than the sensations presented here. Attempt to capture the feelings in the robot's body. Recommend actions like obstacle avoidance when the time is appropriate.\n\n{input_topics}\n\nInterpretation:\n",
-                "input_topics": ["bumper", "cliff", "clean_button", "day_button", "hour_button", "minute_button", "dock_button", "spot_button", "ir_omni", "joint_states", "odom", "wheeldrop", "/tf"],
+                "input_topics": ["imu", "bumper", "cliff", "clean_button", "day_button", "hour_button", "minute_button", "dock_button", "spot_button", "ir_omni", "joint_states", "odom", "wheeldrop", "/tf"],
                 "output_topic": "sensation",
                 "update_interval": 1.0, # This should allow for almost instantaneous updates
+                "accumulation_method": "queue",
             }]
         ),
 
@@ -107,9 +124,10 @@ def generate_launch_description():
                 \t\t(-)\tRotate clockwise (rad/s)
                 Velocity limits:
                 -0.5 <= linear.x <= 0.5 and -4.25 <= angular.z <= 4.25\nYou may also pause by sending an object with a value for the key pause_time. This will maintain the velocity.\n{input_topics}\n\nReminder:\nOnly respond with the actual JSON with no delimiting markdown codefences or otherwise. Your commands:\n""",
-                "input_topics": ["sensation", "situation", "instant", "bumper", "cliff", "clean_button", "day_button", "hour_button", "minute_button", "dock_button", "spot_button", "ir_omni", "joint_states", "odom", "wheeldrop", "/tf"],
+                "input_topics": ["imu", "sensation", "situation", "instant", "bumper", "cliff", "clean_button", "day_button", "hour_button", "minute_button", "dock_button", "spot_button", "ir_omni", "joint_states", "odom", "wheeldrop", "/tf"],
                 "output_topic": "twists",
                 "update_interval": 1.0, # Careful not to send commands that interfere with themselves
+                "accumulation_method": "queue",
             }]
         ),
 
@@ -157,7 +175,7 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "action_server_name": "instruct",
-                "prompt": "You are serving as a constituent ('the memoirist') of the mind of a robot. Below is the situation as you understand it. Your job is to record significant events in the life of the robot. You must not remember every little detail, but you may choose to remember specific sensory details when they are relevant. If nothing of importance is happening, or if you've already recorded this event, respond with the token $$$PASS$$$. Use the first person to describe this as the robot.\n\n{input_topics}\n\nInterpretation:\n",
+                "prompt": "You are serving as a constituent ('the memoirist') of the mind of a robot. Below is the situation as you understand it. Your job is to maintain the autobiography. You must faithfully reproduce the autobiography that you receive while also adding to it and rectifying any mistakes. What you return will become the new autobiography, so attempt to be faithful. Record significant events in the life of the robot. You must not remember every little detail, but you may choose to remember specific sensory details when they are relevant. Use the first person to describe this as the robot.\n\n{input_topics}\n\nInterpretation:\n",
                 "input_topics": ["identity", "instant", "situation"],
                 "output_topic": "autobiography",
                 "accumulation_method": "latest",
@@ -205,7 +223,7 @@ def generate_launch_description():
                 "prompt": """You are serving as a constituent ('the musician') of the mind of a robot. Below is the situation as you understand it and how you're feeling about it. Represent the robot's current feelings in song. You must return valid JSON in the following format and nothing more! If you have no appropriate song to play, simply return the token "null". Otherwise, specify your song as an array of between 1 and 16 notes. Each note in the array is an object with two fields:\n* `note` an unsigned 8-bit integer defined by the MIDI note numbering scheme (notes outside the range of [31-127] are rest notes)\n* `duration` a positive floating point number representing the duration of the note in seconds\nTry to use expressive and familiar tunes, but feel free to improvise.\n{input_topics}\n\nReminder:\nOnly respond with the actual JSON with no delimiting markdown codefences or otherwise. Return no other response.\nYour song:\n""",
                 "input_topics": ["identity", "feeling", "instant", "situation"],
                 "output_topic": "song",
-                "update_interval": 15.0,
+                "update_interval": 5.0,
                 "accumulation_method": "latest",                
             }]
         ),

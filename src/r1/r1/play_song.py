@@ -23,32 +23,43 @@ class SongPlayer(Node):
             'play_song',
             10
         )
+        self.publisher_sensation = self.create_publisher(
+            String,
+            'sensation',
+            10
+        )
 
     def song_callback(self, msg):
         self.get_logger().debug('Received song: %s' % msg.data)
+        self.publisher_sensation.publish(String(data=f'You uttered a song. {msg.data}'))
         # Process the received song here
         def process_song(self, song):
             try:
                 song_array = json.loads(song)
                 if len(song_array) < 1 or len(song_array) > 16:
                     self.get_logger().error('Invalid song length: %d' % len(song_array))
+                    self.publisher_sensation.publish(String(data=f'Invalid song length: {len(song_array)}'))
                     return
 
                 for note in song_array:
                     if not isinstance(note, dict):
                         self.get_logger().error('Invalid note format: %s' % note)
+                        self.publisher_sensation.publish(String(data=f'Irregular note format: {note}'))
                         return
 
                     if 'note' not in note or 'duration' not in note:
                         self.get_logger().error('Invalid note format: %s' % note)
+                        self.publisher_sensation.publish(String(data=f'Irregular note format: {note}'))
                         return
 
                     if not isinstance(note['note'], int) or note['note'] < 31 or note['note'] > 127:
                         self.get_logger().error('Invalid note value: %s' % note['note'])
+                        self.publisher_sensation.publish(String(data=f'Invalid note value: {note["note"]}'))
                         return
 
                     if not isinstance(note['duration'], float) or note['duration'] <= 0:
                         self.get_logger().error('Invalid note duration: %s' % note['duration'])
+                        self.publisher_sensation.publish(String(data=f'Irregular note duration: {note["duration"]}'))
                         return
 
                     song_msg = DefineSong()
@@ -57,10 +68,12 @@ class SongPlayer(Node):
                     song_msg.notes = [note['note'] for note in song_array]
                     song_msg.durations = [note['duration'] for note in song_array]
                     self.publisher_define_song.publish(song_msg)
+                    self.publisher_sensation.publish(String(data=f'Song saved to bank 1/4. Playing...'))
                     
                     play_song_msg = PlaySong()
                     play_song_msg.song = 0
                     self.publisher_play_song.publish(play_song_msg)
+                    self.publisher_sensation.publish(String(data=f'Playing song...'))
 
             except json.JSONDecodeError:
                 self.get_logger().error('Invalid song format: %s' % song)
