@@ -32,6 +32,7 @@ bnnumerizer==0.0.2
 bnunicodenormalizer==0.1.7
 builtin-interfaces==2.0.2
 catalogue==2.0.10
+catkin-pkg==1.0.0
 certifi==2024.6.2
 cffi==1.16.0
 charset-normalizer==3.3.2
@@ -42,7 +43,6 @@ confection==0.1.5
 contourpy==1.2.1
 control-msgs==5.1.0
 coqpit==0.0.17
-create-msgs==3.1.0
 cv-bridge==4.0.0
 cycler==0.12.1
 cymem==2.0.8
@@ -55,8 +55,10 @@ diagnostic-msgs==5.3.5
 diagnostic-updater==3.1.2
 distro==1.9.0
 docopt==0.6.2
+docutils==0.21.2
 domain-coordinator==0.12.0
 einops==0.8.0
+empy==3.3.4
 encodec==0.1.1
 example-interfaces==0.12.0
 examples-rclpy-executors==0.19.3
@@ -113,6 +115,7 @@ langchainhub==0.1.18
 langcodes==3.4.0
 langsmith==0.1.76
 language_data==1.2.0
+lark==1.1.9
 laser-geometry==2.7.0
 launch==3.4.2
 launch-ros==0.26.5
@@ -160,8 +163,6 @@ pooch==1.8.2
 preshed==3.0.9
 protobuf==4.25.3
 psutil==5.9.8
-psyche==0.0.0
-psyche-interfaces==0.0.0
 pycparser==2.22
 pydantic==2.7.3
 pydantic_core==2.18.4
@@ -180,7 +181,6 @@ qt-gui==2.7.4
 qt-gui-cpp==2.7.4
 qt-gui-py-common==2.7.4
 quality-of-service-demo-py==0.33.3
-r1==0.0.0
 rcl-interfaces==2.0.2
 rclpy==7.1.1
 rcutils==6.7.1
