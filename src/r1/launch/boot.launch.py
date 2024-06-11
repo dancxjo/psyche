@@ -124,7 +124,7 @@ def generate_launch_description():
                 \t\t(-)\tRotate clockwise (rad/s)
                 Velocity limits:
                 -0.5 <= linear.x <= 0.5 and -4.25 <= angular.z <= 4.25\nYou may also pause by sending an object with a value for the key pause_time. This will maintain the velocity.\n{input_topics}\n\nReminder:\nOnly respond with the actual JSON with no delimiting markdown codefences or otherwise. Your commands:\n""",
-                "input_topics": ["imu", "/robot_description", "sensation", "situation", "instant", "bumper", "cliff", "clean_button", "day_button", "hour_button", "minute_button", "dock_button", "spot_button", "ir_omni", "joint_states", "odom", "wheeldrop", "/tf"],
+                "input_topics": ["proprioception", "intent", "situation", "feeling"],
                 "output_topic": "twists",
                 "update_interval": 1.0, # Careful not to send commands that interfere with themselves
                 "accumulation_method": "queue",
