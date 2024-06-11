@@ -1,69 +1,11 @@
 ARG ROS_REPO=arm64v8/ros:iron
 FROM ${ROS_REPO}
 
-RUN apt-get update && \
-    apt-get upgrade -y 
-
-RUN apt-get install -y \
-    python3-pip \
-    ros-iron-rmw-cyclonedds-cpp \
-    ros-dev-tools \
-    python3-colcon-common-extensions \
-    ros-iron-diagnostic-updater \
-    libgpiod-dev \
-    gpiod \
-    ros-iron-xacro \
-    python3-pyaudio \
-    alsa-utils \
-    libportaudio2 
-
-# Convenience tools
-RUN apt-get install -y \
-    screen \
-    micro \
-    mc \
-    nano
-
-RUN rosdep update && \
-    apt-get update && \
-    apt-get upgrade -y
-
-# Install Python packages
-RUN pip install -qU \
-    langchain \
-    langchain-community \
-    langchain-openai \
-    sentence_splitter \
-    langchain-text-splitters \
-    faiss-cpu \
-    langchainhub \
-    langchain_experimental \
-    gpiod \
-    SpeechRecognition \
-    openai-whisper
-
 # Set up workspace and build
 RUN mkdir -p /psyche
-#RUN git clone https://github.com/dancxjo/psyche.git /psyche
-#Until we have a public repo
 COPY . /psyche
 WORKDIR /psyche
 RUN rm -rf {build,install,log,memory}
-WORKDIR /psyche/src
-# Add body of the robot
-RUN git clone https://github.com/autonomylab/create_robot.git && \
-    git clone https://github.com/AutonomyLab/libcreate.git
-
-WORKDIR /psyche
-
-RUN /bin/bash -c "source /opt/ros/iron/setup.bash && \
-    rosdep install --from-paths src --ignore-src -r -y"
-RUN /bin/bash -c "source /opt/ros/iron/setup.bash && \
-    colcon build"
-
-RUN echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /root/.bashrc
-RUN echo "export ROS_DOMAIN_ID=42" >> /root/.bashrc
-RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> /root/.bashrc
-RUN echo "source /psyche/install/setup.bash" >> /root/.bashrc
+RUN ./setup.sh
 
 CMD ["/psyche/launch.sh"]

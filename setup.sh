@@ -40,7 +40,8 @@ sudo apt install -y \
     python3.10 \
     python3.10-venv \
     python3.10-distutils \
-    python3.10-dev
+    python3.10-dev \
+    libi2c-dev 
 
 sudo apt-get update 
 sudo apt-get upgrade -y
@@ -62,7 +63,10 @@ git clone https://github.com/hiwad-aziz/ros2_mpu6050_driver.git
 git clone https://github.com/revyos-ros/libcreate.git
 cd libcreate
 git checkout fix-std-string
+cd ../ros2_mpu6050_driver
+patch -p1 < /psyche/mpu.patch
 cd /psyche
+
 /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
     rosdep install --from-paths src --ignore-src -r -y"
 /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
@@ -75,6 +79,7 @@ echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> $BASHRC
 echo "alias ros_source=\"source /opt/ros/$ROS_DISTRO/setup.bash\"" >> $BASHRC
 echo "source /psyche/install/setup.bash" >> $BASHRC
 echo "alias psyche_source=\"source /psyche/install/setup.bash\"" >> $BASHRC
+echo "alias venv=\"source /psyche/.venv/bin/activate\"" >> $BASHRC
 echo "alias resource=\"ros_source && psyche_source\"" >> $BASHRC
-echo "alias psyche=\"resource && ros2\"" >> $BASHRC
-echo "alias pbuild=\"colcon build --symlink-install\"" >> $BASHRC
+echo "alias psyche=\"resource && venv && ros2\"" >> $BASHRC
+echo "alias pbuild=\"here=$(pwd) && cd /psyche && venv && colcon build && resource && venv && cd '\$here' && deactivate\"" >> $BASHRC
