@@ -1,13 +1,26 @@
 #!/bin/bash
-export ROS_DISTRO=rolling
+export ROS_DISTRO=jazzy
+
+locale  # check for UTF-8
+
+sudo apt update && sudo apt install locales
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+locale  # verify settings
 
 sudo apt install software-properties-common curl -y
 sudo add-apt-repository universe
 sudo add-apt-repository ppa:deadsnakes/ppa
+
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
 sudo apt update
 sudo apt install -y \
     ros-dev-tools \
-    ros-rolling-desktop \
+    ros-$ROS_DISTRO-desktop \
     python3-pip \
     ros-$ROS_DISTRO-rmw-cyclonedds-cpp \
     ros-dev-tools \
@@ -32,28 +45,16 @@ sudo apt install -y \
 sudo apt-get update 
 sudo apt-get upgrade -y
 
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
 cd /psyche
 
 python3.10 -m venv .venv
 source .venv/bin/activate
+
 pip install -r requirements.txt
 sudo rosdep init
 rosdep update 
-
-pip install -qU \
-    langchain \
-    langchain-community \
-    langchain-openai \
-    sentence_splitter \
-    langchain-text-splitters \
-    faiss-cpu \
-    langchainhub \
-    langchain_experimental \
-    gpiod \
-    SpeechRecognition \
-    openai-whisper \
-    aiohttp
-
     
 cd /psyche/src
 git clone https://github.com/autonomylab/create_robot.git
