@@ -10,6 +10,7 @@ from std_msgs.msg import String, ByteMultiArray
 # from TTS.api import TTS
 import torch
 from gtts import gTTS
+import subprocess
 
 class AudioStreamServer:
     """
@@ -53,7 +54,7 @@ class AudioStreamServer:
             try:
                 data = client_socket.recv(1024)
                 if data:
-                    self.stream_audio(data)  # Placeholder for actual streaming functionality
+                    self.stream_audio(data) 
                 else:
                     raise ConnectionResetError("Client disconnected")
             except Exception as e:
@@ -133,9 +134,11 @@ class TTSNode(Node):
         try:
             tts = gTTS(text)
             tts.save(file_path)
+            wav_file_path = file_path.replace('.mp3', '.wav')
+            subprocess.run(['ffmpeg', '-i', file_path, wav_file_path], check=True)
 
             # self.model.tts_to_file(text, file_path=file_path, speaker_wav=[voice_file], language=language)
-            self.publish_audio(file_path)
+            self.publish_audio(wav_file_path)
         finally:
             if os.path.exists(file_path):
                 os.remove(file_path)  # Ensure cleanup regardless of errors
