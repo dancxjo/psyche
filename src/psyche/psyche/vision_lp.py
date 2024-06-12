@@ -3,7 +3,7 @@ from rclpy.node import Node
 from rclpy.action import ActionServer
 
 from .language_processor import LanguageProcessor
-from psyche_interfaces.msg import InferenceWithImages
+from psyche_interfaces.action import InferenceWithImages
 import requests
 import json
 import base64
