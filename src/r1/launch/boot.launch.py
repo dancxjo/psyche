@@ -254,13 +254,6 @@ def generate_launch_description():
                 "accumulation_method": "latest",                
             }]
         ),
-        
-        Node(
-            package="psyche",
-            executable="stream_voice",
-            name="the_voice",
-            output="screen",
-        )
 
         # Node(
         #     package="psyche",
