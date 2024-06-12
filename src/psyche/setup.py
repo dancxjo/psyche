@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'lpu = psyche.language_processor:main',
+            'vlpu = psyche.vision_lp:main',
             'distill = psyche.distiller:main',
             'listen_for_speech = psyche.listen:main',
             'sense = psyche.sense:main',

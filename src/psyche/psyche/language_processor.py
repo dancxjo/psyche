@@ -38,16 +38,16 @@ class LanguageProcessor(Node):
         self.declare_parameter('base_url', 'http://127.0.0.1:11434')
         self.declare_parameter('model_type', 'ollama')
 
-        model = self.get_parameter('model').get_parameter_value().string_value
-        base_url = self.get_parameter('base_url').get_parameter_value().string_value
-        model_type = self.get_parameter('model_type').get_parameter_value().string_value
+        self.model = self.get_parameter('model').get_parameter_value().string_value
+        self.base_url = self.get_parameter('base_url').get_parameter_value().string_value
+        self.model_type = self.get_parameter('model_type').get_parameter_value().string_value
         
-        if model_type == 'openai':
-            self.llm = ChatOpenAI(model=model)
+        if self.model_type == 'openai':
+            self.llm = ChatOpenAI(model=self.model)
         else:
-            self.llm = Ollama(model=model, base_url=base_url, temperature=0.9, num_predict=256)
+            self.llm = Ollama(model=self.model, base_url=self.base_url, temperature=0.9, num_predict=256)
         
-        self.get_logger().debug('Language model initialized with model: {0}'.format(model))
+        self.get_logger().debug('Language model initialized with model: {0}'.format(self.model))
 
     def setup_output_parser(self):
         self.output_parser = StrOutputParser()
@@ -85,6 +85,35 @@ class LanguageProcessor(Node):
         feedback_msg.chunk.level = chunk_level
         goal_handle.publish_feedback(feedback_msg)
 
+    def buffer_chunks(self, goal_handle, chunk, word_buffer, sentence_buffer):
+        word_buffer += chunk
+        self.get_logger().debug(f'Word buffer: {word_buffer}')
+
+        words = [word for word in re.split(r"(?<!\w'\w)\b", word_buffer) if word != ""]
+        self.get_logger().debug(f'Words: {words}')
+        is_word_complete = len(words) > 1
+        if is_word_complete:
+            first_word = words[0]
+            if first_word.strip() != "":
+                self.report_chunk(goal_handle, first_word, 1)
+            index = word_buffer.index(first_word)
+            end = index + len(first_word)
+            word_buffer = word_buffer[end:]
+        
+        sentence_buffer += chunk
+        self.get_logger().debug(f'Sentence buffer: {sentence_buffer}')                 
+        sentences = split_text_into_sentences(sentence_buffer, language="en")
+        self.get_logger().debug(f'Sentences: {sentences}')
+        is_sentence_complete = len(sentences) > 1
+        if is_sentence_complete:
+            first_sentence = sentences[0]
+            if first_sentence.strip() != "":
+                self.report_chunk(goal_handle, first_sentence.strip(), 2)
+            index = sentence_buffer.index(first_sentence)
+            end = index + len(first_sentence)
+            sentence_buffer = sentence_buffer[end:]
+        return word_buffer, sentence_buffer
+
     def stream(self, goal_handle):
         """
         Processes the request in chunks and provides feedback.
@@ -100,33 +129,8 @@ class LanguageProcessor(Node):
                     result.response += chunk
                     self.report_chunk(goal_handle, chunk, 0)
 
-                    word_buffer += chunk
-                    self.get_logger().debug(f'Word buffer: {word_buffer}')
+                    word_buffer, sentence_buffer = self.buffer_chunks(goal_handle, chunk, word_buffer, sentence_buffer)
 
-                    words = [word for word in re.split(r'\s+', word_buffer) if word != ""]
-                    self.get_logger().debug(f'Words: {words}')
-                    is_word_complete = len(words) > 1
-                    if is_word_complete:
-                        first_word = words[0]
-                        if first_word.strip() != "":
-                            self.report_chunk(goal_handle, first_word, 1)
-                        index = word_buffer.index(first_word)
-                        end = index + len(first_word)
-                        word_buffer = word_buffer[end:]
-                    
-                    sentence_buffer += chunk
-                    self.get_logger().debug(f'Sentence buffer: {sentence_buffer}')                 
-                    sentences = split_text_into_sentences(sentence_buffer, language="en")
-                    self.get_logger().debug(f'Sentences: {sentences}')
-                    is_sentence_complete = len(sentences) > 1
-                    if is_sentence_complete:
-                        first_sentence = sentences[0]
-                        if first_sentence.strip() != "":
-                            self.report_chunk(goal_handle, first_sentence.strip(), 2)
-                        index = sentence_buffer.index(first_sentence)
-                        end = index + len(first_sentence)
-                        sentence_buffer = sentence_buffer[end:]
-                        
                     if goal_handle.is_cancel_requested:
                         self.get_logger().debug('Goal canceled by client.')
                         goal_handle.canceled()

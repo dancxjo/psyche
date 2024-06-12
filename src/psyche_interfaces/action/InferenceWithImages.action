@@ -1,0 +1,6 @@
+string prompt
+string[] images # for llava vision model; base64 encoded images
+---
+string response
+---
+StreamedChunk chunk

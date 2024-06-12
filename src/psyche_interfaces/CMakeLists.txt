@@ -13,6 +13,7 @@ find_package(sensor_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/PlainTextInference.action"
+  "action/InferenceWithImages.action"
   "message/StreamedChunk.msg"
   "message/Sensation.msg"
   DEPENDENCIES std_msgs sensor_msgs
