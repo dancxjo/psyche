@@ -25,10 +25,6 @@ def generate_launch_description():
             name="the_voice",
             output="screen",
         ),
-        ExecuteProcess(  # Add ExecuteProcess action
-            cmd=[executable, "aplay", "/usr/share/sounds/alsa/Front_Center.wav"],  
-            output="screen",
-        ),
         Node(
             package="r1",
             executable="announce_boot",
