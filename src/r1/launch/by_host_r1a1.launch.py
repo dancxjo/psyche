@@ -31,7 +31,7 @@ def generate_launch_description():
         ),
         Node(
             package="r1",
-            executable="boot_announcer",
+            executable="announce_boot",
             name="boot_announcer",
             output="screen",
         )
