@@ -19,17 +19,43 @@ from launch.actions import IncludeLaunchDescription, ExecuteProcess  # Import Ex
 
 def generate_launch_description():
     return LaunchDescription([
+        # Start streaming the voice so we can hear where we are in the boot sequence
         Node(
             package="psyche",
             executable="stream_voice",
             name="the_voice",
             output="screen",
         ),
+        # Announce the boot sequence
         Node(
             package="r1",
             executable="announce_boot",
             name="boot_announcer",
             output="screen",
-        )
+        ),
+        
+        # Start the LLMS
+        Node(
+            package="psyche",
+            executable="lpu",
+            name="basic_lpu",
+            output="screen",
+            parameters=[
+                {"model": "llama3:instruct"},
+                {"base_url": "http://192.168.0.4:11434"},
+                {"action_server_name": "instruct"}
+            ],
+        ),
+        Node(
+            package="psyche",
+            executable="vlpu",
+            name="vision_lpu",
+            output="screen",
+            parameters=[
+                {"model": "llava:13b"},
+                {"base_url": "http://192.168.0.4:11434"},
+                {"action_server_name": "inspect"}
+            ],
+        ),
 
    ])
