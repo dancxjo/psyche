@@ -8,7 +8,6 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String, ByteMultiArray
 # from TTS.api import TTS
-import pydub
 import torch
 from gtts import gTTS
 
