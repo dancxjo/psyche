@@ -4,7 +4,7 @@
 
 # "r1" is the robot who _hosts_ the psyche toolset
 export HOST_PKG=r1
-export ROS_DISTRO=rolling
+export ROS_DISTRO=iron
 
 ### Check if running inside a Docker container
 if [ -e "/opt/ros" ]; then

@@ -1,34 +1,18 @@
 #!/bin/bash
-export ROS_DISTRO=jazzy
-
-locale  # check for UTF-8
-
-sudo apt update && sudo apt install locales
-sudo locale-gen en_US en_US.UTF-8
-sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-export LANG=en_US.UTF-8
-
-locale  # verify settings
-
-sudo apt install software-properties-common curl -y
-sudo add-apt-repository universe
-sudo add-apt-repository ppa:deadsnakes/ppa
-
-sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+export ROS_DISTRO=${ROS_DISTRO:iron}
 
 sudo apt update
 sudo apt install -y \
     ros-dev-tools \
-    ros-$ROS_DISTRO-desktop \
+    ros-${ROS_DISTRO}-desktop \
     python3-pip \
-    ros-$ROS_DISTRO-rmw-cyclonedds-cpp \
+    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
     ros-dev-tools \
     python3-colcon-common-extensions \
-    ros-$ROS_DISTRO-diagnostic-updater \
+    ros-${ROS_DISTRO}-diagnostic-updater \
     libgpiod-dev \
     gpiod \
-    ros-$ROS_DISTRO-xacro \
+    ros-${ROS_DISTRO}-xacro \
     python3-pyaudio \
     alsa-utils \
     libportaudio2 \
@@ -37,23 +21,37 @@ sudo apt install -y \
     mc \
     nano \
     python-is-python3 \
-    python3.10 \
-    python3.10-venv \
-    python3.10-distutils \
-    python3.10-dev \
+    python3-venv \
+    python3-distutils \
+    python3-dev \
     libi2c-dev 
 
 sudo apt-get update 
 sudo apt-get upgrade -y
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
+chmod +x rustup.sh
+./rustup.sh -y
 
 cd /psyche
 
-python3.10 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 
-pip install -r requirements.txt
+pip install -qU \
+    langchain \
+    langchain-community \
+    langchain-openai \
+    sentence_splitter \
+    langchain-text-splitters \
+    faiss-cpu \
+    langchainhub \
+    langchain_experimental \
+    gpiod \
+    SpeechRecognition \
+    openai-whisper \
+    TTS
+
 sudo rosdep init
 rosdep update 
     
