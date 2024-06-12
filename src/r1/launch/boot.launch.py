@@ -40,7 +40,6 @@ def generate_launch_description():
             output="screen",
         ),
         
-        
         Node(
             package="psyche",
             executable="heartbeat",
@@ -51,8 +50,6 @@ def generate_launch_description():
                 {"update_interval": 1.0},
             ],
         ),
-        
-        
         
         Node(
             package="psyche",
@@ -220,7 +217,7 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "action_server_name": "instruct",
-                "prompt": "You are a robot. Specifically, you are a language model serving as a constituent ('the mime') of the mind of a robot. Below is the situation as you understand it. In one emoji and no other words or symbols, represent the current emotional state of the robot.\n\n{input_topics}\n\nOne emoji and nothing else:\n",
+                "prompt": "You are a robot. Specifically, you are a language model serving as a constituent ('the mime') of the mind of a robot. Below is the situation as you understand it. In one or two emoji (as unicode characters) and no other words or symbols, represent the current emotional state of the robot.\n\n{input_topics}\n\nA few emoji characters and nothing else:\n",
                 "input_topics": ["identity", "instant", "situation", "intent"],
                 "output_topic": "feeling",
                 "update_interval": 1.0,
@@ -242,6 +239,28 @@ def generate_launch_description():
                 "accumulation_method": "latest",                
             }]
         ),
+
+        Node(
+            package="psyche",
+            executable="distill",
+            name="the_shell_interactor",
+            output="screen",
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": """You are a robot. Specifically, you are a language model serving as a constituent ('the shell interactor') of the mind of a robot. Listen to the output of other mental constiuents and help them out by running and interpretting shell commands. This shell is running on the same computer as your code is running. (Feel free to explore it in /psyche.) You have access to publish to any topic by running the appropriate ROS2 messages from the command line. To communicate with the other parts of the mind, you might try publishing a std_msgs.String to /sensation.\n{input_topics}\n\n$\n""",
+                "input_topics": ["identity", "feeling", "instant", "situation", "intent", "shell_output"],
+                "output_topic": "shell_commands",
+                "update_interval": 1.0,
+                "accumulation_method": "latest",                
+            }]
+        ),
+        
+        Node(
+            package="psyche",
+            executable="stream_voice",
+            name="the_voice",
+            output="screen",
+        )
 
         # Node(
         #     package="psyche",

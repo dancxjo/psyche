@@ -26,6 +26,7 @@ setup(
             "play_song = r1.play_song:main",
             "motivate = r1.motivator:main",
             "monitor = r1.monitor:main",
+            "exec_shell = r1.shell_exec:main"
         ],
     },
 )
