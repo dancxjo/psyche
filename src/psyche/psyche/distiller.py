@@ -3,9 +3,6 @@ from rclpy.node import Node
 from rclpy.action import ActionClient
 
 from std_msgs.msg import String
-
-from langchain_core.prompts import PromptTemplate
-
 from psyche_interfaces.action import PlainTextInference
 
 import yaml
