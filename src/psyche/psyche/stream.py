@@ -145,6 +145,8 @@ class TTSNode(Node):
 
     def publish_audio(self, file_path):
         try:
+            self.publisher.publish(ByteMultiArray(data=b'\x00' * chunk_size))
+            self.audio_server.stream_audio(b'\x00' * chunk_size)
             with open(file_path, 'rb') as file:
                 wav_data = file.read()  # Read the entire WAV file
             chunk_size = self.get_parameter('chunk_size').get_parameter_value().integer_value
