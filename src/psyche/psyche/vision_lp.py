@@ -11,6 +11,32 @@ from sentence_splitter import split_text_into_sentences
 import re
 
 class VisionEnabledLanguageProcessor(LanguageProcessor):
+    def __init__(self, node_name, action_server_name="instruct"):
+        """
+        Initializes the node, the language model, and the action server.
+        """
+        # TODO: Make a higher abstraction for LPUs that's abstract, with a new LangChainLP that does all the "default" stuff
+        super().__init__(node_name)
+        action_server_name = self.get_parameter("action_server_name").get_parameter_value().string_value
+        self.action_server_name = action_server_name
+        self._action_server = ActionServer(
+            self,
+            InferenceWithImages,
+            action_server_name,
+            self.receive_goal_callback
+        )
+        
+    def extract_input(self, goal_handle):
+        """
+        Extracts the input from the goal handle.
+        """
+        input_data = goal_handle.request
+        return {
+            "prompt": input_data.prompt,
+            "images": input_data.images
+        }
+        
+        
     def stream(self, goal_handle):
         """
         Processes the request in chunks and provides feedback.
@@ -22,7 +48,7 @@ class VisionEnabledLanguageProcessor(LanguageProcessor):
         input_data = self.extract_input(goal_handle)
         payload = {
             "model": self.model,
-            "prompt": input_data["input"],
+            "prompt": input_data["prompt"],
             "images": input_data["images"]
         }
         headers = {'Content-Type': 'application/json'}
