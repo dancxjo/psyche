@@ -24,6 +24,8 @@ RUN apt update && apt install -y \
     python3-dev \
     libi2c-dev 
 
+RUN apt install -y ros-${ROS_DISTRO}-usb-cam
+
 RUN pip install langchain
 RUN pip install langchain-community
 RUN pip install langchain-openai
