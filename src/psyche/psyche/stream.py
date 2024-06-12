@@ -7,10 +7,10 @@ import signal
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String, ByteMultiArray
-from TTS.api import TTS
+# from TTS.api import TTS
 import pydub
 import torch
-
+from gtts import gTTS
 
 class AudioStreamServer:
     """
@@ -114,7 +114,8 @@ class TTSNode(Node):
         """
         model_path = self.get_parameter('model_path').get_parameter_value().string_value
         device = self.get_parameter('device').get_parameter_value().string_value
-        return TTS(model_path).to(device)
+        return "One day we might be able to get coqui-tts running"
+        # return TTS(model_path).to(device)
 
     def voice_callback(self, msg):
         """
@@ -129,9 +130,12 @@ class TTSNode(Node):
         """
         voice_file = self.get_parameter('voice_file').get_parameter_value().string_value
         language = self.get_parameter('language').get_parameter_value().string_value
-        file_path = tempfile.mktemp(suffix='.wav')
+        file_path = tempfile.mktemp(suffix='.mp3')
         try:
-            self.model.tts_to_file(text, file_path=file_path, speaker_wav=[voice_file], language=language)
+            tts = gTTS(text)
+            tts.save(file_path)
+
+            # self.model.tts_to_file(text, file_path=file_path, speaker_wav=[voice_file], language=language)
             self.publish_audio(file_path)
         finally:
             if os.path.exists(file_path):

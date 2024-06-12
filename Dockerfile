@@ -24,18 +24,18 @@ RUN apt update && apt install -y \
     python3-dev \
     libi2c-dev 
 
-RUN pip install -qU langchain
-RUN pip install -qU langchain-community
-RUN pip install -qU langchain-openai
-RUN pip install -qU sentence_splitter
-RUN pip install -qU langchain-text-splitters
-RUN pip install -qU faiss-cpu
-RUN pip install -qU langchainhub
-RUN pip install -qU langchain_experimental
-RUN pip install -qU gpiod
-RUN pip install -qU SpeechRecognition
-RUN pip install -qU openai-whisper
-RUN pip install -qU TTS
+RUN pip install langchain
+RUN pip install langchain-community
+RUN pip install langchain-openai
+RUN pip install sentence_splitter
+RUN pip install langchain-text-splitters
+RUN pip install faiss-cpu
+RUN pip install langchainhub
+RUN pip install langchain_experimental
+RUN pip install gpiod
+RUN pip install SpeechRecognition
+RUN pip install openai-whisper
+RUN pip install gTTS
 
 RUN mkdir -p /psyche/src
 WORKDIR /psyche/src
