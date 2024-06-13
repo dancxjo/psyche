@@ -43,7 +43,7 @@ class VoiceNode(Node):
         if data:
             for client in self.tcp_clients[:]:  # Make a copy of the list to avoid modification during iteration
                 try:
-                    client.sendall(f"{data}\n".encode())
+                    client.sendall(data.strip())
                 except Exception as e:
                     print(f"Failed to send data to {client}: {e}")
                     self.tcp_clients.remove(client)
