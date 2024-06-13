@@ -23,11 +23,5 @@ while true; do
     
     # Send the line to the TTS API and get back the speech in WAV format
     curl "http://192.168.0.4:5002/api/tts?text=$encoded_line&speaker_id=p227&style_wav=&language_id=" \
-        -H "Accept: */*" \
-        -H "Accept-Language: en-US,en;q=0.9" \
-        -H "Cache-Control: max-age=0" \
-        -H "Connection: keep-alive" \
-        -H "Referer: http://192.168.0.4:5002/" \
-        -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36" \
         --insecure --output - | aplay
 done

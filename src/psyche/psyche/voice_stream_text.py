@@ -64,7 +64,7 @@ class TextStreamServer:
         """
         for client in self.clients[:]:  # Make a copy of the list
             try:
-                client.sendall(data)
+                client.sendall(f"{data}\n")
             except Exception as e:
                 
                 print(f"Failed to send data to {client}: {e}")
