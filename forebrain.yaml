@@ -16,7 +16,6 @@ services:
     ports:
       - "5002:5002"
     entrypoint: /bin/bash
-    command: ["-c", "tail -f /dev/null"]
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
