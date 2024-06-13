@@ -58,6 +58,7 @@ RUN echo "alias resource=\"ros_source && psyche_source\"" >> $HOME/.bashrc
 RUN echo "alias pbuild=\"here=$(pwd) && cd /psyche && colcon build && resource && cd '\$here'\"" >> $HOME/.bashrc
 
 COPY . /psyche
+RUN rm -rf {build,install,log}
 WORKDIR /psyche/src/ros2_mpu6050_driver
 RUN patch -p1 < /psyche/mpu.patch
 WORKDIR /psyche
