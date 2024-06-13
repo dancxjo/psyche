@@ -18,12 +18,12 @@ screen -dmS voice bash -c '
 while true; do
   # Read from TCP port
   read line < <(nc -l 127.0.0.1 8200)
-  
+
   # URL encode the line to ensure it is sent correctly over HTTP
   encoded_line=$(echo "$line" | jq -sRr @uri)
   
   # Send the line to the TTS API and get back the speech in WAV format
-  curl "http://192.168.0.4:5002/api/tts?text=$encoded_detail &speaker_id=p238&style_wav=&language_id=" \
+  curl "http://192.168.0.4:5002/api/tts?text=${encoded_line}&speaker_id=p238&style_wav=&language_id=" \
        --insecure --output - | ffplay - -nodisp -autoexit -loglevel error
 done
 '
