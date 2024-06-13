@@ -40,6 +40,8 @@ RUN pip install gpiod
 RUN pip install SpeechRecognition
 RUN pip install openai-whisper
 RUN pip install gTTS
+RUN pip install flask
+RUN pip install pydub
 
 RUN mkdir -p /psyche/src
 WORKDIR /psyche/src

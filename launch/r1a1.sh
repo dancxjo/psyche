@@ -14,4 +14,4 @@
 screen -Smd container bash -c "docker compose -f /psyche/r1a1.yaml up"
 
 ## Finally, we loop forever playing the voice
-screen -dmS voice /psyche/launch/play_voice.sh
+# screen -dmS voice /psyche/launch/play_voice.sh

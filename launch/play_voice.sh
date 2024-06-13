@@ -22,6 +22,6 @@ while true; do
   echo "$encoded_line"
   
   # Send the line to the TTS API and get back the speech in WAV format
-  curl "http://192.168.0.4:5002/api/tts?text=${encoded_line}&speaker_id=p238&style_wav=&language_id=" \
+  curl "http://192.168.0.4:5002/api/tts?text=${encoded_line}&speaker_id=p330&style_wav=&language_id=" \
        --insecure --output - | ffplay - -nodisp -autoexit -loglevel error
 done
