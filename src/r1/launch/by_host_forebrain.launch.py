@@ -17,26 +17,8 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, ExecuteProcess  # Import ExecuteProcess
 
-forebrain_host = "192.168.0.4"
-offboard_host = "192.168.0.4"
-
 def generate_launch_description():
     return LaunchDescription([
-        # Start streaming the voice so we can hear where we are in the boot sequence
-        Node(
-            package="psyche",
-            executable="stream_voice",
-            name="the_voice",
-            output="screen",
-        ),
-        # Announce the boot sequence
-        Node(
-            package="r1",
-            executable="announce_boot",
-            name="boot_announcer",
-            output="screen",
-        ),
-        
         # Start the LLMS
         Node(
             package="psyche",
@@ -45,8 +27,8 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llama3:instruct"},
-                {"base_url": "http://192.168.0.133:11434"},
-                {"action_server_name": "instruct"}
+                {"base_url": "http://127.0.0.1:11434"},
+                {"action_server_name": "instruct_per_se"}
             ],
         ),
         Node(
@@ -56,8 +38,8 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llava:13b"},
-                {"base_url": "http://192.168.0.133:11434"},
-                {"action_server_name": "inspect"}
+                {"base_url": "http://127.0.0.1:11434"},
+                {"action_server_name": "inspect_per_se"}
             ],
         ),
 

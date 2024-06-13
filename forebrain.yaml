@@ -14,7 +14,9 @@ services:
   tts:
     image: ghcr.io/coqui-ai/tts-cpu
     ports:
-      "5002:5002"
+      - "5002:5002"
+    entrypoint:
+        /bin/bash -c "tail -f /dev/null"
 
   memory:
     image: crazymax/dokuwiki:latest
