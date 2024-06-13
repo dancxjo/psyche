@@ -7,7 +7,7 @@ export HOST_PKG=r1
 export ROS_DISTRO=iron
 
 ### Check if running inside a Docker container
-if [ -e "/opt/ros" ]; then
+if [ -e "/ros_entrypoint.sh" ]; then
 
     export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
     export ROS_DOMAIN_ID=42
