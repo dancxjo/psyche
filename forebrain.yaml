@@ -12,12 +12,15 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
 
   tts:
-    image: ghcr.io/coqui-ai/tts-cpu
+    image: ghcr.io/coqui-ai/tts
     ports:
       - "5002:5002"
-    entrypoint:
-        /bin/bash -c "tail -f /dev/null"
-
+    entrypoint: /bin/bash
+    command: ["-c", "tail -f /dev/null"]
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+  
   memory:
     image: crazymax/dokuwiki:latest
     ports:
