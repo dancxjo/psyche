@@ -26,7 +26,7 @@ def generate_launch_description():
         # The outer container host should be listening to this and playing it
         Node(
             package="psyche",
-            executable="stream",
+            executable="stream_voice",
             name="the_voice",
             output="screen",
         ),
