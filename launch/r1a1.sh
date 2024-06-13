@@ -4,7 +4,7 @@
 ### This is the device the robot is always with
 
 # It runs OLLAMA, as a backup in case everything else crashes. It's very slow and CPU only, so se need to use a small model
-screen -Smd ollama bash -c "OLLAMA_DEBUG=false OLLAMA_HOST='0.0.0.0:11434' OLLAMA_KEEP_ALIVE=1h ollama serve"
+# screen -Smd ollama bash -c "OLLAMA_DEBUG=false OLLAMA_HOST='0.0.0.0:11434' OLLAMA_KEEP_ALIVE=1h ollama serve"
 
 ### It also is connected to a Coral TPU...we'll use this to do live training, hopefully
 ### Ultimately, we'd like to see as much converge on this device as possible
@@ -15,5 +15,19 @@ screen -Smd container bash -c "docker compose -f /psyche/r1a1.yaml up"
 
 ## Finally, we loop forever playing the voice
 while true; do
-    cvlc tcp://192.168.0.132:8000
+    # Read from TCP port
+    read line < <(nc -l 192.168.0.4 8200)
+    
+    # URL encode the line to ensure it is sent correctly over HTTP
+    encoded_line=$(echo "$line" | jq -sRr @uri)
+    
+    # Send the line to the TTS API and get back the speech in WAV format
+    curl "http://192.168.0.4:5002/api/tts?text=$encoded_line&speaker_id=p227&style_wav=&language_id=" \
+        -H "Accept: */*" \
+        -H "Accept-Language: en-US,en;q=0.9" \
+        -H "Cache-Control: max-age=0" \
+        -H "Connection: keep-alive" \
+        -H "Referer: http://192.168.0.4:5002/" \
+        -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36" \
+        --insecure --output - | aplay
 done
