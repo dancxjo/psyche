@@ -14,7 +14,7 @@ class VoiceNode(Node):
         super().__init__('tts_node')
         self.host = host
         self.port = port
-        self.clients = []
+        self.tcp_clients = []
         self.running = True
 
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,7 +31,7 @@ class VoiceNode(Node):
         while self.running:
             try:
                 client_socket, addr = self.server_socket.accept()
-                self.clients.append(client_socket)
+                self.tcp_clients.append(client_socket)
                 print('Connected by', addr)
             except OSError as e:
                 if self.running:
@@ -41,21 +41,21 @@ class VoiceNode(Node):
     def voice_callback(self, msg):
         data = str(msg.data).strip()
         if data:
-            for client in self.clients[:]:  # Make a copy of the list to avoid modification during iteration
+            for client in self.tcp_clients[:]:  # Make a copy of the list to avoid modification during iteration
                 try:
                     client.sendall(f"{data}\n".encode())
                 except Exception as e:
                     print(f"Failed to send data to {client}: {e}")
-                    self.clients.remove(client)
+                    self.tcp_clients.remove(client)
                     client.close()
 
     def close(self):
         print("Shutting down server...")
         self.running = False
         self.server_socket.close()
-        for client in self.clients:
+        for client in self.tcp_clients:
             client.close()
-        self.clients.clear()
+        self.tcp_clients.clear()
         print("Server shut down successfully.")
 
 def main(args=None):
