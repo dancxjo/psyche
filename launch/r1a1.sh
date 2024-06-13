@@ -16,7 +16,7 @@ screen -Smd container bash -c "docker compose -f /psyche/r1a1.yaml up"
 ## Finally, we loop forever playing the voice
 while true; do
     # Read from TCP port
-    read line < <(nc -l 192.168.0.4 8200)
+    read line < <(nc -l 127.0.0.1 8200)
     
     # URL encode the line to ensure it is sent correctly over HTTP
     encoded_line=$(echo "$line" | jq -sRr @uri)
