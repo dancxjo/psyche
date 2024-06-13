@@ -23,9 +23,10 @@ offboard_host = "192.168.0.4"
 def generate_launch_description():
     return LaunchDescription([
         # Start streaming the voice so we can hear where we are in the boot sequence
+        # The outer container host should be listening to this and playing it
         Node(
             package="psyche",
-            executable="stream_voice",
+            executable="stream_text",
             name="the_voice",
             output="screen",
         ),
@@ -45,7 +46,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llama3:instruct"},
-                {"base_url": "http://192.168.0.133:11434"},
+                {"base_url": f"http://{forebrain_host}:11434"},
                 {"action_server_name": "instruct"}
             ],
         ),
@@ -56,7 +57,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llava:13b"},
-                {"base_url": "http://192.168.0.133:11434"},
+                {"base_url": f"http://{forebrain_host}:11434"},
                 {"action_server_name": "inspect"}
             ],
         ),
