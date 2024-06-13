@@ -29,7 +29,7 @@ class BootAnnouncer(Node):
         
     def timer_callback(self):
         self.get_logger().info('Waking up...')
-        self.say(String(data=f'I\'ve already announced this {self.times} times!'))
+        self.say(f'I\'ve already announced this {self.times} times!')
         self.times += 1
 
 def main(args=None):

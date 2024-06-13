@@ -98,7 +98,9 @@ class VoiceNode(Node):
 
     def voice_callback(self, msg):
         try:
-            self.server.stream_text(msg.data)
+            data = str(msg.data).strip()
+            if data:
+                self.server.stream_text(data)
 
         except Exception as e:
             self.get_logger().error(f"Error during voice publishing: {e}")
