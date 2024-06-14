@@ -14,7 +14,7 @@ class AudioSegmenter(Node):
 
         self.declare_parameters(namespace='',
                                 parameters=[
-                                    ('device_index', 3),
+                                    ('device_index', 0),
                                 ])
 
         device_index = self.get_parameter('device_index').get_parameter_value().integer_value
