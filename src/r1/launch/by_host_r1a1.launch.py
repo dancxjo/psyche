@@ -17,16 +17,15 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, ExecuteProcess  # Import ExecuteProcess
 
-forebrain_host = "192.168.0.4"
-offboard_host = "192.168.0.4"
+forebrain_host = "192.168.0.14"
 
 def generate_launch_description():
     return LaunchDescription([
         # Start streaming the voice so we can hear where we are in the boot sequence
         # The outer container host should be listening to this and playing it
         Node(
-            package="psyche",
-            executable="stream_voice",
+            package="r1",
+            executable="speak_directly",
             name="the_voice",
             output="screen",
         ),

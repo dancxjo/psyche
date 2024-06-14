@@ -31,7 +31,7 @@ def speak(text, publisher):
     # "style_wav": "", # TODO: Record some "emoticons" so robot can express feelings
     # "language_id": "" # TODO: Let robot change languages
 
-    response = requests.get("http://192.168.0.4:5002/api/tts", params={
+    response = requests.get("http://192.168.0.14:5002/api/tts", params={
                                 "text": text,
                                 "speaker_id": voice_id,
                                 "style_wav": "",
@@ -68,9 +68,9 @@ class TTSNode(Node):
                                 ])
         self.subscription = self.create_subscription(String, 'voice', self.voice_callback, 10)
         self.publisher = self.create_publisher(ByteMultiArray, 'streamed_voice', 10)
-        self.voice_id = self.get_parameter('voice_id').get_parameter().string_value
-        self.chunk_size = self.get_parameter('chunk_size').get_parameter().integer_value
-        self.port = self.get_parameter('port').get_parameter().integer_value
+        self.voice_id = self.get_parameter('voice_id').get_parameter_value().string_value
+        self.chunk_size = self.get_parameter('chunk_size').get_parameter_value().integer_value
+        self.port = self.get_parameter('port').get_parameter_value().integer_value
         
         global voice_id
         global chunk_size
