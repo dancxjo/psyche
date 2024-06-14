@@ -31,7 +31,7 @@ def speak(text, publisher):
     # "style_wav": "", # TODO: Record some "emoticons" so robot can express feelings
     # "language_id": "" # TODO: Let robot change languages
 
-    response = requests.get("http://192.168.0.14:5002/api/tts", params={
+    response = requests.get("http://192.168.0.7:5002/api/tts", params={
                                 "text": text,
                                 "speaker_id": voice_id,
                                 "style_wav": "",

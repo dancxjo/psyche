@@ -17,7 +17,7 @@ class TTSNode(Node):
         self.declare_parameters(namespace='',
                                 parameters=[
                                     ('voice_id', 'p330'),
-                                    ('coqui_base_url', "http://192.168.0.14:5002")
+                                    ('coqui_base_url', "http://192.168.0.7:5002")
                                 ])
         self.subscription = self.create_subscription(String, 'voice', self.voice_callback, 10)
         self.publisher = self.create_publisher(ByteMultiArray, 'streamed_voice', 10)
@@ -31,19 +31,20 @@ class TTSNode(Node):
         self.get_logger().info(f"Received text: {text}")
         wav = self.get_wav(text)
         self.playlist.append(wav)
-        self.publisher.publish(ByteMultiArray(data=wav.raw_data))
+        # self.publisher.publish(ByteMultiArray(data=wav.))
         self.handle_queue()
     
     def handle_queue(self):
         if len(self.playlist) == 0:
             return
         wav = self.playlist.pop(0)
+        padded_wav = AudioSegment.silent(duration=1000) + wav + AudioSegment.silent(duration=1000)
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-            temp_file.write(wav.export(format="wav").raw_data)
+            padded_wav.export(temp_file.name, format="wav")
             temp_file_path = temp_file.name
 
         # Use ffplay to play the temporary file
-        subprocess.run(["ffplay", temp_file_path])
+        subprocess.run(["aplay", temp_file_path])
 
         # Delete the temporary file
         os.unlink(temp_file_path)
@@ -74,7 +75,6 @@ def main(args=None):
     try:
         rclpy.spin(tts_node)
     finally:
-        tts_node.audio_server.close()
         tts_node.destroy_node()
         rclpy.shutdown()
 

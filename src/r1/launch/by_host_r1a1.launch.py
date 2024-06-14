@@ -17,7 +17,7 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, ExecuteProcess  # Import ExecuteProcess
 
-forebrain_host = "192.168.0.14"
+forebrain_host = "192.168.0.7"
 
 def generate_launch_description():
     return LaunchDescription([
