@@ -16,7 +16,7 @@ class TTSNode(Node):
         super().__init__('tts_node')
         self.declare_parameters(namespace='',
                                 parameters=[
-                                    ('voice_id', 'p330'),
+                                    ('voice_id', 'p317'),
                                     ('coqui_base_url', "http://192.168.0.7:5002")
                                 ])
         self.subscription = self.create_subscription(String, 'voice', self.voice_callback, 10)
@@ -38,7 +38,7 @@ class TTSNode(Node):
         if len(self.playlist) == 0:
             return
         wav = self.playlist.pop(0)
-        padded_wav = AudioSegment.silent(duration=1000) + wav + AudioSegment.silent(duration=1000)
+        padded_wav = AudioSegment.silent(duration=100) + wav + AudioSegment.silent(duration=100)
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
             padded_wav.export(temp_file.name, format="wav")
             temp_file_path = temp_file.name

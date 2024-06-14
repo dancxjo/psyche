@@ -20,8 +20,24 @@ class BootAnnouncer(Node):
         self.say('Instruct action server is ready!')
         self.act2.wait_for_server()
         self.say('Inspect action server is ready!')
-        self.say('Initialization complete.')
-        self.say('Hello, I am Ar One! Just a moment while I wake up.')
+
+        self.topics = {}
+    
+        for t in ['bumper', 'sensation', 'proprioception', 'twists', 'instant', 'identity', 'situation', 'intent', 'autobiography', 'feeling', 'song', 'imu']:
+            self.say(f'Initializing {t}...')
+            self.topics[t] = self.create_subscription(String, t, self.make_callback(t), 10)
+
+    def make_callback(self, topic):
+        def callback(msg):
+            self.say(f'The {topic} topic has been initialized and is receiving data.')
+            self.destroy_subscription(self.topics[topic])
+            self.topics.delete(topic)
+            self.finish()
+        return callback
+
+    def finish(self):
+        self.say('Robot 1 initialization complete. Passing control to the pseudo-consciousness. ')
+
 
     def say(self, msg):
         self.get_logger().info('Saying: %s' % msg)

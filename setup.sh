@@ -4,7 +4,7 @@ export ROS_DISTRO=${ROS_DISTRO:iron}
 sudo apt update
 sudo apt install -y \
     ros-dev-tools \
-    ros-${ROS_DISTRO}-desktop \
+    ros-${ROS_DISTRO}-base \
     python3-pip \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
     ros-dev-tools \
