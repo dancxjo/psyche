@@ -6,6 +6,7 @@ from std_msgs.msg import String
 from psyche_interfaces.action import PlainTextInference, InferenceWithImages
 
 import yaml
+import base64
 
 class Distiller(Node):
     """
@@ -65,6 +66,11 @@ class Distiller(Node):
     def transform_topic(self, topic_name: str, msg):
         """Render the message from the specified topic into a string"""
         self.get_logger().debug(f'transforming topic {topic_name}')
+        is_image = False
+        if is_image:
+            image_data = msg.data # TODO: Confirm once we have the right type
+            encoded = base64.b64encode(image_data)
+            return encoded
         if type(msg) == String:
             return msg.data
         
