@@ -46,8 +46,10 @@ RUN pip install pydub
 RUN apt install -y libasound2-dev
 RUN pip install soundfile
 
-RUN apt install -y python3-sphinx build-essential swig libpulse-dev
-RUN pip install pocketsphinx
+# RUN apt install -y python3-sphinx build-essential swig libpulse-dev
+# RUN apt install -y cython3
+# RUN pip install cython
+# RUN pip install pocketsphinx
 
 RUN apt install -y ros-$ROS_DISTRO-camera-calibration-parsers
 
@@ -70,7 +72,7 @@ RUN echo "alias resource=\"ros_source && psyche_source\"" >> $HOME/.bashrc
 RUN echo "alias pbuild=\"here=$(pwd) && cd /psyche && colcon build && resource && cd '\$here'\"" >> $HOME/.bashrc
 
 COPY . /psyche
-RUN rm -rf {build,install,log}
+RUN rm -rf /psyche/{build,install,log}
 WORKDIR /psyche/src/ros2_mpu6050_driver
 RUN patch -p1 < /psyche/mpu.patch
 WORKDIR /psyche

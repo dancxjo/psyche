@@ -39,7 +39,7 @@ class Transcriber(Node):
         self.get_logger().debug(f'Segment queued {len(self.segments_to_transcribe)}')
 
     def transcribe_in_all_the_ways(self, audio):
-        recognizer = [self.recognizer.recognize_sphinx, self.recognizer.recognize_google, self.recognizer.recognize_whisper]
+        recognizer = [self.recognizer.recognize_google, self.recognizer.recognize_whisper]
         for rec in recognizer:
             def threaded_recognition(rec, audio):
                 try:
