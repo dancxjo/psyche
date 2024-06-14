@@ -40,7 +40,9 @@ class Distiller(Node):
         self.action_server_name = self.get_parameter('action_server_name').get_parameter_value().string_value
         self.support_images = self.get_parameter('image_support').get_parameter_value().bool_value
         self.image_topics = self.get_parameter('input_images').get_parameter_value().string_array_value
-        self.action_client = ActionClient(self, PlainTextInference if not self.support_images else InferenceWithImages, self.action_server_name)
+        
+        self.Inference = InferenceWithImages if self.support_images else PlainTextInference
+        self.action_client = ActionClient(self, self.Inference, self.action_server_name)
         
         self.output_pub = self.create_publisher(String, self.output_topic, 4)
         self.input_queue = {}
@@ -116,7 +118,7 @@ class Distiller(Node):
             input_topics=inputs
         )
         self.get_logger().debug(f'Prompt: {prompt}; awaiting action server {self.action_server_name}')
-        goal = PlainTextInference.Goal(prompt=prompt)
+        goal = self.Inference.Goal(prompt=prompt)
         self.action_client.wait_for_server()
         self.get_logger().debug(f"Action server {self.action_server_name} found")
         future = self.action_client.send_goal_async(goal, feedback_callback=self.on_feedback)
