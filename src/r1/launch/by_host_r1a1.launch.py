@@ -102,7 +102,7 @@ def generate_launch_description():
                 "action_server_name": "inspect",
                 "supports_images": True,
                 "prompt": "You are a robot. Here is your internal state along with some recently processed images from your vision system. Using only the information here, describe what you see before you. Be succinct but thorough.\n\n{input_topics}\n\nWhat you're seeing as the robot:\n",
-                "input_topics": ["identity", "instant", "situation", "autobiography", "intent"],
+                "input_topics": ["identity", "instant", "situation", "intent"],
                 "output_topic": "sensation",
                 "update_interval": 1.0,
                 "accumulation_method": "latest"
