@@ -43,12 +43,16 @@ RUN pip install gTTS
 RUN pip install flask
 RUN pip install pydub
 
+RUN apt install -y ros-$ROS_DISTRO-camera-calibration-parsers
+
 RUN mkdir -p /psyche/src
 WORKDIR /psyche/src
 RUN git clone https://github.com/autonomylab/create_robot.git
 RUN git clone https://github.com/hiwad-aziz/ros2_mpu6050_driver.git
 # Don't forget to patch the mpu
 RUN git clone --branch fix-std-string https://github.com/revyos-ros/libcreate.git
+RUN git clone https://github.com/clydemcqueen/opencv_cam.git
+RUN git clone https://github.com/ptrmu/ros2_shared.git
 
 RUN echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> $HOME/.bashrc
 RUN echo "export ROS_DOMAIN_ID=42" >> $HOME/.bashrc
