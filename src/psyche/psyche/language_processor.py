@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
 
-from psyche_interfaces.action import PlainTextInference
+from psyche_interfaces.action import PlainTextInference, InferenceWithImages
 
 from langchain_community.llms import Ollama
 from langchain_openai import ChatOpenAI
@@ -22,13 +22,16 @@ class LanguageProcessor(Node):
         """
         super().__init__(node_name)
         self.declare_parameter("action_server_name", action_server_name)
+        self.declare_parameter("supports_images", False)
         action_server_name = self.get_parameter("action_server_name").get_parameter_value().string_value
         self.action_server_name = action_server_name
+        self.supports_images = self.get_parameter("supports_images").get_parameter_value().bool_value
+        self.Inference = InferenceWithImages if self.supports_images else PlainTextInference
         self.prompt = PromptTemplate.from_template("{input}")
         self.initialize_langchain()
         self._action_server = ActionServer(
             self,
-            PlainTextInference,
+            self.Inference,
             action_server_name,
             self.receive_goal_callback
         )
@@ -80,7 +83,7 @@ class LanguageProcessor(Node):
         return {"input": goal_handle.request.prompt}
 
     def report_chunk(self, goal_handle, chunk, chunk_level=0):
-        feedback_msg = PlainTextInference.Feedback()
+        feedback_msg = self.Inference.Feedback()
         feedback_msg.chunk.chunk = chunk
         feedback_msg.chunk.level = chunk_level
         goal_handle.publish_feedback(feedback_msg)
@@ -118,7 +121,7 @@ class LanguageProcessor(Node):
         """
         Processes the request in chunks and provides feedback.
         """
-        result = PlainTextInference.Result()
+        result = self.Inference.Result()
         result.response = ""
         sentence_buffer = ""
         word_buffer = ""

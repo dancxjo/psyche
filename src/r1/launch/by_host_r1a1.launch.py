@@ -56,6 +56,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llava:13b"},
+                {"supports_images": True},
                 {"base_url": f"http://{forebrain_host}:11434"},
                 {"action_server_name": "inspect"}
             ],
