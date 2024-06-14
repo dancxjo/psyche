@@ -283,7 +283,7 @@ def generate_launch_description():
                 
                 {input_topics}
                 
-                Be careful not to speak too often so as to overwhelm your interlocuter. Only say one sentence at a time as it will allow more frequent checking. If you have nothing to say, your response should include no text at all. Otherwise, it will be read verbatim in the real world. Spell out all words including numbers (years, amounts, etc.) so the TTS doesn't struggle.""",
+                Be careful not to speak too often so as to overwhelm your interlocuter. Only say one sentence at a time as it will allow more frequent checking. If you have nothing to say, your response should include no text at all. Otherwise, it will be read verbatim in the real world. Spell out all words including numbers (years, amounts, etc.) so the TTS doesn't struggle. Include *nothing* but the text to say. Do not include symbols other than commas, parentheses, exclamation marks and question marks. Do not say that you are passing or that you are done. Just say the text. If you have nothing to say, return an empty string.""",
                 "input_topics": ["identity", "feeling", "instant", "situation"],
                 "output_topic": "voice",
                 "update_interval": 3.0,
