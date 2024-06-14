@@ -10,27 +10,23 @@ class BootAnnouncer(Node):
     def __init__(self):
         super().__init__('boot_announcer')
         self.voice = self.create_publisher(String, 'voice', 10)
-        self.say('Hello, I am Ar One! Just a moment while I wake up.')
-        self.timer = self.create_timer(30.0, self.timer_callback)
-        self.times = 1
         
+        # Wait for all the services to complete initialization
         self.act1 = ActionClient(self, PlainTextInference, 'instruct')
         self.act2 = ActionClient(self, InferenceWithImages, 'inspect')
         
         self.say('Waiting for instruct and inspect action servers...')
-        self.act1.wait_for_server()
+        self.act1.wait_for_server(timeout_sec=0)
         self.say('Instruct action server is ready!')
         self.act2.wait_for_server()
         self.say('Inspect action server is ready!')
-        
+        self.say('Initialization complete.')
+        self.say('Hello, I am Ar One! Just a moment while I wake up.')
+
     def say(self, msg):
         self.get_logger().info('Saying: %s' % msg)
         self.voice.publish(String(data=msg))
         
-    def timer_callback(self):
-        self.get_logger().info('Waking up...')
-        self.say(f'This is boot announcement number: {self.times}!')
-        self.times += 1
 
 def main(args=None):
     rclpy.init(args=args)
