@@ -24,12 +24,11 @@ class BootAnnouncer(Node):
         self.topics = {}
     
         for t in ['bumper', 'sensation', 'proprioception', 'twists', 'instant', 'identity', 'situation', 'intent', 'autobiography', 'feeling', 'song', 'imu']:
-            self.say(f'Initializing {t}...')
             self.topics[t] = self.create_subscription(String, t, self.make_callback(t), 10)
 
     def make_callback(self, topic):
         def callback(msg):
-            self.say(f'The {topic} topic has been initialized and is receiving data.')
+            #self.say(f'The {topic} topic has been initialized and is receiving data.')
             self.destroy_subscription(self.topics[topic])
             del self.topics[topic]
             if len(self.topics) == 0:
@@ -37,14 +36,12 @@ class BootAnnouncer(Node):
         return callback
 
     def finish(self):
-        self.say('Robot 1 initialization complete. Passing control to the pseudo-consciousness. ')
-
+        self.say('Robot 1 initialization complete.')
 
     def say(self, msg):
         self.get_logger().info('Saying: %s' % msg)
         self.voice.publish(String(data=msg))
         
-
 def main(args=None):
     rclpy.init(args=args)
     boot_announcer = BootAnnouncer()
