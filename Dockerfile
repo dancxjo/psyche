@@ -43,6 +43,9 @@ RUN pip install gTTS
 RUN pip install flask
 RUN pip install pydub
 
+RUN apt install -y libasound2-dev
+RUN pip install soundfile
+
 RUN apt install -y ros-$ROS_DISTRO-camera-calibration-parsers
 
 RUN mkdir -p /psyche/src
