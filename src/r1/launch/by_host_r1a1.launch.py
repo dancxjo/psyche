@@ -87,11 +87,15 @@ def generate_launch_description():
             name="mpu6050driver",
             output="screen",
         ),
+        
         Node(
-            package="usb_cam",
-            executable="usb_cam_node_exe",
+            package="opencv_cam",
+            executable="opencv_cam_main",
             name="first_eye",
             output="screen",
+            parameters=[{
+                "index": 0
+            }]
         ),
         Node(
             package="psyche",
@@ -103,6 +107,7 @@ def generate_launch_description():
                 "supports_images": True,
                 "prompt": "You are a robot. Here is your internal state along with some recently processed images from your vision system. Using only the information here, describe what you see before you. Be succinct but thorough.\n\n{input_topics}\n\nWhat you're seeing as the robot:\n",
                 "input_topics": ["identity", "instant", "situation", "intent"],
+                "input_images": ["/image_raw"],
                 "output_topic": "sensation",
                 "update_interval": 1.0,
                 "accumulation_method": "latest"
