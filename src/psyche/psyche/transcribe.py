@@ -18,7 +18,7 @@ class Transcriber(Node):
 
         self.segments_to_transcribe = []
         self.segment_sub = self.create_subscription(ByteMultiArray, 'audio/segmented', self.queue_segment, 10)
-        self.transcription_pub = self.create_publisher(String, 'audio/transcription', 10)
+        self.transcription_pub = self.create_publisher(String, 'sensation', 10)
         self.recognizer = sr.Recognizer()
         self.get_logger().debug('Audio transcriber node started')
 
