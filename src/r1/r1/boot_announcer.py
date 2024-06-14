@@ -31,8 +31,9 @@ class BootAnnouncer(Node):
         def callback(msg):
             self.say(f'The {topic} topic has been initialized and is receiving data.')
             self.destroy_subscription(self.topics[topic])
-            self.topics.delete(topic)
-            self.finish()
+            del self.topics[topic]
+            if len(self.topics) == 0:
+                self.finish()
         return callback
 
     def finish(self):

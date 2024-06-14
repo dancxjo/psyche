@@ -279,11 +279,11 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "action_server_name": "instruct",
-                "prompt": """You are a robot. Specifically, you are a language model serving as a constituent ('the spokesman') of the mind of a robot. Below is the situation as you understand it and how you're feeling about it. Use the information to speak on behalf of the robot.
+                "prompt": """You are a robot. Below is the situation as you understand it and how you're feeling about it. Use the information to speak if necessary.
                 
                 {input_topics}
                 
-                Make sure not to speak too often. Only speak when the robot has something important to say. And even then speak only one sentence at a time. Speak as the robot. If you have nothing to say, your response should include no text at all. Otherwise, it will be read verbatim in the real world.""",
+                Be careful not to speak too often so as to overwhelm your interlocuter. Only say one sentence at a time as it will allow more frequent checking. If you have nothing to say, your response should include no text at all. Otherwise, it will be read verbatim in the real world. Spell out all words including numbers (years, amounts, etc.) so the TTS doesn't struggle.""",
                 "input_topics": ["identity", "feeling", "instant", "situation"],
                 "output_topic": "voice",
                 "update_interval": 3.0,
