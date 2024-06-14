@@ -3,7 +3,7 @@ from rclpy.node import Node
 from rclpy.action import ActionClient
 
 from std_msgs.msg import String
-from psyche_interfaces.action import PlainTextInference
+from psyche_interfaces.action import PlainTextInference, InferenceWithImages
 
 import yaml
 
@@ -24,6 +24,8 @@ class Distiller(Node):
             Interpretation:    
             """),
             ('input_topics', ['sense_of_self', 'context']),
+            ('image_support', False),
+            ('input_images', ['camera']),
             ('output_topic', ''),
             ('update_interval', 60.0),
             ('action_server_name', 'instruct')
@@ -35,15 +37,19 @@ class Distiller(Node):
         self.update_interval = self.get_parameter('update_interval').get_parameter_value().double_value
         self.prompt = self.get_parameter('prompt').get_parameter_value().string_value
         self.action_server_name = self.get_parameter('action_server_name').get_parameter_value().string_value
-        
-        self.action_client = ActionClient(self, PlainTextInference, self.action_server_name)
+        self.support_images = self.get_parameter('image_support').get_parameter_value().bool_value
+        self.image_topics = self.get_parameter('input_images').get_parameter_value().string_array_value
+        self.action_client = ActionClient(self, PlainTextInference if not self.support_images else InferenceWithImages, self.action_server_name)
         
         self.output_pub = self.create_publisher(String, self.output_topic, 4)
         self.input_queue = {}
         self.input_subs = []
         for topic in self.input_topics:
             self.input_queue[topic] = []
-            self.input_subs.append(self.create_subscription(String, topic, self.queue_message_callback(topic), 4))            
+            self.input_subs.append(self.create_subscription(String, topic, self.queue_message_callback(topic), 4))
+        # for topic in self.image_topics
+            # self.input_subs.append(self.create_subscription(Image, topic, self.queue_message_callback(topic), 4))
+
         self.get_logger().info(f'Listening to {self.input_topics}')
         self.timer = self.create_timer(self.update_interval, self.update)
         self.get_logger().debug(f'Timer set to {self.update_interval} seconds')

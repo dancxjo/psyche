@@ -87,7 +87,27 @@ def generate_launch_description():
             name="mpu6050driver",
             output="screen",
         ),
-
+        Node(
+            package="usb_cam",
+            executable="usb_cam_node_exe",
+            name="first_eye",
+            output="screen",
+        ),
+        Node(
+            package="psyche",
+            executable="distill",
+            name="the_lookout",
+            output="screen",
+            parameters=[{
+                "action_server_name": "inspect",
+                "supports_images": True,
+                "prompt": "You are a robot. Here is your internal state along with some recently processed images from your vision system. Using only the information here, describe what you see before you. Be succinct but thorough.\n\n{input_topics}\n\nWhat you're seeing as the robot:\n",
+                "input_topics": ["identity", "instant", "situation", "autobiography", "intent"],
+                "output_topic": "sensation",
+                "update_interval": 1.0,
+                "accumulation_method": "latest"
+            }]
+        ),
         Node(
             package="r1",
             executable="play_song",
@@ -226,20 +246,8 @@ def generate_launch_description():
             }]
         ),
         
-        Node(
-            package="psyche",
-            executable="distill",
-            name="the_mime",
-            output="screen",
-            parameters=[{
-                "action_server_name": "instruct",
-                "prompt": "You are a robot. Specifically, you are a language model serving as a constituent ('the mime') of the mind of a robot. Below is the situation as you understand it. In one or two emoji (as unicode characters) and no other words or symbols, represent the current emotional state of the robot.\n\n{input_topics}\n\nA few emoji characters and nothing else:\n",
-                "input_topics": ["identity", "instant", "situation", "intent"],
-                "output_topic": "feeling",
-                "update_interval": 1.0,
-                "accumulation_method": "latest",                
-            }]
-        ),
+        
+        
 
         Node(
             package="psyche",

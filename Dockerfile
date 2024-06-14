@@ -22,11 +22,11 @@ RUN apt update && apt install -y \
     python3-venv \
     python3-distutils \
     python3-dev \
-    libi2c-dev 
-
-RUN apt install -y ros-${ROS_DISTRO}-usb-cam
-
-RUN apt install -y python3-distutils 
+    libi2c-dev \
+    ros-${ROS_DISTRO}-usb-cam \
+    python3-distutils \
+    ros-${ROS_DISTRO}-perception-pcl \
+    ros-${ROS_DISTRO}-perception
 
 RUN pip install langchain
 RUN pip install langchain-community
