@@ -10,7 +10,7 @@ class ShellSession(Node):
         self.shell_input = self.create_subscription(String, 'shell_commands', self.handle_command, 10)
 
     def handle_command(self, msg):
-        self.get_logger().info(f'Received command on topic: {msg._topic_name}')
+        self.get_logger().info(f'Received command on topic: {msg.data}')
         command_output = self.execute_command(msg.data)
         self.publish_command_output(command_output)
 
