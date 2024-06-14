@@ -46,7 +46,8 @@ RUN pip install pydub
 RUN apt install -y libasound2-dev
 RUN pip install soundfile
 
-RUN apt install -y python3-sphinx
+RUN apt install -y python3-sphinx build-essential swig libpulse-dev
+RUN pip install pocketsphinx
 
 RUN apt install -y ros-$ROS_DISTRO-camera-calibration-parsers
 
