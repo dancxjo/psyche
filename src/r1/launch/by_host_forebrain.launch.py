@@ -42,5 +42,10 @@ def generate_launch_description():
                 {"action_server_name": "inspect_per_se"}
             ],
         ),
-
+        Node(
+            package="psyche",
+            executable="transcribe_speech",
+            name="audio_comprehension",
+            output="screen",
+        )
    ])

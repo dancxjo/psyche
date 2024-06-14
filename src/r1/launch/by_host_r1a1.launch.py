@@ -69,7 +69,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"processing_notes": "You are under development. This may feel funny."},
-                {"update_interval": 1.0},
+                {"update_interval": 60.0},
             ],
         ),
         IncludeLaunchDescription(
@@ -186,7 +186,7 @@ def generate_launch_description():
             parameters=[{
                 "action_server_name": "instruct",
                 "prompt": "You are a robot. Specifically, you are a language model serving as a constituent ('the witness') of the mind of a robot. Below are the sensations that the robot has recently felt. Narrate this information for yourself (i.e. the whole robot, not just this constituent) in the first person present (from the entire robot's perspective). Using only the information here, describe the current instant as the robot is experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\n\nInterpretation:\n",
-                "input_topics": ["identity", "sensation", "proprioception", "situation", "intent"],
+                "input_topics": ["/rosout", "identity", "sensation", "proprioception", "situation", "intent"],
                 "output_topic": "instant",
                 "update_interval": 2.5,
             }]
@@ -303,5 +303,12 @@ def generate_launch_description():
                 "accumulation_method": "latest",                
             }]
         ),
+        
+        Node(
+            package="psyche",
+            executable="listen_for_speech",
+            name="the_ear",
+            output="screen",
+        )
 
    ])

@@ -38,6 +38,18 @@ class Transcriber(Node):
         self.segments_to_transcribe.append(msg.data)
         self.get_logger().debug(f'Segment queued {len(self.segments_to_transcribe)}')
 
+    def transcribe_in_all_the_ways(self, audio):
+        recognizer = [self.recognizer.recognize_sphinx, self.recognizer.recognize_google, self.recognizer.recognize_whisper]
+        for rec in recognizer:
+            def threaded_recognition(rec, audio):
+                try:
+                    transcription = rec(audio)
+                    self.get_logger().debug(f"Transcription: {transcription}")
+                    self.publish_transcription(transcription)
+                except Exception as e:
+                    self.get_logger().error(f"Failed to transcribe audio: {str(e)}")
+            threading.Thread(target=threaded_recognition, args=(rec, audio)).start()
+
     def transcribe_audio_whisper(self, audio, language, model):
         try:
             transcription = self.recognizer.recognize_whisper(audio, language=language, model=model)
@@ -67,13 +79,14 @@ class Transcriber(Node):
         try:
             with sr.AudioFile(audio_buffer) as source:
                 audio = self.recognizer.record(source)
-                threading.Thread(target=self.transcribe_audio_whisper, args=(audio, language, model)).start()
+                #threading.Thread(target=self.transcribe_audio_whisper, args=(audio, language, model)).start()
+                self.transcribe_in_all_the_ways(audio)
         except Exception as e:
             self.get_logger().error(f"Failed to transcribe audio: {str(e)}")
         
     def publish_transcription(self, transcription):
         self.get_logger().debug('Publishing transcription')
-        self.transcription_pub.publish(String(data=transcription))
+        self.transcription_pub.publish(String(data=f"I could be mistaken, but I think I heard someone say earlier: 'transcription'"))
 
 def main(args=None):
     rclpy.init(args=args)
