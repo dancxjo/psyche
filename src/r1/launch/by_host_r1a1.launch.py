@@ -252,9 +252,6 @@ def generate_launch_description():
             }]
         ),
         
-        
-        
-
         Node(
             package="psyche",
             executable="distill",
@@ -283,6 +280,13 @@ def generate_launch_description():
                 "update_interval": 1.0,
                 "accumulation_method": "latest",                
             }]
+        ),
+
+        Node(
+            package="r1",
+            executable="exec_shell",
+            name="shell_executor",
+            output="screen",
         ),
 
         Node(
