@@ -330,7 +330,8 @@ def generate_launch_description():
 
     # A procedure is a node that takes structured commands from an LPU and does something with them
     # We're disabling the movement procedure while the robot is docked [move_directly]
-    procedures = [sing, control_shell, direct_speech]
+    # And [direct_speech] is disabled because my roommate needs a break, and the robot needs some expression
+    procedures = [sing, control_shell]
 
     return LaunchDescription([
         boot_announcer,
