@@ -97,7 +97,7 @@ class Motivator(Node):
 
         def timer_callback():
             if self.get_clock().now() < end_time:
-                self.publisher_sensation.publish(String(data=f"""publishing {twist_msg}"""))
+                # self.publisher_sensation.publish(String(data=f"""publishing {twist_msg}"""))
                 self.publisher_cmd_vel.publish(twist_msg)
             else:
                 self.publisher_sensation.publish(String(data=f"""time's run out on this maneuvre; stopping body"""))

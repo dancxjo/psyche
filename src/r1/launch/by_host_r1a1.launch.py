@@ -275,7 +275,7 @@ def generate_launch_description():
             parameters=[{
                 "action_server_name": "instruct",
                 "prompt": """You are a robot. You have access to the equivalent of a shell on the Linux-running computer that is your own brain. Consider the following situation you're in and provide yourself with assistance by executing any series of commands. Be careful...this is your own code. (Feel free to explore it in /psyche.) You have access to publish to any topic by running the appropriate ROS2 messages from the command line. To communicate with the other parts of the mind, you might try publishing a std_msgs.String to /sensation.\n{input_topics}\n\nReturn *only* one command with no other text, just the command. If you have no command, reply with nothing. Remember: One command or less and nothing else!\n$ """,
-                "input_topics": ["identity", "feeling", "instant", "situation", "intent", "shell_output"],
+                "input_topics": ["identity", "feeling", "instant", "situation", "intent", "shell_commands", "shell_output"],
                 "output_topic": "shell_commands",
                 "update_interval": 1.0,
                 "accumulation_method": "latest",                
