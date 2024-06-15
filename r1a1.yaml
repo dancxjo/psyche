@@ -6,8 +6,6 @@ services:
       args:
         - ROS_REPO=arm64v8/ros:iron
     network_mode: host
-    ports:
-      - "8200:8200"
     devices:
     - "/dev/ttyUSB0:/dev/ttyUSB0"
     - "/dev/video0:/dev/video0"

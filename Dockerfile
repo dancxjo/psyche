@@ -59,6 +59,9 @@ RUN git clone https://github.com/autonomylab/create_robot.git
 RUN git clone https://github.com/hiwad-aziz/ros2_mpu6050_driver.git
 # Don't forget to patch the mpu
 RUN git clone --branch fix-std-string https://github.com/revyos-ros/libcreate.git
+#RUN git clone https://github.com/ros-perception/image_pipeline.git
+#RUN git clone https://github.com/ros-perception/image_common.git
+RUN apt-get install -y ros-$ROS_DISTRO-image-transport-plugins ros-${ROS_DISTRO}-image-transport* ros-${ROS_DISTRO}-image-pipeline*
 RUN git clone https://github.com/clydemcqueen/opencv_cam.git
 RUN git clone https://github.com/ptrmu/ros2_shared.git
 
