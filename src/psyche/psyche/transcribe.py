@@ -79,8 +79,8 @@ class Transcriber(Node):
         try:
             with sr.AudioFile(audio_buffer) as source:
                 audio = self.recognizer.record(source)
-                #threading.Thread(target=self.transcribe_audio_whisper, args=(audio, language, model)).start()
-                self.transcribe_in_all_the_ways(audio)
+                threading.Thread(target=self.transcribe_audio_whisper, args=(audio, language, model)).start()
+                # self.transcribe_in_all_the_ways(audio)
         except Exception as e:
             self.get_logger().error(f"Failed to transcribe audio: {str(e)}")
         

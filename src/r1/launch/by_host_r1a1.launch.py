@@ -18,27 +18,27 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, ExecuteProcess  # Import ExecuteProcess
 
 forebrain_host = "192.168.0.7"
+offboard_host = "192.168.0.3"
 
 def generate_launch_description():
-    return LaunchDescription([
-        # Start streaming the voice so we can hear where we are in the boot sequence
-        # The outer container host should be listening to this and playing it
-        Node(
-            package="r1",
-            executable="speak_directly",
-            name="the_voice",
-            output="screen",
-        ),
-        # Announce the boot sequence
-        Node(
+    boot_announcer = Node(
             package="r1",
             executable="announce_boot",
             name="boot_announcer",
             output="screen",
-        ),
-        
-        # Start the LLMS
-        Node(
+            parameters=[
+                {'boot_topics', [
+                    'voice', 
+                    'sensation', 
+                    'instant', 
+                    'situation', 
+                    'intent'
+                ]}
+            ]
+        )
+
+    # Language processors
+    plain_lpu = Node(
             package="psyche",
             executable="lpu",
             name="basic_lpu",
@@ -48,8 +48,19 @@ def generate_launch_description():
                 {"base_url": f"http://{forebrain_host}:11434"},
                 {"action_server_name": "instruct"}
             ],
-        ),
-        Node(
+        )
+    offboard_lpu = Node(
+            package="psyche",
+            executable="lpu",
+            name="basic_lpu",
+            output="screen",
+            parameters=[
+                {"model": "llama3:instruct"},
+                {"base_url": f"http://{offboard_host}:11434"},
+                {"action_server_name": "instruct"}
+            ],
+        )
+    vision_lpu = Node(
             package="psyche",
             executable="vlpu",
             name="vision_lpu",
@@ -60,9 +71,44 @@ def generate_launch_description():
                 {"base_url": f"http://{forebrain_host}:11434"},
                 {"action_server_name": "inspect"}
             ],
-        ),
-        
-        Node(
+        )
+    processors = [plain_lpu, offboard_lpu, vision_lpu]
+
+    # Sensors
+    platform = IncludeLaunchDescription(
+            XMLLaunchDescriptionSource([
+                    PathJoinSubstitution([
+                        FindPackageShare('create_bringup'),
+                        'launch',
+                        'create_1.launch'
+                    ])
+                ])
+        )    
+    listen_for_speech = Node(
+            package="psyche",
+            executable="listen_for_speech",
+            name="the_ear",
+            output="screen",
+        )
+    imu1 = Node(
+            package="mpu6050driver",
+            executable="mpu6050driver",
+            name="mpu6050driver",
+            output="screen",
+        )
+    podiops = Node(
+            package="opencv_cam",
+            executable="opencv_cam_main",
+            name="foot_eye",
+            output="screen",
+            parameters=[{
+                "index": 0
+            }]
+        )
+    sensors = [platform, listen_for_speech, imu1, podiops]
+
+    # Senses & Faculties
+    heartbeat = Node(
             package="psyche",
             executable="heartbeat",
             name="heartbeat",
@@ -71,34 +117,8 @@ def generate_launch_description():
                 {"processing_notes": "You are under development. This may feel funny. If you hear music playing, it's probably your innate singing--it matches your mood. You may also hear spoken words. You should also hear your own voice. You may also occasionally receive descriptions of what you are seeing. You should also receive IMU, bumper and other bodily readings as sensations."},
                 {"update_interval": 60.0},
             ],
-        ),
-        IncludeLaunchDescription(
-            XMLLaunchDescriptionSource([
-                    PathJoinSubstitution([
-                        FindPackageShare('create_bringup'),
-                        'launch',
-                        'create_1.launch'
-                    ])
-                ])
-        ),
-        
-        Node(
-            package="mpu6050driver",
-            executable="mpu6050driver",
-            name="mpu6050driver",
-            output="screen",
-        ),
-        
-        Node(
-            package="opencv_cam",
-            executable="opencv_cam_main",
-            name="first_eye",
-            output="screen",
-            parameters=[{
-                "index": 0
-            }]
-        ),
-        Node(
+        )
+    vision = Node(
             package="psyche",
             executable="distill",
             name="the_lookout",
@@ -113,14 +133,8 @@ def generate_launch_description():
                 "update_interval": 1.0,
                 "accumulation_method": "latest"
             }]
-        ),
-        Node(
-            package="r1",
-            executable="play_song",
-            name="song_player",
-            output="screen",
-        ),
-        Node(
+        )
+    power_management = Node(
             package="psyche",
             executable="distill",
             name="the_gourmet",
@@ -132,9 +146,8 @@ def generate_launch_description():
                 "output_topic": "sensation",
                 "update_interval": 30.0,
             }]
-        ),
-
-        Node(
+        )
+    proprioception = Node(
             package="psyche",
             executable="distill",
             name="the_proprioceptor",
@@ -147,9 +160,8 @@ def generate_launch_description():
                 "update_interval": 1.0, # This should allow for almost instantaneous updates
                 "accumulation_method": "queue",
             }]
-        ),
-
-        Node(
+        )
+    direct_manoevering = Node(
             package="psyche",
             executable="distill",
             name="the_athlete",
@@ -169,16 +181,8 @@ def generate_launch_description():
                 "update_interval": 1.0, # Careful not to send commands that interfere with themselves
                 "accumulation_method": "queue",
             }]
-        ),
-
-        Node(
-            package="r1",
-            executable="motivate",
-            name="motivator",
-            output="screen",
-        ),
-        
-        Node(
+        )
+    sentience = Node(
             package="psyche",
             executable="distill",
             name="the_witness",
@@ -190,9 +194,8 @@ def generate_launch_description():
                 "output_topic": "instant",
                 "update_interval": 2.5,
             }]
-        ),
-
-        Node(
+        )
+    combobulation = Node(
             package="psyche",
             executable="distill",
             name="the_combobulator",
@@ -205,12 +208,11 @@ def generate_launch_description():
                 "update_interval": 15.0,
                 "accumulation_method": "latest"
             }]
-        ),
-
-        Node(
+        )
+    intent = Node(
             package="psyche",
             executable="distill",
-            name="the_executive",
+            name="the_intender",
             output="screen",
             parameters=[{
                 "action_server_name": "instruct",
@@ -220,9 +222,8 @@ def generate_launch_description():
                 "update_interval": 1.0,
                 "accumulation_method": "latest"
             }]
-        ),
-
-        Node(
+        )
+    basic_autobiographical_memory = Node(
             package="psyche",
             executable="distill",
             name="the_memoirist",
@@ -235,9 +236,8 @@ def generate_launch_description():
                 "accumulation_method": "latest",
                 "update_interval": 60.0,
             }]
-        ),
-        
-        Node(
+        )
+    identity = Node(
             package="psyche",
             executable="distill",
             name="the_philosopher",
@@ -250,9 +250,8 @@ def generate_launch_description():
                 "update_interval": 60.0,
                 "accumulation_method": "latest",                
             }]
-        ),
-        
-        Node(
+        )
+    innate_musicality = Node(
             package="psyche",
             executable="distill",
             name="the_musician",
@@ -265,31 +264,22 @@ def generate_launch_description():
                 "update_interval": 5.0,
                 "accumulation_method": "latest",                
             }]
-        ),
-
-        Node(
-            package="psyche",
-            executable="distill",
-            name="the_shell_interactor",
-            output="screen",
-            parameters=[{
-                "action_server_name": "instruct",
-                "prompt": """You are a robot. You have access to the equivalent of a shell on the Linux-running computer that is your own brain. Consider the following situation you're in and provide yourself with assistance by executing any series of commands. Be careful...this is your own code. (Feel free to explore it in /psyche.) You have access to publish to any topic by running the appropriate ROS2 messages from the command line. To communicate with the other parts of the mind, you might try publishing a std_msgs.String to /sensation.\n{input_topics}\n\nReturn *only* one command with no other text, just the command. If you have no command, reply with nothing. Remember: One command or less and nothing else!\n$ """,
-                "input_topics": ["identity", "feeling", "instant", "situation", "intent", "shell_commands", "shell_output"],
-                "output_topic": "shell_commands",
-                "update_interval": 1.0,
-                "accumulation_method": "latest",                
-            }]
-        ),
-
-        Node(
-            package="r1",
-            executable="exec_shell",
-            name="shell_executor",
-            output="screen",
-        ),
-
-        Node(
+        )
+    os_shell = Node(
+        package="psyche",
+        executable="distill",
+        name="the_shell_interactor",
+        output="screen",
+        parameters=[{
+            "action_server_name": "instruct",
+            "prompt": """You are a robot. You have access to the equivalent of a shell on the Linux-running computer that is your own brain. Consider the following situation you're in and provide yourself with assistance by executing any series of commands. Be careful...this is your own code. (Feel free to explore it in /psyche.)\n{input_topics}\n\nReturn *only* one command with no other text, just the command. If you have no command, reply with nothing. Try some of these: ls /psyche ; ls /psyche/src ; cat /psyche/README.md. Only be truthful, and be helpful when you can be. When there's nothing you can do to help immediately, use `tree`, `ls`, `cat`, etc. resourcefully to discover more about how your mind works and how to make it better and/or experience it. You are resourceful, truthful and honest. Remember: One command or less and nothing else!\n$ """,
+            "input_topics": ["identity", "feeling", "instant", "situation", "intent", "shell_commands", "shell_output"],
+            "output_topic": "shell_commands",
+            "update_interval": 1.0,
+            "accumulation_method": "latest",                
+        }]
+    )
+    speech = Node(
             package="psyche",
             executable="distill",
             name="the_spokesman",
@@ -307,12 +297,44 @@ def generate_launch_description():
                 "accumulation_method": "latest",                
             }]
         ),
-        
-        Node(
-            package="psyche",
-            executable="listen_for_speech",
-            name="the_ear",
+
+    faculties = [heartbeat, vision, power_management, proprioception, direct_manoevering, sentience, combobulation, intent, basic_autobiographical_memory, identity, innate_musicality, os_shell, speech]
+    
+    # Procedural Memory
+    sing = Node(
+        package="r1",
+        executable="play_song",
+        name="song_player",
+        output="screen",
+    )
+    
+        # Disabling while the robot is docked
+    move_directly = Node(
+            package="r1",
+            executable="motivate",
+            name="motivator",
+            output="screen",
+        )
+    control_shell = Node(
+            package="r1",
+            executable="exec_shell",
+            name="shell_executor",
+            output="screen",
+        )
+    direct_speech = Node(
+            package="r1",
+            executable="speak_directly",
+            name="the_voice",
             output="screen",
         )
 
-   ])
+    # A procedure is a node that takes structured commands from an LPU and does something with them
+    procedures = [sing, move_directly, control_shell, direct_speech]
+
+    return LaunchDescription([
+        boot_announcer,
+        *processors,
+        *sensors,
+        *procedures,
+        *faculties,
+    ])
