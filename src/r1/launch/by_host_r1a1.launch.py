@@ -27,7 +27,7 @@ def generate_launch_description():
             name="boot_announcer",
             output="screen",
             parameters=[
-                {'boot_topics', [
+                {'boot_topics': [
                     'voice', 
                     'sensation', 
                     'instant', 
@@ -298,7 +298,11 @@ def generate_launch_description():
             }]
         ),
 
-    faculties = [heartbeat, vision, power_management, proprioception, direct_manoevering, sentience, combobulation, intent, basic_autobiographical_memory, identity, innate_musicality, os_shell, speech]
+    # Temporarily disabling some faculties while the robot is docked
+    # [direct_manoevering, innate_musicality]
+    faculties = [heartbeat]
+    
+    #, vision, power_management, proprioception, sentience, combobulation, intent, basic_autobiographical_memory, identity, os_shell, speech]
     
     # Procedural Memory
     sing = Node(
@@ -330,13 +334,13 @@ def generate_launch_description():
 
     # A procedure is a node that takes structured commands from an LPU and does something with them
     # We're disabling the movement procedure while the robot is docked [move_directly]
-    # And [direct_speech] is disabled because my roommate needs a break, and the robot needs some expression
-    procedures = [sing, control_shell]
+    # And [sing, direct_speech] is disabled because my roommate needs a break, and the robot needs some expression
+    procedures = [direct_speech, control_shell]
 
     return LaunchDescription([
-        boot_announcer,
-        *processors,
+        #boot_announcer,
+        #*processors,
         *sensors,
-        *procedures,
-        *faculties,
+        #*procedures,
+        # *faculties,
     ])
