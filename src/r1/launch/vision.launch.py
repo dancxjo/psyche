@@ -81,5 +81,5 @@ def generate_launch_description():
     return LaunchDescription([
         *processors,
         *sensors,
-        *faculties,
+#        *faculties,
     ])

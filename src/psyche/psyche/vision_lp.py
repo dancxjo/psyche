@@ -55,21 +55,33 @@ class VisionEnabledLanguageProcessor(LanguageProcessor):
 
         try:
             with requests.post(f"{self.base_url}/api/generate", json=payload, headers=headers, stream=True) as response:
+                self.get_logger().info(f"Sent request")
                 response.raise_for_status()
-
+                self.get_logger().info(f"Received good response")
                 for line in response.iter_lines():
+                    self.get_logger().info(f"Got line")
                     if line:
+                        self.get_logger().info(f"Decoding {line}")
                         decoded_line = json.loads(line.decode('utf-8'))
-                        chunk = decoded_line.get("chunk", "")
+                        self.get_logger().info(f"Unmarshalled as: {decoded_line}")
+                        chunk = decoded_line.get("response", "")
+                        self.get_logger().info(f"Extracted {chunk}")
                         result.response += chunk
+                        self.get_logger().info(f"Concatted {result.response}")
                         self.report_chunk(goal_handle, chunk, 0)
-
+                        self.get_logger().info(f"Chunk fed back")
+                        
                         # Update and process word and sentence buffers
-                        word_buffer, sentence_buffer = self.buffer_chunks(chunk, goal_handle, word_buffer, sentence_buffer)
-
+                        word_buffer, sentence_buffer = self.buffer_chunks(goal_handle, chunk, word_buffer, sentence_buffer)
+                        self.get_logger().info(f"Buffers: {word_buffer}, {sentence_buffer}")
+                        
+                        
                         if decoded_line.get('done', False):
+                            self.get_logger().info(f"Completed")
                             break
 
+                        self.get_logger().info(f"Looping")
+                        
             # Final flush for any remaining text in buffers
             if word_buffer:
                 self.report_chunk(goal_handle, word_buffer, 1)
