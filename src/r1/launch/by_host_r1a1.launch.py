@@ -161,7 +161,7 @@ def generate_launch_description():
                 "accumulation_method": "queue",
             }]
         )
-    direct_manoevering = Node(
+    direct_manoevering = Node(    # Senses
             package="psyche",
             executable="distill",
             name="the_athlete",
@@ -329,7 +329,8 @@ def generate_launch_description():
         )
 
     # A procedure is a node that takes structured commands from an LPU and does something with them
-    procedures = [sing, move_directly, control_shell, direct_speech]
+    # We're disabling the movement procedure while the robot is docked [move_directly]
+    procedures = [sing, control_shell, direct_speech]
 
     return LaunchDescription([
         boot_announcer,
