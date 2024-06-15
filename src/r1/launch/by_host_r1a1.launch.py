@@ -323,7 +323,7 @@ def generate_launch_description():
         output="screen",
     )
     
-        # Disabling while the robot is docked
+    # Disabling while the robot is docked
     move_directly = Node(
             package="r1",
             executable="motivate",
@@ -349,8 +349,8 @@ def generate_launch_description():
     procedures = [direct_speech, control_shell]
 
     return LaunchDescription([
-        #boot_announcer,
-        #*processors,
+        boot_announcer,
+        *processors,
         *sensors,
         #*procedures,
         *faculties,
