@@ -1,3 +1,4 @@
+import pyaudio
 import rclpy
 from rclpy.node import Node
 import speech_recognition as sr
@@ -18,7 +19,7 @@ class AudioSegmenter(Node):
                                 ])
 
         device_index = self.get_parameter('device_index').get_parameter_value().integer_value
-        self.microphone = sr.Microphone(device_index=device_index)
+        self.microphone = sr.Microphone()#device_index=device_index)
         self.start_listening()
 
     def start_listening(self):
