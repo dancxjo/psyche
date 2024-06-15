@@ -3,10 +3,14 @@ from rclpy.node import Node
 from rclpy.action import ActionClient
 
 from std_msgs.msg import String
+from sensor_msgs.msg import Image
 from psyche_interfaces.action import PlainTextInference, InferenceWithImages
 
 import yaml
 import base64
+
+import cv2
+import numpy as np
 
 class Distiller(Node):
     """
@@ -50,8 +54,8 @@ class Distiller(Node):
         for topic in self.input_topics:
             self.input_queue[topic] = []
             self.input_subs.append(self.create_subscription(String, topic, self.queue_message_callback(topic), 4))
-        # for topic in self.image_topics
-            # self.input_subs.append(self.create_subscription(Image, topic, self.queue_message_callback(topic), 4))
+        for topic in self.image_topics:
+            self.input_subs.append(self.create_subscription(Image, topic, self.queue_message_callback(topic), 4))
 
         self.get_logger().info(f'Listening to {self.input_topics}')
         self.timer = self.create_timer(self.update_interval, self.update)
@@ -68,18 +72,30 @@ class Distiller(Node):
     def transform_topic(self, topic_name: str, msg):
         """Render the message from the specified topic into a string"""
         self.get_logger().debug(f'transforming topic {topic_name}')
-        is_image = False
-        if is_image:
-            image_data = msg.data # TODO: Confirm once we have the right type
-            encoded = base64.b64encode(image_data)
-            return encoded
-        if type(msg) == String:
-            return msg.data
-        
-        if hasattr(msg, 'data'):
-            return str(msg.data)
-        
-        return str(msg)
+        try:
+            if isinstance(msg, Image):
+                # Decode raw image data to a numpy array
+                dtype = np.uint8 if msg.encoding == 'rgb8' else np.float32  # Update dtype according to your image encoding
+                img_array = np.frombuffer(msg.data, dtype=dtype).reshape(msg.height, msg.width, -1)
+                
+                # Resize the image
+                img_resized = cv2.resize(img_array, (670, 670), interpolation=cv2.INTER_AREA)
+                
+                # Convert to PNG format
+                _, img_png = cv2.imencode('.png', img_resized)
+                
+                # Encode to base64
+                encoded = base64.b64encode(img_png).decode('utf-8')
+                return encoded
+            
+            if isinstance(msg, String):
+                return msg.data
+            
+            if hasattr(msg, 'data'):
+                return str(msg.data)
+        except Exception as e:
+            self.get_logger().error(f'Error processing message on {topic_name}: {e}')
+        return None
     
     def queue_message(self, msg, topic):
         self.get_logger().debug(f'Queueing message on {topic}: {msg.data}')

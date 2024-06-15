@@ -105,8 +105,19 @@ def generate_launch_description():
                 "index": 0
             }]
         )
-    sensors = [platform, listen_for_speech, imu1, podiops]
-
+    who_knows = Node(
+        package="usb_cam",
+        executable="usb_cam_node_exe",
+        name="usb_cam",
+        output="screen",
+        parameters=[{
+            "video_device": "/dev/video0",
+            "image_width": 640,
+            "image_height": 480,
+        }]
+    )
+    #sensors = [platform, listen_for_speech, imu1, who_knows, podiops]
+    sensors = [who_knows]
     # Senses & Faculties
     heartbeat = Node(
             package="psyche",
@@ -300,9 +311,9 @@ def generate_launch_description():
 
     # Temporarily disabling some faculties while the robot is docked
     # [direct_manoevering, innate_musicality]
-    faculties = [heartbeat]
+    faculties = [vision]
     
-    #, vision, power_management, proprioception, sentience, combobulation, intent, basic_autobiographical_memory, identity, os_shell, speech]
+    #, heartbeat, power_management, proprioception, sentience, combobulation, intent, basic_autobiographical_memory, identity, os_shell, speech]
     
     # Procedural Memory
     sing = Node(
@@ -342,5 +353,5 @@ def generate_launch_description():
         #*processors,
         *sensors,
         #*procedures,
-        # *faculties,
+        *faculties,
     ])
