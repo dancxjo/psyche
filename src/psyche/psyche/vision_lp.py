@@ -54,7 +54,7 @@ class VisionEnabledLanguageProcessor(LanguageProcessor):
         headers = {'Content-Type': 'application/json'}
 
         try:
-            with requests.post(f"{self.base_url}/api/infer", json=payload, headers=headers, stream=True) as response:
+            with requests.post(f"{self.base_url}/api/generate", json=payload, headers=headers, stream=True) as response:
                 response.raise_for_status()
 
                 for line in response.iter_lines():
@@ -65,7 +65,7 @@ class VisionEnabledLanguageProcessor(LanguageProcessor):
                         self.report_chunk(goal_handle, chunk, 0)
 
                         # Update and process word and sentence buffers
-                        word_buffer, sentence_buffer = self.process_text(chunk, goal_handle, word_buffer, sentence_buffer)
+                        word_buffer, sentence_buffer = self.buffer_chunks(chunk, goal_handle, word_buffer, sentence_buffer)
 
                         if decoded_line.get('done', False):
                             break

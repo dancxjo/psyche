@@ -352,6 +352,6 @@ def generate_launch_description():
         boot_announcer,
         *processors,
         *sensors,
-        #*procedures,
+        *procedures,
         *faculties,
     ])
