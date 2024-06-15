@@ -60,19 +60,7 @@ def generate_launch_description():
                 {"action_server_name": "instruct"}
             ],
         )
-    vision_lpu = Node(
-            package="psyche",
-            executable="vlpu",
-            name="vision_lpu",
-            output="screen",
-            parameters=[
-                {"model": "llava:13b"},
-                {"supports_images": True},
-                {"base_url": f"http://{forebrain_host}:11434"},
-                {"action_server_name": "inspect"}
-            ],
-        )
-    processors = [plain_lpu, offboard_lpu, vision_lpu]
+    processors = [plain_lpu, offboard_lpu]
 
     # Sensors
     platform = IncludeLaunchDescription(
@@ -96,28 +84,9 @@ def generate_launch_description():
             name="mpu6050driver",
             output="screen",
         )
-    podiops = Node(
-            package="opencv_cam",
-            executable="opencv_cam_main",
-            name="foot_eye",
-            output="screen",
-            parameters=[{
-                "index": 0
-            }]
-        )
-    who_knows = Node(
-        package="usb_cam",
-        executable="usb_cam_node_exe",
-        name="usb_cam",
-        output="screen",
-        parameters=[{
-            "video_device": "/dev/video0",
-            "image_width": 640,
-            "image_height": 480,
-        }]
-    )
-    #sensors = [platform, listen_for_speech, imu1, who_knows, podiops]
-    sensors = [who_knows]
+    #sensors = [platform, listen_for_speech, imu1]
+    sensors = []
+    
     # Senses & Faculties
     heartbeat = Node(
             package="psyche",
@@ -128,22 +97,6 @@ def generate_launch_description():
                 {"processing_notes": "You are under development. This may feel funny. If you hear music playing, it's probably your innate singing--it matches your mood. You may also hear spoken words. You should also hear your own voice. You may also occasionally receive descriptions of what you are seeing. You should also receive IMU, bumper and other bodily readings as sensations."},
                 {"update_interval": 60.0},
             ],
-        )
-    vision = Node(
-            package="psyche",
-            executable="distill",
-            name="the_lookout",
-            output="screen",
-            parameters=[{
-                "action_server_name": "inspect",
-                "supports_images": True,
-                "prompt": "You are a robot. Here is your internal state along with some recently processed images from your vision system. Using only the information here, describe what you see before you. Be succinct but thorough.\n\n{input_topics}\n\nWhat you're seeing as the robot:\n",
-                "input_topics": ["identity", "instant", "situation", "intent"],
-                "input_images": ["/image_raw"],
-                "output_topic": "sensation",
-                "update_interval": 1.0,
-                "accumulation_method": "latest"
-            }]
         )
     power_management = Node(
             package="psyche",
@@ -311,9 +264,9 @@ def generate_launch_description():
 
     # Temporarily disabling some faculties while the robot is docked
     # [direct_manoevering, innate_musicality]
-    faculties = [vision]
+    faculties = [heartbeat]
     
-    #, heartbeat, power_management, proprioception, sentience, combobulation, intent, basic_autobiographical_memory, identity, os_shell, speech]
+    #vision, heartbeat, power_management, proprioception, sentience, combobulation, intent, basic_autobiographical_memory, identity, os_shell, speech]
     
     # Procedural Memory
     sing = Node(
