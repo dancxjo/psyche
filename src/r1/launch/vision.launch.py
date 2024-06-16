@@ -36,15 +36,6 @@ def generate_launch_description():
     processors = [vision_lpu]
 
     # Sensors
-    podiops = Node(
-            package="opencv_cam",
-            executable="opencv_cam_main",
-            name="foot_eye",
-            output="screen",
-            parameters=[{
-                "index": 0
-            }]
-        )
     usb_cam = Node(
         package="usb_cam",
         executable="usb_cam_node_exe",
@@ -56,7 +47,7 @@ def generate_launch_description():
             "image_height": 480,
         }]
     )
-    sensors = [usb_cam, podiops]
+    sensors = [usb_cam]
 
     # Senses & Faculties
     vision = Node(
@@ -81,5 +72,5 @@ def generate_launch_description():
     return LaunchDescription([
         *processors,
         *sensors,
-#        *faculties,
+        *faculties,
     ])
