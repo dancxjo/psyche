@@ -22,7 +22,7 @@ class TutorialNode(Node):
     """
     def __init__(self):
         super().__init__('boot_tutorial')
-        self.controller = self.create_subscription(String, 'tutorial_control', self.voice_callback, 10)
+        self.controller = self.create_subscription(String, 'tutorial_control', self.consent_response, 10)
         self.sensation = self.create_publisher(String, 'sensation', 10)
         self.index = 0
         self.timer = self.create_timer(120, self.next_slide)
@@ -31,6 +31,13 @@ class TutorialNode(Node):
         self.sensation.publish(String(data=timed_slides[self.index]))
         self.index += 1
         if self.index >= len(timed_slides):
+            self.timer.cancel()
+            
+    def consent_response(self, msg):
+        if msg.data == 'yes':
+            self.get_logger().info("Tutorial accepted.")
+        else:
+            self.get_logger().info("Tutorial rejected.")
             self.timer.cancel()
         
 def main(args=None):

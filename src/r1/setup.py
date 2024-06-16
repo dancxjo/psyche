@@ -29,6 +29,7 @@ setup(
             "exec_shell = r1.shell_exec:main",
             "announce_boot = r1.boot_announcer:main",
             "speak_directly = r1.direct_speech:main",
+            "tutorial = r1.tutorial:main",
         ],
     },
 )
