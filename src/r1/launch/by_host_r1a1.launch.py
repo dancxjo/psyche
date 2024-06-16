@@ -18,6 +18,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, ExecuteProcess  # Import ExecuteProcess
 
 forebrain_host = "192.168.0.7"
+victus_host = "192.168.0.19"
 offboard_host = "192.168.0.3"
 
 def generate_launch_description():
@@ -45,18 +46,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llama3:instruct"},
-                {"base_url": f"http://{forebrain_host}:11434"},
-                {"action_server_name": "instruct"}
-            ],
-        )
-    offboard_lpu = Node(
-            package="psyche",
-            executable="lpu",
-            name="basic_lpu",
-            output="screen",
-            parameters=[
-                {"model": "llama3:instruct"},
-                {"base_url": f"http://{offboard_host}:11434"},
+                {"base_url": f"http://{victus_host}:11434"},
                 {"action_server_name": "instruct"}
             ],
         )
@@ -72,7 +62,7 @@ def generate_launch_description():
             {"action_server_name": "inspect"}
         ],
     )
-    processors = [vision_lpu, plain_lpu, offboard_lpu]
+    processors = [vision_lpu, plain_lpu]
 
     # Sensors
     usb_cam = Node(
@@ -84,7 +74,7 @@ def generate_launch_description():
             "video_device": "/dev/video0",
             "image_width": 1280,
             "image_height": 720,
-            "framerate": 12.0,
+            "framerate": 3.0,
         }]
     )
     platform = IncludeLaunchDescription(
