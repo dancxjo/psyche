@@ -108,8 +108,7 @@ def generate_launch_description():
             name="mpu6050driver",
             output="screen",
         )
-    #sensors = [platform, listen_for_speech, imu1]
-    sensors = [usb_cam]
+    sensors = [usb_cam, platform, listen_for_speech, imu1]
     
     # Senses & Faculties
     heartbeat = Node(
@@ -301,7 +300,7 @@ def generate_launch_description():
             }]
         )
     
-    faculties = [heartbeat, vision, speech, sentience]    
+    faculties = [heartbeat, vision, speech, sentience, combobulation, identity]    
     # Procedural Memory
     # A procedure is a node that takes structured commands from an LPU and does something with them
     # We're disabling the movement procedure while the robot is docked [move_directly]
