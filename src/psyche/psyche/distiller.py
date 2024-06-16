@@ -81,10 +81,10 @@ class Distiller(Node):
                 img_decoded = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)  # Assuming color image
 
                 # Resize the image if necessary
-                img_resized = cv2.resize(img_decoded, (640, 480), interpolation=cv2.INTER_AREA)
+                img_resized = cv2.resize(img_decoded, (670, 670), interpolation=cv2.INTER_AREA)
 
                 # Encode to PNG
-                _, img_png = cv2.imencode('.png', img_resized, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+                _, img_png = cv2.imencode('.png', img_resized)#, [cv2.IMWRITE_PNG_COMPRESSION, 2])
 
                 # Encode to base64
                 encoded = base64.b64encode(img_png).decode('utf-8')

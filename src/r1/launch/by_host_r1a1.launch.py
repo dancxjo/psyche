@@ -72,7 +72,6 @@ def generate_launch_description():
             {"action_server_name": "inspect"}
         ],
     )
-
     processors = [vision_lpu, plain_lpu, offboard_lpu]
 
     # Sensors
@@ -83,11 +82,11 @@ def generate_launch_description():
         output="screen",
         parameters=[{
             "video_device": "/dev/video0",
-            "image_width": 640,
-            "image_height": 480,
+            "image_width": 1280,
+            "image_height": 720,
+            "framerate": 12.0,
         }]
     )
-
     platform = IncludeLaunchDescription(
             XMLLaunchDescriptionSource([
                     PathJoinSubstitution([
@@ -119,7 +118,6 @@ def generate_launch_description():
             name="heartbeat",
             output="screen",
             parameters=[
-                {"processing_notes": "You are under development. This may feel funny. If you hear music playing, it's probably your innate singing--it matches your mood. You may also hear spoken words. You should also hear your own voice. You may also occasionally receive descriptions of what you are seeing. You should also receive IMU, bumper and other bodily readings as sensations."},
                 {"update_interval": 60.0},
             ],
         )
@@ -179,7 +177,7 @@ def generate_launch_description():
             parameters=[{
                 "action_server_name": "instruct",
                 "prompt": "You are a robot. Below are the sensations that you have recently felt. Narrate this information to yourself in the first person present. Using only the information here, describe the current instant as you are experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\nHey! What\'s going on?\n",
-                "input_topics": ["/rosout", "identity", "sensation", "proprioception", "situation", "intent"],
+                "input_topics": ["/rosout", "sensation", "proprioception", "situation", "intent"],
                 "output_topic": "instant",
                 "update_interval": 2.5,
             }]
@@ -285,7 +283,7 @@ def generate_launch_description():
                 "update_interval": 2.0,
                 "accumulation_method": "latest",                
             }]
-        ),
+        )
     vision = Node(
             package="psyche",
             executable="distill",
@@ -294,30 +292,21 @@ def generate_launch_description():
             parameters=[{
                 "action_server_name": "inspect",
                 "image_support": True,
-                "prompt": "Describe the attached image(s) and their content (if any). {input_topics}\n",
-                "input_topics": ["heartbeat"],
+                "prompt": "You are acting as a constiuent of the mind of a robot. Describe the attached snapshots from your eye as the robot narrating what it is seeing to itself. This context might be helpful as well: {input_topics}",
+                "input_topics": ["heartbeat", "instant"],
                 "input_images": ["/image_raw/compressed"],
-                "output_topic": "voice",
-                "update_interval": 1.0,
+                "output_topic": "sensation",
+                "update_interval": 15.0,
                 "accumulation_method": "latest"
             }]
         )
     
-    # Temporarily disabling some faculties while the robot is docked
-    # [direct_manoevering, innate_musicality]
-    faculties = [heartbeat]
-    
-    #vision, heartbeat, power_management, proprioception, sentience, combobulation, intent, basic_autobiographical_memory, identity, os_shell, speech]
-    
+    faculties = [heartbeat, vision, speech, sentience]    
     # Procedural Memory
-    sing = Node(
-        package="r1",
-        executable="play_song",
-        name="song_player",
-        output="screen",
-    )
-    
-    # Disabling while the robot is docked
+    # A procedure is a node that takes structured commands from an LPU and does something with them
+    # We're disabling the movement procedure while the robot is docked [move_directly]
+    # And [sing, direct_speech] is disabled because my roommate needs a break, and the robot needs some 
+# Disabling while the robot is docked
     move_directly = Node(
             package="r1",
             executable="motivate",
@@ -337,10 +326,7 @@ def generate_launch_description():
             output="screen",
         )
 
-    # A procedure is a node that takes structured commands from an LPU and does something with them
-    # We're disabling the movement procedure while the robot is docked [move_directly]
-    # And [sing, direct_speech] is disabled because my roommate needs a break, and the robot needs some expression
-    procedures = [direct_speech, control_shell]
+    procedures = [direct_speech]
 
     return LaunchDescription([
         boot_announcer,

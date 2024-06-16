@@ -30,7 +30,7 @@ def generate_launch_description():
             parameters=[{
                 "action_server_name": "inspect",
                 "image_support": True,
-                "prompt": " You are acting as a constiuent of the mind of a robot. This is the image taken by the robot's camera/eye. Describe the content of the attached image(s) (if any) as the robot describing what it's seeing to itself. Here are some other contextual details thatmay help you understand the image: {input_topics}\n",
+                "prompt": " You are acting as a constiuent of the mind of a robot. This is the image taken by your/the robot's camera/eye. Describe the content of the attached image(s) (if any) as the robot describing what it's seeing to itself. Here are some other contextual details that may help you understand the image: {input_topics}\n",
                 "input_topics": ["heartbeat"],
                 "input_images": ["/image_raw/compressed"],
                 "output_topic": "voice",

@@ -6,9 +6,10 @@
 export HOST_PKG=r1
 export ROS_DISTRO=iron
 
+debug_marks="-d"
+
 ### Check if running inside a Docker container
 if [ -e "/ros_entrypoint.sh" ]; then
-
     export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
     export ROS_DOMAIN_ID=42
 
@@ -19,20 +20,16 @@ if [ -e "/ros_entrypoint.sh" ]; then
     echo "Looking for /psyche/src/$HOST_PKG/launch/by_host_$(hostname).launch.py"
     if [ -e /psyche/src/$HOST_PKG/launch/by_host_$(hostname).launch.py ]; then
         echo "Found $(hostname) specific launch file"
-        ros2 launch $HOST_PKG by_host_$(hostname).launch.py &
+        ros2 launch $debug_marks $HOST_PKG by_host_$(hostname).launch.py &
     fi
     
     echo "Running the autoexec launch file"
-    ros2 launch $HOST_PKG autoexec.launch.py
-
+    ros2 launch $debug_marks $HOST_PKG autoexec.launch.py
 else
-
     echo "Outside docker node, use base launch shell scripts"
     if [ -e /psyche/launch/$(hostname).sh ]; then
         /psyche/launch/$(hostname).sh
     fi
-
-
 fi
 
 ### If we get here, just spin
