@@ -46,6 +46,7 @@ class Distiller(Node):
         self.image_topics = self.get_parameter('input_images').get_parameter_value().string_array_value
         
         self.Inference = InferenceWithImages if self.support_images else PlainTextInference
+        self.get_logger().info(f'Using action server {self.action_server_name} and inference type {self.Inference}')
         self.action_client = ActionClient(self, self.Inference, self.action_server_name)
         
         self.output_pub = self.create_publisher(String, self.output_topic, 4)

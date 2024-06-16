@@ -18,7 +18,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, ExecuteProcess  # Import ExecuteProcess
 
 forebrain_host = "192.168.0.7"
-offboard_host = "192.168.0.3"
+offboard_host = "192.168.0.19"
 
 def generate_launch_description():
     vision_lpu = Node(
@@ -28,7 +28,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llava:13b"},
-                {"supports_images": True},
+                {"image_support": True},
                 {"base_url": f"http://{forebrain_host}:11434"},
                 {"action_server_name": "inspect"}
             ],
@@ -57,7 +57,7 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "action_server_name": "inspect",
-                "supports_images": True,
+                "image_support": True,
                 "prompt": "You are a robot. Here is your internal state along with some recently processed images from your vision system. Using only the information here, describe what you see before you. Be succinct but thorough.\n\n{input_topics}\n\nWhat you're seeing as the robot:\n",
                 "input_topics": ["identity", "instant", "situation", "intent"],
                 "input_images": ["/image_raw"],
