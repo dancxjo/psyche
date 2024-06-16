@@ -58,9 +58,9 @@ def generate_launch_description():
             parameters=[{
                 "action_server_name": "inspect",
                 "image_support": True,
-                "prompt": "You are a robot. Here is your internal state along with some recently processed images from your vision system. Using only the information here, describe what you see before you. Be succinct but thorough.\n\n{input_topics}\n\nWhat you're seeing as the robot:\n",
-                "input_topics": ["identity", "instant", "situation", "intent"],
-                "input_images": ["/image_raw"],
+                "prompt": "Describe the attached image(s) and their content (if any). {input_topics}\n",
+                "input_topics": ["heartbeat"],
+                "input_images": ["/image_raw/compressed"],
                 "output_topic": "sensation",
                 "update_interval": 1.0,
                 "accumulation_method": "latest"
