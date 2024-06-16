@@ -55,18 +55,24 @@ class VisionEnabledLanguageProcessor(LanguageProcessor):
 
         try:
             self.get_logger().debug(f"Sending request")
+            with open("/payload.json", "w") as f:
+                json.dump(payload, f)
+                
             with requests.post(f"{self.base_url}/api/generate", json=payload, headers=headers, stream=True) as response:
                 self.get_logger().debug(f"Sent request")
                 response.raise_for_status()
                 self.get_logger().debug(f"Received good response")
                 for line in response.iter_lines():
                     self.get_logger().debug(f"Got line")
+                    line = line.strip()
                     if line:
                         self.get_logger().debug(f"Decoding {line}")
                         decoded_line = json.loads(line.decode('utf-8'))
                         self.get_logger().debug(f"Unmarshalled as: {decoded_line}")
                         chunk = decoded_line.get("response", "")
                         self.get_logger().debug(f"Extracted {chunk}")
+                        if not chunk:
+                            continue
                         result.response += chunk
                         self.get_logger().debug(f"Concatted {result.response}")
                         self.report_chunk(goal_handle, chunk, 0)

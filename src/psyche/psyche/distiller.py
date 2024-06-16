@@ -12,6 +12,8 @@ import base64
 import cv2
 import numpy as np
 
+import os
+
 class Distiller(Node):
     """
     A node that listens to one or more topics, transforms them via an LPU and publishes the topic
@@ -79,13 +81,17 @@ class Distiller(Node):
                 img_decoded = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)  # Assuming color image
 
                 # Resize the image if necessary
-                img_resized = cv2.resize(img_decoded, (670, 670), interpolation=cv2.INTER_AREA)
+                img_resized = cv2.resize(img_decoded, (640, 480), interpolation=cv2.INTER_AREA)
 
                 # Encode to PNG
-                _, img_png = cv2.imencode('.png', img_resized)
+                _, img_png = cv2.imencode('.png', img_resized, [cv2.IMWRITE_PNG_COMPRESSION, 0])
 
                 # Encode to base64
                 encoded = base64.b64encode(img_png).decode('utf-8')
+
+                with open('/test.png', 'wb') as f:
+                    f.write(img_png)
+                    
                 return encoded
 
             if isinstance(msg, String):
@@ -118,24 +124,42 @@ class Distiller(Node):
             raise ValueError('No prompt set')
         
         inputs = {}
+        images = []
         for topic, messages in self.input_queue.items():
-            self.get_logger().debug(f'Processing {len(messages)} messages on {topic}')
-            inputs[topic] = [self.transform_topic(topic, msg) for msg in messages]
+            self.get_logger().info(f'Processing {len(messages)} messages on {topic} of {self.image_topics}')
+            if topic in self.image_topics:
+                self.get_logger().info(f"Processing images")
+                #more_images = [self.transform_topic(topic, msg) for msg in messages]
+                # For now just use the last image
+                more_images = [self.transform_topic(topic, messages[-1])]
+                images += more_images
+                self.get_logger().info(f"Image count: {len(images)}")
+            else:
+                self.get_logger().info(f"Processing text")
+                #inputs[topic] = [self.transform_topic(topic, msg) for msg in messages]
     
         self.input_queue = {}
-        self.get_logger().debug(f"Inputs: {inputs}")
+        self.get_logger().info(f"Inputs: {inputs}")                
         inputs = (self.transform_inputs(inputs)).strip()
-        if inputs == '' or inputs == '{}' or inputs == '' or inputs == '[]' or inputs == {} or inputs == []:
-            self.get_logger().debug('No inputs--skipping prompt')
+        no_input = inputs == '' or inputs == '{}' or inputs == '' or inputs == '[]' or inputs == {} or inputs == []
+        no_images = len(images) == 0
+
+        if no_images and no_input:
+            self.get_logger().info('No inputs--skipping prompt')
             return
-        self.get_logger().debug(f'Prompting with inputs: {inputs}')
+        
+        self.get_logger().info(f'Prompting with inputs: {inputs}')
         prompt=self.prompt.format(
             narrative=self.narrative,
             output_topic=self.output_topic,
             input_topics=inputs
         )
         self.get_logger().debug(f'Prompt: {prompt}; awaiting action server {self.action_server_name}')
-        goal = self.Inference.Goal(prompt=prompt)
+        if self.support_images:
+            self.get_logger().info(f"{self.image_topics}")
+            goal = self.Inference.Goal(prompt=prompt, images=images)
+        else:
+            goal = self.Inference.Goal(prompt=prompt)
         self.action_client.wait_for_server()
         self.get_logger().debug(f"Action server {self.action_server_name} found")
         future = self.action_client.send_goal_async(goal, feedback_callback=self.on_feedback)

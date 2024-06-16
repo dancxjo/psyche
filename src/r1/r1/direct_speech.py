@@ -29,6 +29,10 @@ class TTSNode(Node):
     def voice_callback(self, msg):
         text = msg.data
         self.get_logger().info(f"Received text: {text}")
+        if not text:
+            self.get_logger().info("Text is empty")
+            self.handle_queue()
+            return
         wav = self.get_wav(text)
         self.playlist.append(wav)
         # self.publisher.publish(ByteMultiArray(data=wav.))

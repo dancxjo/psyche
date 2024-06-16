@@ -286,7 +286,23 @@ def generate_launch_description():
                 "accumulation_method": "latest",                
             }]
         ),
-
+    vision = Node(
+            package="psyche",
+            executable="distill",
+            name="the_lookout",
+            output="screen",
+            parameters=[{
+                "action_server_name": "inspect",
+                "image_support": True,
+                "prompt": "Describe the attached image(s) and their content (if any). {input_topics}\n",
+                "input_topics": ["heartbeat"],
+                "input_images": ["/image_raw/compressed"],
+                "output_topic": "voice",
+                "update_interval": 1.0,
+                "accumulation_method": "latest"
+            }]
+        )
+    
     # Temporarily disabling some faculties while the robot is docked
     # [direct_manoevering, innate_musicality]
     faculties = [heartbeat]
