@@ -86,6 +86,6 @@ RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
     colcon build"
 
-RUN cp /psyche/asound.conf /etc/
+COPY asound.conf /etc/asound.conf    
 
 CMD ["/psyche/launch.sh"]
