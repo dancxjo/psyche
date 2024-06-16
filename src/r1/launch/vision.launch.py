@@ -21,34 +21,6 @@ forebrain_host = "192.168.0.7"
 offboard_host = "192.168.0.19"
 
 def generate_launch_description():
-    vision_lpu = Node(
-            package="psyche",
-            executable="vlpu",
-            name="vision_lpu",
-            output="screen",
-            parameters=[
-                {"model": "llava:13b"},
-                {"image_support": True},
-                {"base_url": f"http://{forebrain_host}:11434"},
-                {"action_server_name": "inspect"}
-            ],
-        )
-    processors = [vision_lpu]
-
-    # Sensors
-    usb_cam = Node(
-        package="usb_cam",
-        executable="usb_cam_node_exe",
-        name="usb_cam",
-        output="screen",
-        parameters=[{
-            "video_device": "/dev/video0",
-            "image_width": 640,
-            "image_height": 480,
-        }]
-    )
-    sensors = [usb_cam]
-
     # Senses & Faculties
     vision = Node(
             package="psyche",
@@ -61,7 +33,7 @@ def generate_launch_description():
                 "prompt": "Describe the attached image(s) and their content (if any). {input_topics}\n",
                 "input_topics": ["heartbeat"],
                 "input_images": ["/image_raw/compressed"],
-                "output_topic": "sensation",
+                "output_topic": "voice",
                 "update_interval": 1.0,
                 "accumulation_method": "latest"
             }]
@@ -70,7 +42,5 @@ def generate_launch_description():
     faculties = [vision]
     
     return LaunchDescription([
-        *processors,
-        *sensors,
         *faculties,
     ])

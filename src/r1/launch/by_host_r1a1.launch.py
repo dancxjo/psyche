@@ -60,9 +60,34 @@ def generate_launch_description():
                 {"action_server_name": "instruct"}
             ],
         )
-    processors = [plain_lpu, offboard_lpu]
+    vision_lpu = Node(
+        package="psyche",
+        executable="vlpu",
+        name="vision_lpu",
+        output="screen",
+        parameters=[
+            {"model": "llava:13b"},
+            {"image_support": True},
+            {"base_url": f"http://{forebrain_host}:11434"},
+            {"action_server_name": "inspect"}
+        ],
+    )
+
+    processors = [vision_lpu, plain_lpu, offboard_lpu]
 
     # Sensors
+    usb_cam = Node(
+        package="usb_cam",
+        executable="usb_cam_node_exe",
+        name="usb_cam",
+        output="screen",
+        parameters=[{
+            "video_device": "/dev/video0",
+            "image_width": 640,
+            "image_height": 480,
+        }]
+    )
+
     platform = IncludeLaunchDescription(
             XMLLaunchDescriptionSource([
                     PathJoinSubstitution([
@@ -85,7 +110,7 @@ def generate_launch_description():
             output="screen",
         )
     #sensors = [platform, listen_for_speech, imu1]
-    sensors = []
+    sensors = [usb_cam]
     
     # Senses & Faculties
     heartbeat = Node(
