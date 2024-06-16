@@ -126,29 +126,29 @@ class Distiller(Node):
         inputs = {}
         images = []
         for topic, messages in self.input_queue.items():
-            self.get_logger().info(f'Processing {len(messages)} messages on {topic} of {self.image_topics}')
+            self.get_logger().debug(f'Processing {len(messages)} messages on {topic} of {self.image_topics}')
             if topic in self.image_topics:
-                self.get_logger().info(f"Processing images")
+                self.get_logger().debug(f"Processing images")
                 #more_images = [self.transform_topic(topic, msg) for msg in messages]
                 # For now just use the last image
                 more_images = [self.transform_topic(topic, messages[-1])]
                 images += more_images
-                self.get_logger().info(f"Image count: {len(images)}")
+                self.get_logger().debug(f"Image count: {len(images)}")
             else:
-                self.get_logger().info(f"Processing text")
-                #inputs[topic] = [self.transform_topic(topic, msg) for msg in messages]
+                self.get_logger().debug(f"Processing text")
+                inputs[topic] = [self.transform_topic(topic, msg) for msg in messages]
     
         self.input_queue = {}
-        self.get_logger().info(f"Inputs: {inputs}")                
+        self.get_logger().debug(f"Inputs: {inputs}")                
         inputs = (self.transform_inputs(inputs)).strip()
         no_input = inputs == '' or inputs == '{}' or inputs == '' or inputs == '[]' or inputs == {} or inputs == []
         no_images = len(images) == 0
 
         if no_images and no_input:
-            self.get_logger().info('No inputs--skipping prompt')
+            self.get_logger().debug('No inputs--skipping prompt')
             return
         
-        self.get_logger().info(f'Prompting with inputs: {inputs}')
+        self.get_logger().debug(f'Prompting with inputs: {inputs}')
         prompt=self.prompt.format(
             narrative=self.narrative,
             output_topic=self.output_topic,
@@ -156,7 +156,7 @@ class Distiller(Node):
         )
         self.get_logger().debug(f'Prompt: {prompt}; awaiting action server {self.action_server_name}')
         if self.support_images:
-            self.get_logger().info(f"{self.image_topics}")
+            self.get_logger().debug(f"{self.image_topics}")
             goal = self.Inference.Goal(prompt=prompt, images=images)
         else:
             goal = self.Inference.Goal(prompt=prompt)
