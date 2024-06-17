@@ -16,6 +16,7 @@ from .llms import plain_lpu, vision_lpu
 from .sentience import sentience
 from .vision import vision
 from .voice import voice
+from .executive import executive
 
 def generate_launch_description():
     direct_dev_talk = Node(
@@ -66,4 +67,5 @@ def generate_launch_description():
         basic_autobiographical_memory,
         emerge,
         identity,
+        executive,
     ])
