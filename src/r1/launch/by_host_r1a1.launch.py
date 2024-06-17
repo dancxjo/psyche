@@ -1,41 +1,35 @@
-from struct import pack
-from sys import executable
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import IncludeLaunchDescription
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from struct import pack
-from sys import executable
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.actions import IncludeLaunchDescription, ExecuteProcess  # Import ExecuteProcess
 
-forebrain_host = "192.168.0.7"
-victus_host = "192.168.0.19"
-offboard_host = "192.168.0.3"
+from .identity import basic_autobiographical_memory, identity, emerge
+from .context import combobulation
+from .llms import plain_lpu, vision_lpu
+from .sentience import sentience
+from .vision import vision
+from .voice import voice
 
 def generate_launch_description():
+    direct_dev_talk = Node(
+            package="r1",
+            executable="direct_dev_talk",
+            name="direct_dev_talk",
+            output="screen",
+    )
+    
     boot_announcer = Node(
             package="r1",
             executable="announce_boot",
             name="boot_announcer",
             output="screen",
-            parameters=[
-                {'boot_topics': [
-                    'voice', 
-                    'sensation', 
-                    'instant', 
-                    'situation', 
-                    'intent'
-                ]}
-            ]
         )
 
     platform = IncludeLaunchDescription(
@@ -57,9 +51,19 @@ def generate_launch_description():
                 {"update_interval": 60.0},
             ],
         )
-
+    
     return LaunchDescription([
+        plain_lpu,
+        vision_lpu,
+        direct_dev_talk,
+        voice,
         boot_announcer,
+        heartbeat,
+        vision,
         platform,
-        heartbeat
+        sentience,
+        combobulation,
+        basic_autobiographical_memory,
+        emerge,
+        identity,
     ])
