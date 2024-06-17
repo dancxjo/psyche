@@ -10,7 +10,7 @@ class BootAnnouncer(Node):
     def __init__(self):
         super().__init__('boot_announcer')
         self.voice = self.create_publisher(String, 'voice', 10)
-        
+        self.say('Robot 1 initializing...')
         # Wait for all the services to complete initialization
         self.act1 = ActionClient(self, PlainTextInference, 'instruct')
         self.act2 = ActionClient(self, InferenceWithImages, 'inspect')
