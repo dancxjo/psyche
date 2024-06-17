@@ -5,6 +5,20 @@ from rclpy.action import ActionClient
 
 from psyche_interfaces.action import PlainTextInference, InferenceWithImages
 
+topics = {
+    "voice": "I am able to speak.",
+    "sensation": "I am able to sense.",
+    "proprioception": "I feel my own body.",
+    "twists": "I can twist my body.",
+    "instant": "Integrating sensory input.",
+    "identity": "I know who I am.",
+    "situation": "I know what's happening.",
+    "intent": "I know what I want.",
+    "autobiography": "I know what I've done.",
+    "feeling": "I know how I feel.",
+    "song": "I can sing.",
+    "imu": "I can sense my orientation."
+}
 
 class BootAnnouncer(Node):
     def __init__(self):
@@ -23,12 +37,12 @@ class BootAnnouncer(Node):
 
         self.topics = {}
     
-        for t in ['bumper', 'sensation', 'proprioception', 'twists', 'instant', 'identity', 'situation', 'intent', 'autobiography', 'feeling', 'song', 'imu']:
-            self.topics[t] = self.create_subscription(String, t, self.make_callback(t), 10)
+        for t, msg in topics.items():
+            self.topics[t] = self.create_subscription(String, t, self.make_callback(t, msg), 10)
 
-    def make_callback(self, topic):
+    def make_callback(self, topic, m):
         def callback(msg):
-            #self.say(f'The {topic} topic has been initialized and is receiving data.')
+            self.say(m)
             self.destroy_subscription(self.topics[topic])
             del self.topics[topic]
             if len(self.topics) == 0:
