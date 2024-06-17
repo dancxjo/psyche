@@ -7,6 +7,7 @@ from psyche_interfaces.action import PlainTextInference, InferenceWithImages
 
 topics = {
     "voice": "Ahem.",
+    "bumper": "Ouch!",
     "sensation": "Hmm.",
     "proprioception": "Whoo!",
     "twists": "Here we go!",
