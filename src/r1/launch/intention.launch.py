@@ -22,42 +22,19 @@ victus_host = "192.168.0.19"
 offboard_host = "192.168.0.3"
 
 def generate_launch_description():
-    # Sensors
-    usb_cam = Node(
-        package="usb_cam",
-        executable="usb_cam_node_exe",
-        name="usb_cam",
-        output="screen",
-        parameters=[{
-            "video_device": "/dev/video0",
-            "image_width": 1280,
-            "image_height": 720,
-            "framerate": 3.0,
-        }]
-    )
-    sensors = [usb_cam]
-    
-    # Senses & Faculties
-    vision = Node(
+    intent = Node(
             package="psyche",
             executable="distill",
-            name="the_lookout",
+            name="the_intender",
             output="screen",
             parameters=[{
-                "action_server_name": "inspect",
-                "image_support": True,
-                "prompt": "You are acting as a constiuent of the mind of a robot. Describe the attached snapshots from your eye as the robot narrating what it is seeing to itself. This context might be helpful as well: {input_topics}",
-                "input_topics": ["heartbeat", "instant"],
-                "input_images": ["/image_raw/compressed"],
-                "output_topic": "sensation",
-                "update_interval": 15.0,
+                "action_server_name": "instruct",
+                "prompt": "You are a robot. You have self-driven intentions that you must identify (and/or generate). Below are the the most recent instants in your life, along with the current situation as you have been understanding it. You must use this information to decide what to do next. Certain other parts of your mind will attempt to enact your commands, but you'll need to keep a close eye on things and adjust your plans as you move forward. Maintain short, medium and long-term goals. Decide on priorities and focuses and direct attention.\n\n{input_topics}\n\nIssue only one sentence in the form of: As a _____ I want to _____ so that _____. NOTHING ELSE, just one sentence.\n",
+                "input_topics": ["identity", "instant", "situation", "twists", "intent"],
+                "output_topic": "intent",
+                "update_interval": 1.0,
                 "accumulation_method": "latest"
             }]
         )
-    
-    faculties = [vision]    
 
-    return LaunchDescription([
-        *sensors,
-        *faculties,
-    ])
+    return LaunchDescription([intent])

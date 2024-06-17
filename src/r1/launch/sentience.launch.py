@@ -22,44 +22,23 @@ victus_host = "192.168.0.19"
 offboard_host = "192.168.0.3"
 
 def generate_launch_description():
-    boot_announcer = Node(
-            package="r1",
-            executable="announce_boot",
-            name="boot_announcer",
-            output="screen",
-            parameters=[
-                {'boot_topics': [
-                    'voice', 
-                    'sensation', 
-                    'instant', 
-                    'situation', 
-                    'intent'
-                ]}
-            ]
-        )
-
-    platform = IncludeLaunchDescription(
-            XMLLaunchDescriptionSource([
-                    PathJoinSubstitution([
-                        FindPackageShare('create_bringup'),
-                        'launch',
-                        'create_1.launch'
-                    ])
-                ])
-        )    
-
-    heartbeat = Node(
+    # Senses & Faculties
+    sentience = Node(
             package="psyche",
-            executable="heartbeat",
-            name="heartbeat",
+            executable="distill",
+            name="the_witness",
             output="screen",
-            parameters=[
-                {"update_interval": 60.0},
-            ],
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": "You are a robot. Below are the sensations that you have recently felt. Narrate this information to yourself in the first person present. Using only the information here, describe the current instant as you are experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\nHey! What\'s going on?\n",
+                "input_topics": ["/rosout", "sensation", "proprioception", "situation", "intent"],
+                "output_topic": "instant",
+                "update_interval": 2.5,
+            }]
         )
+    
+    faculties = [sentience]    
 
     return LaunchDescription([
-        boot_announcer,
-        platform,
-        heartbeat
+        *faculties,
     ])

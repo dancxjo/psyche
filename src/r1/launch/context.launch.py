@@ -22,44 +22,23 @@ victus_host = "192.168.0.19"
 offboard_host = "192.168.0.3"
 
 def generate_launch_description():
-    boot_announcer = Node(
-            package="r1",
-            executable="announce_boot",
-            name="boot_announcer",
-            output="screen",
-            parameters=[
-                {'boot_topics': [
-                    'voice', 
-                    'sensation', 
-                    'instant', 
-                    'situation', 
-                    'intent'
-                ]}
-            ]
-        )
-
-    platform = IncludeLaunchDescription(
-            XMLLaunchDescriptionSource([
-                    PathJoinSubstitution([
-                        FindPackageShare('create_bringup'),
-                        'launch',
-                        'create_1.launch'
-                    ])
-                ])
-        )    
-
-    heartbeat = Node(
+    combobulation = Node(
             package="psyche",
-            executable="heartbeat",
-            name="heartbeat",
+            executable="distill",
+            name="the_combobulator",
             output="screen",
-            parameters=[
-                {"update_interval": 60.0},
-            ],
+            parameters=[{
+                "action_server_name": "instruct",
+                "prompt": "You are a robot trying to make sense of the recent instants of your life. Below are the the most recent instants in the robot's life, along with the current situation as you have been understanding it. Narrate to yourself a coherent explanation of what's going on right now; how it relates to the past and the future, etc. Using only the information here, describe the current situation as your experiencing it. Be succinct but thorough.\n\n{input_topics}\n\nSo what's up?\n",
+                "input_topics": ["identity", "instant", "situation", "autobiography", "intent"],
+                "output_topic": "situation",
+                "update_interval": 15.0,
+                "accumulation_method": "latest"
+            }]
         )
+    
+    faculties = [combobulation]    
 
     return LaunchDescription([
-        boot_announcer,
-        platform,
-        heartbeat
+        *faculties,
     ])

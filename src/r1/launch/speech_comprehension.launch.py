@@ -22,44 +22,18 @@ victus_host = "192.168.0.19"
 offboard_host = "192.168.0.3"
 
 def generate_launch_description():
-    boot_announcer = Node(
-            package="r1",
-            executable="announce_boot",
-            name="boot_announcer",
+    listen_for_speech = Node(
+            package="psyche",
+            executable="listen_for_speech",
+            name="the_ear",
             output="screen",
             parameters=[
-                {'boot_topics': [
-                    'voice', 
-                    'sensation', 
-                    'instant', 
-                    'situation', 
-                    'intent'
-                ]}
+                {"device_index": 1}
             ]
         )
-
-    platform = IncludeLaunchDescription(
-            XMLLaunchDescriptionSource([
-                    PathJoinSubstitution([
-                        FindPackageShare('create_bringup'),
-                        'launch',
-                        'create_1.launch'
-                    ])
-                ])
-        )    
-
-    heartbeat = Node(
-            package="psyche",
-            executable="heartbeat",
-            name="heartbeat",
-            output="screen",
-            parameters=[
-                {"update_interval": 60.0},
-            ],
-        )
-
+    sensors = [listen_for_speech]
+    
+    # Senses & Faculties
     return LaunchDescription([
-        boot_announcer,
-        platform,
-        heartbeat
+        *sensors,
     ])

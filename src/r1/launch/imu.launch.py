@@ -17,37 +17,16 @@ from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, ExecuteProcess  # Import ExecuteProcess
 
-forebrain_host = "192.168.0.7"
-victus_host = "192.168.0.19"
-offboard_host = "192.168.0.3"
-
 def generate_launch_description():
-    # Language processors
-    plain_lpu = Node(
-            package="psyche",
-            executable="lpu",
-            name="basic_lpu",
+    imu1 = Node(
+            package="mpu6050driver",
+            executable="mpu6050driver",
+            name="mpu6050driver",
             output="screen",
-            parameters=[
-                {"model": "llama3:instruct"},
-                {"base_url": f"http://{victus_host}:11434"},
-                {"action_server_name": "instruct"}
-            ],
         )
-    vision_lpu = Node(
-        package="psyche",
-        executable="vlpu",
-        name="vision_lpu",
-        output="screen",
-        parameters=[
-            {"model": "llava:13b"},
-            {"image_support": True},
-            {"base_url": f"http://{forebrain_host}:11434"},
-            {"action_server_name": "inspect"}
-        ],
-    )
-    processors = [vision_lpu, plain_lpu]
-
+    sensors = [imu1]
+    
+    # Senses & Faculties
     return LaunchDescription([
-        *processors,
+        *sensors,
     ])
