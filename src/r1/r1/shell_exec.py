@@ -16,14 +16,18 @@ class ShellSession(Node):
 
     def execute_command(self, command):
         try:
+            self.get_logger().info(f'Executing command: {command}')
             result = subprocess.run(command, shell=True, text=True, capture_output=True)
+            self.get_logger().info(f'Command executed with return code: {result.returncode}')
             return result.stdout if result.returncode == 0 else result.stderr
         except Exception as e:
+            self.get_logger().error(f'Error executing command: {str(e)}')
             return str(e)
 
     def publish_command_output(self, output):
         message = String()
         message.data = output
+        self.get_logger().info(f'Publishing command output: {message.data}')
         self.shell_output.publish(message)
         self.get_logger().info('Published command output')
 
