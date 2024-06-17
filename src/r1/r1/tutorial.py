@@ -28,10 +28,12 @@ class TutorialNode(Node):
         self.timer = self.create_timer(120, self.next_slide)
         
     def next_slide(self):
-        self.sensation.publish(String(data=timed_slides[self.index]))
+        self.get_logger().info(f"Displaying slide {self.index}: {timed_slides[self.index]}")
+        self.sensation.publish(String(data=f"You hear a voice, but not on your mic/ear. This ... seems to be built into your mind itself! It says: {timed_slides[self.index]}"))
         self.index += 1
         if self.index >= len(timed_slides):
-            self.timer.cancel()
+            self.index = 0
+            # self.timer.cancel()
             
     def consent_response(self, msg):
         if msg.data == 'yes':
