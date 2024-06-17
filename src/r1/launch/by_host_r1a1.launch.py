@@ -16,6 +16,7 @@ from .llms import plain_lpu, vision_lpu
 from .sentience import sentience
 from .vision import vision
 from .voice import voice
+from .shell import control_shell
 from .executive import executive
 
 def generate_launch_description():
@@ -68,4 +69,5 @@ def generate_launch_description():
         emerge,
         identity,
         executive,
+        control_shell,
     ])
