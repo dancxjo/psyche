@@ -30,7 +30,7 @@ setup(
             "announce_boot = r1.boot_announcer:main",
             "speak_directly = r1.direct_speech:main",
             "tutorial = r1.tutorial:main",
-            "dev_talk = r1.direct_dev_talk:main",
+            "direct_dev_talk = r1.direct_dev_talk:main",
         ],
     },
 )
