@@ -21,19 +21,42 @@ forebrain_host = "192.168.0.7"
 victus_host = "192.168.0.19"
 offboard_host = "192.168.0.3"
 
-def generate_launch_description():
-    listen_for_speech = Node(
-            package="psyche",
-            executable="listen_for_speech",
-            name="the_ear",
-            output="screen",
-            parameters=[
-                {"device_index": 1}
-            ]
-        )
-    sensors = [listen_for_speech]
-    
-    # Senses & Faculties
-    return LaunchDescription([
-        *sensors,
-    ])
+plain_lpu_local_net = Node(
+        package="psyche",
+        executable="lpu",
+        name="basic_lpu",
+        output="screen",
+        parameters=[
+            {"model": "llama3:instruct"},
+            {"base_url": f"http://{victus_host}:11434"},
+            {"action_server_name": "instruct"}
+        ],
+    )
+
+plain_lpu_local = Node(
+    package="psyche",
+    executable="lpu",
+    name="basic_lpu",
+    output="screen",
+    parameters=[
+        {"model": "llama3:instruct"},
+        {"base_url": f"http://{forebrain_host}:11434"},
+        {"action_server_name": "instruct"}
+    ],
+)
+
+# TODO: Make this configurable
+plain_lpu = plain_lpu_local_net
+
+vision_lpu = Node(
+    package="psyche",
+    executable="vlpu",
+    name="vision_lpu",
+    output="screen",
+    parameters=[
+        {"model": "llava:13b"},
+        {"image_support": True},
+        {"base_url": f"http://{forebrain_host}:11434"},
+        {"action_server_name": "inspect"}
+    ],
+)
