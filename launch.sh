@@ -6,7 +6,7 @@
 export HOST_PKG=r1
 export ROS_DISTRO=iron
 
-debug_marks="-d"
+debug_marks=""
 
 ### Check if running inside a Docker container
 if [ -e "/ros_entrypoint.sh" ]; then
