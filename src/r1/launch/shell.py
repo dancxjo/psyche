@@ -15,9 +15,3 @@ os_shell = Node(
     }]
 )
 
-control_shell = Node(
-        package="r1",
-        executable="exec_shell",
-        name="shell_executor",
-        output="screen",
-    )
