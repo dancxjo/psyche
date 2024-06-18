@@ -90,7 +90,7 @@ class SimpleHTTPServer(HTTPServer):
             self.node.publish_sensation(message)
             for topic, messages in self.topic_queue.items():
                 for message in messages:
-                    await websocket.send(json.dumps({ 'topic': topic, 'message': message }))
+                    await websocket.send(json.dumps({ 'topic': topic, 'message': str(message) }))
 
     async def start_websocket_server(self):
         host = self.node.get_parameter('host').get_parameter_value().string_value
