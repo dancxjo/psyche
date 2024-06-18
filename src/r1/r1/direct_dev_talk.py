@@ -31,7 +31,8 @@ form_html = b'''
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', (event) => {
-            const socket = new WebSocket('ws://localhost:8100');
+            // TODO: Unhardcode
+            const socket = new WebSocket('ws://192.168.0.13:8101');
             
             socket.onmessage = function(event) {
                 const history = document.querySelector('.history');
@@ -93,7 +94,7 @@ class SimpleHTTPServer(HTTPServer):
 
     async def start_websocket_server(self):
         host = self.node.get_parameter('host').get_parameter_value().string_value
-        port = self.node.get_parameter('port').get_parameter_value().integer_value
+        port = self.node.get_parameter('port').get_parameter_value().integer_value + 1
         async with websockets.serve(self.handle_websocket, host, port):
             self.node.get_logger().info(f'Started websocket server at {host}:{port}')
             await asyncio.Future()  # Run forever
