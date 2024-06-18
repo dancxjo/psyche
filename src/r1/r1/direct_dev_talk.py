@@ -17,24 +17,10 @@ form_html = b'''
                             gap: 10px;
                             align-items: center;
                         }
-                        
-                        .history {
-                            font-family: monospace;
-                            white-space: pre-wrap;
-                            overflow: auto;
-                            height: 200px;
-                            border: 1px solid black;
-                            padding: 10px;
-                        }
                     </style>
-                    <script>
-                        const socket = new WebSocket('ws://localhost:8100');
-                    </script>
                 </head>
                 <body>
-                    <div class="history">
-                    </div>
-                    <form method="POST" class="container">
+                    <form method="POST" style="" class="container">
                         <input type="text" name="text" autofocus/>
                         <button type="submit">Send</button>
                     </form>
