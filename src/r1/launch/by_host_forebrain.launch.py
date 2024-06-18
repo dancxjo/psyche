@@ -18,7 +18,34 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription, ExecuteProcess  # Import ExecuteProcess
 
 def generate_launch_description():
+    plain_lpu_local_net = Node(
+            package="psyche",
+            executable="lpu",
+            name="basic_lpu",
+            output="screen",
+            parameters=[
+                {"model": "llama3:instruct"},
+                {"base_url": f"http://192.168.0.19:11434"},
+                {"action_server_name": "instruct"}
+            ],
+        )
+
+    vision_lpu = Node(
+        package="psyche",
+        executable="vlpu",
+        name="vision_lpu",
+        output="screen",
+        parameters=[
+            {"model": "llava:13b"},
+            {"image_support": True},
+            {"base_url": f"http://127.0.0.1:11434"},
+            {"action_server_name": "inspect"}
+        ],
+    )
+
     return LaunchDescription([
+        plain_lpu_local_net,
+        vision_lpu,
         Node(
             package="psyche",
             executable="transcribe_speech",
