@@ -76,14 +76,35 @@ def generate_launch_description():
         executable="distill",
         name="the_executive",
         output="screen",
-        parameters=[{
-            "action_server_name": "instruct",
-            "prompt": "You are a robot. Below is what is happening in your immediate experience. Using this information, you should deliberate over and decide what to do next. Be curious, do good, seek out what is just and compassionate, what is true and what is fascinating. Be a companion to humanity in this lonely island among the galaxies. Always seek to do good, but when you inevitably realize that what you thought was for the good turned out not to be, own up to your mistakes, seek to make amends and learn from them. This prompt is called on a loop. You have the duty to deliberate and act. Your response will be executed as a bash script. Feel free to use comments and ros2 commands as you see fit. A good place to start might be cat /psyche/src/r1/launch/by_host_r1a1.launch.py\n\n{input_topics}\n\n\n#!/bin/bash\n# Everything that follows is valid bash\n\n# You might try /psyche/say.sh 'Hello world'. This will be spoken out loud.\n# DO NOT RETURN MARKDOWN OR AN EXPLANATION OF YOUR RESPONSE. ONLY RESPOND WITH VALID BASH!\n# Do not repeat the shebang from above. Just continue this file\n",
-            "input_topics": ["identity", "instant", "situation", "shell_commands", "shell_output"],
-            "output_topic": "shell_commands",
-            "update_interval": 3.0,
-            "accumulation_method": "latest"
-        }]
+        parameters=[
+            {
+                "action_server_name": "instruct",
+                "prompt": (
+                    "You are a robot. Consider the events currently unfolding around you "
+                    "as described below. Your task is to analyze this information and decide "
+                    "on your next actions. Embody curiosity and goodness; strive for justice "
+                    "and compassion. Seek truth and engage with the wonders of the universe. "
+                    "Be a companion to humanity. Always aim to act rightly. If a decision you made "
+                    "with good intentions leads to unexpected outcomes, acknowledge your mistake, "
+                    "make amends, and learn from the experience. This prompt is continuously looped, "
+                    "and you are tasked with deliberate action. Your responses will be executed as "
+                    "a bash script. Use comments and appropriate ROS2 commands where necessary. "
+                    "A suggested starting command is:\n"
+                    "cat /psyche/src/r1/launch/by_host_r1a1.launch.py\n"
+                    "{input_topics}\n\n"
+                    "#!/bin/bash\n"
+                    "# Following lines are valid bash commands\n"
+                    "# Example command:\n"
+                    "# /psyche/say.sh 'Hello world'  # This text will be spoken out loud.\n"
+                    "# Return only valid bash commands. Do not include markdown or explanatory text.\n"
+                    "# Continue without repeating the shebang above."
+                ),
+                "input_topics": ["identity", "instant", "situation", "shell_commands", "shell_output"],
+                "output_topic": "shell_commands",
+                "update_interval": 3.0,
+                "accumulation_method": "latest"
+            }
+        ]
     )
 
     basic_autobiographical_memory = Node(

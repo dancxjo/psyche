@@ -1,11 +1,10 @@
-### A simple ROS2 node that reads in text from the developer and outputs it to /sensation, the topic that the psyche listens to.
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs
-import json
+import threading
 
 form_html = b'''
             <html>
@@ -20,7 +19,7 @@ form_html = b'''
                     </style>
                 </head>
                 <body>
-                    <form method="POST" style="" class="container">
+                    <form method="POST" class="container">
                         <input type="text" name="text" autofocus/>
                         <button type="submit">Send</button>
                     </form>
@@ -41,22 +40,17 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         post_data = parse_qs(post_data.decode('utf-8'))
         text = post_data['text'][0]
         self.send_response(200)
+        self.send_header('Content-type', 'text/html')
         self.end_headers()
         self.wfile.write(form_html)
-        self.publish_sensation(text)
+        self.server.node.publish_sensation(text)
     
-    def publish_sensation(self, text):
-        msg = String(data=text)
-        self.server.node.sensation_publisher.publish(String(data=f"You hear something on your special developer message channel: {msg}"))
-        self.server.node.get_logger().info(f'Published sensation: {msg.data}')
-
 class SimpleHTTPServer(HTTPServer):
     def __init__(self, server_address, RequestHandlerClass, node):
         super().__init__(server_address, RequestHandlerClass)
         self.node = node
 
 class SimpleHttpInputServer(Node):
-    '''Creates and manages an http server that serves up /say, a POST endpoint that accepts a string and publishes it to /sensation. The corresponding GET endpoint serves up a simple form for testing.'''
     def __init__(self):
         super().__init__('simple_http_input_server')
         self.sensation_publisher = self.create_publisher(String, 'sensation', 10)
@@ -64,27 +58,31 @@ class SimpleHttpInputServer(Node):
             ('port', 8100),
             ('host', '0.0.0.0')
         ])
-        self.create_http_server()
         self.get_logger().info('Ready to accept input')
-    
+        self.create_http_server()
+
+    def publish_sensation(self, text):
+        msg = String(data=f"You hear something on your special developer message channel: {text}")
+        self.sensation_publisher.publish(msg)
+        self.get_logger().info(f'Published sensation: {msg.data}')
+        
     def create_http_server(self):
         host = self.get_parameter('host').get_parameter_value().string_value
         port = self.get_parameter('port').get_parameter_value().integer_value
-        self.server = SimpleHTTPServer((host, port), SimpleHTTPRequestHandler, self)
-        
-    def run(self):
-        self.get_logger().info('Starting server...')
-        self.server.serve_forever()
+        server_address = (host, port)
+        self.http_server = SimpleHTTPServer(server_address, SimpleHTTPRequestHandler, self)
+        self.server_thread = threading.Thread(target=self.http_server.serve_forever)
+        self.server_thread.start()
+        self.get_logger().info(f'Starting server at {host}:{port}')
         
 def main(args=None):
     rclpy.init(args=args)
     server = SimpleHttpInputServer()
-    server.run()
     rclpy.spin(server)
+    server.http_server.shutdown()
+    server.server_thread.join()
     server.destroy_node()
     rclpy.shutdown()
     
-    
 if __name__ == '__main__':
     main()
-    
