@@ -119,6 +119,9 @@ class SimpleHttpInputServer(Node):
         ])
         self.create_http_server()
         self.get_logger().info('Ready to accept input')
+        self.subs = []
+        for topic in ['voice', 'shell_commands', 'sensation']:
+            self.subs.append(self.create_subscription(String, topic, self.server.publish_event, 10))
 
     def create_http_server(self):
         host = self.get_parameter('host').get_parameter_value().string_value
