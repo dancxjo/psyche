@@ -107,7 +107,7 @@ class SimpleHTTPServer(HTTPServer):
 
     def publish_event(self, topic, message):
         self.node.get_logger().info(f'Publishing {topic}: {message.data}')
-        self.topic_queue[topic] = [] if not self.topic_queue[topic] else self.topic_queue[topic]
+        self.topic_queue[topic] = [] if not topic in self.topic_queue else self.topic_queue[topic]
         self.topic_queue[topic].append(message)
 
 class SimpleHttpInputServer(Node):
