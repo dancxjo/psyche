@@ -12,7 +12,7 @@ form_html = b'''
                 <body>
                     <form method="POST">
                         <input type="text" name="text" autofocus />
-                        <input type="submit" />
+                        <button type="submit">Send.</button>
                     </form>
                 </body>
             </html>
