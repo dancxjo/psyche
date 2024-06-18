@@ -9,10 +9,20 @@ import json
 
 form_html = b'''
             <html>
+                <head>
+                    <style>
+                        .container {
+                            display: grid;
+                            grid-template-columns: 1fr auto;
+                            gap: 10px;
+                            align-items: center;
+                        }
+                    </style>
+                </head>
                 <body>
-                    <form method="POST">
-                        <input type="text" name="text" autofocus />
-                        <button type="submit">Send.</button>
+                    <form method="POST" style="" class="container">
+                        <input type="text" name="text" autofocus/>
+                        <button type="submit">Send</button>
                     </form>
                 </body>
             </html>
