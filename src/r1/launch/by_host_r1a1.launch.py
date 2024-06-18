@@ -202,7 +202,7 @@ def generate_launch_description():
             "action_server_name": "inspect",
             "image_support": True,
             "prompt": "You are acting as a constiuent of the mind of a robot. Describe the attached snapshots from your eye as the robot narrating what it is seeing to itself. This context might be helpful as well: {input_topics}",
-            "input_topics": ["heartbeat", "instant"],
+            "input_topics": ["situation", "instant"],
             "input_images": ["/image_raw/compressed"],
             "output_topic": "sensation",
             "update_interval": 15.0,
@@ -212,7 +212,7 @@ def generate_launch_description():
 
     
     return LaunchDescription([
-        direct_dev_talk,
+#        direct_dev_talk,
         voice,
         boot_announcer,
         heartbeat,
