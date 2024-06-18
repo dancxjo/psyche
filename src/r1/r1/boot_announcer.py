@@ -6,19 +6,19 @@ from rclpy.action import ActionClient
 from psyche_interfaces.action import PlainTextInference, InferenceWithImages
 
 topics = {
-    "voice": "Ahem.",
-    "bumper": "Ouch!",
-    "sensation": "Hmm.",
-    "proprioception": "Whoo!",
-    "twists": "Here we go!",
-    "instant": "Aha!",
-    "identity": "Oh!",
-    "situation": "I see.",
+    "voice": "Voice initialized.",
+    "bumper": "Platform initialized.",
+    "sensation": "Sensation initialized.",
+    "proprioception": "Proprioception initialized.",
+    "twists": "Navigation initialized.",
+    "instant": "Sensory integration initialized.",
+    "identity": "Identity initialized.",
+    "situation": "Combobulation initialized.",
     "shell_output": "Receiving standard output.",
-    "autobiography": "That's it.",
-    "feeling": "Ah!",
-    "song": "Doe, a deer, a female deer.",
-    "imu": "Whippee!"
+    "autobiography": "Autobiography initialized.",
+    "feeling": "Emotions initialized.",
+    "song": "Cantation initialized.",
+    "imu": "Inertial measurement initialized.",
 }
 
 class BootAnnouncer(Node):
