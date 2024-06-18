@@ -15,46 +15,6 @@ victus_host = "192.168.0.19"
 offboard_host = "192.168.0.3"
 
 def generate_launch_description():
-    plain_lpu_local_net = Node(
-            package="psyche",
-            executable="lpu",
-            name="basic_lpu",
-            output="screen",
-            parameters=[
-                {"model": "llama3:instruct"},
-                {"base_url": f"http://{victus_host}:11434"},
-                {"action_server_name": "instruct"}
-            ],
-        )
-
-    plain_lpu_local = Node(
-        package="psyche",
-        executable="lpu",
-        name="basic_lpu",
-        output="screen",
-        parameters=[
-            {"model": "llama3:instruct"},
-            {"base_url": f"http://{forebrain_host}:11434"},
-            {"action_server_name": "instruct"}
-        ],
-    )
-
-    # TODO: Make this configurable
-    plain_lpu = plain_lpu_local_net
-
-    vision_lpu = Node(
-        package="psyche",
-        executable="vlpu",
-        name="vision_lpu",
-        output="screen",
-        parameters=[
-            {"model": "llava:13b"},
-            {"image_support": True},
-            {"base_url": f"http://{forebrain_host}:11434"},
-            {"action_server_name": "inspect"}
-        ],
-    )
-
     direct_dev_talk = Node(
             package="r1",
             executable="direct_dev_talk",
@@ -231,8 +191,6 @@ def generate_launch_description():
 
     
     return LaunchDescription([
-        plain_lpu,
-        vision_lpu,
         direct_dev_talk,
         voice,
         boot_announcer,
