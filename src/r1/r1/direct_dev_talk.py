@@ -1,4 +1,3 @@
-### A simple ROS2 node that reads in text from the developer and outputs it to /sensation, the topic that the psyche listens to.
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -6,27 +5,45 @@ from std_msgs.msg import String
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs
 import json
+import asyncio
+import websockets
 
 form_html = b'''
-            <html>
-                <head>
-                    <style>
-                        .container {
-                            display: grid;
-                            grid-template-columns: 1fr auto;
-                            gap: 10px;
-                            align-items: center;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <form method="POST" style="" class="container">
-                        <input type="text" name="text" autofocus/>
-                        <button type="submit">Send</button>
-                    </form>
-                </body>
-            </html>
-        '''
+<html>
+    <head>
+        <style>
+            .container {
+                display: grid;
+                grid-template-columns: 1fr auto;
+                gap: 10px;
+                align-items: center;
+            }
+            .history {
+                font-family: monospace;
+                white-space: pre-wrap;
+                overflow: auto;
+                height: 200px;
+                border: 1px solid black;
+                padding: 10px;
+            }
+        </style>
+        <script>
+            const socket = new WebSocket('ws://localhost:8100');
+            socket.onmessage = function(event) {
+                const history = document.querySelector('.history');
+                history.textContent += JSON.stringify(event.data) + '\\n';
+            }
+        </script>
+    </head>
+    <body>
+        <div class="history"></div>
+        <form method="POST" class="container">
+            <input type="text" name="text" autofocus/>
+            <button type="submit">Send</button>
+        </form>
+    </body>
+</html>
+'''
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -34,7 +51,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
         self.wfile.write(form_html)
-    
+
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
@@ -44,38 +61,67 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(form_html)
         self.publish_sensation(text)
-    
+
     def publish_sensation(self, text):
         msg = String(data=text)
-        self.server.node.sensation_publisher.publish(String(data=f"You hear something on your special developer message channel: {msg}"))
+        self.server.node.sensation_publisher.publish(String(data=f"You hear something on your special developer message channel: {msg.data}"))
         self.server.node.get_logger().info(f'Published sensation: {msg.data}')
 
 class SimpleHTTPServer(HTTPServer):
     def __init__(self, server_address, RequestHandlerClass, node):
         super().__init__(server_address, RequestHandlerClass)
         self.node = node
+        self.create_websocket_server()
+        self.topic_queue = {}
+
+    async def handle_websocket(self, websocket, path):
+        while True:
+            message = await websocket.recv()
+            self.node.sensation_publisher.publish(String(data=message))
+            self.node.get_logger().info(f'Published voice: {message}')
+            for topic, messages in self.topic_queue.items():
+                for message in messages:
+                    await websocket.send(message)
+
+    def create_websocket_server(self):
+        async def start_websocket_server():
+            host = self.node.get_parameter('host').get_parameter_value().string_value
+            port = self.node.get_parameter('port').get_parameter_value().integer_value
+            async with websockets.serve(self.handle_websocket, host, port):
+                self.node.get_logger().info(f'Started websocket server at {host}:{port}')
+                await asyncio.Future()  # This line will never be reached
+        asyncio.get_event_loop().create_task(start_websocket_server())
+        
+    def publish_event(self, topic, message):
+        self.topic_queue[topic] = self.topic_queue[topic] if self.topic_queue.get(topic) else []
+        self.topic_queue[topic].append(message)
 
 class SimpleHttpInputServer(Node):
-    '''Creates and manages an http server that serves up /say, a POST endpoint that accepts a string and publishes it to /sensation. The corresponding GET endpoint serves up a simple form for testing.'''
     def __init__(self):
         super().__init__('simple_http_input_server')
         self.sensation_publisher = self.create_publisher(String, 'sensation', 10)
+        self.topics = {
+            'sensation': self.create_subscription(String, 'sensation', self.publish_websocket_message, 10)
+        }
         self.declare_parameters(namespace='', parameters=[
             ('port', 8100),
             ('host', '0.0.0.0')
         ])
         self.create_http_server()
         self.get_logger().info('Ready to accept input')
-    
+
+    def publish_websocket_message(self, msg):
+        self.server.serve_forever()
+
     def create_http_server(self):
         host = self.get_parameter('host').get_parameter_value().string_value
         port = self.get_parameter('port').get_parameter_value().integer_value
         self.server = SimpleHTTPServer((host, port), SimpleHTTPRequestHandler, self)
-        
+
     def run(self):
         self.get_logger().info('Starting server...')
         self.server.serve_forever()
-        
+
 def main(args=None):
     rclpy.init(args=args)
     server = SimpleHttpInputServer()
@@ -83,8 +129,6 @@ def main(args=None):
     rclpy.spin(server)
     server.destroy_node()
     rclpy.shutdown()
-    
-    
+
 if __name__ == '__main__':
     main()
-    
