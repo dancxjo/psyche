@@ -106,7 +106,7 @@ class SimpleHTTPServer(HTTPServer):
         loop.run_forever()
 
     def publish_event(self, topic, message):
-        self.topic_queue[topic] = self.topic_queue.get(topic, [])
+        self.topic_queue[topic] = [] if not self.topic_queue[topic] else self.topic_queue[topic]
         self.topic_queue[topic].append(message)
 
 class SimpleHttpInputServer(Node):
@@ -121,7 +121,7 @@ class SimpleHttpInputServer(Node):
         self.get_logger().info('Ready to accept input')
         self.subs = []
         for topic in ['voice', 'shell_commands', 'sensation']:
-            self.subs.append(self.create_subscription(String, topic, self.server.publish_event, 10))
+            self.subs.append(self.create_subscription(String, topic, lambda m: self.server.publish_event(topic, m), 10))
 
     def create_http_server(self):
         host = self.get_parameter('host').get_parameter_value().string_value
