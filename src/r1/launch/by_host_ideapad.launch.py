@@ -115,7 +115,7 @@ def generate_launch_description():
         output="screen",
         parameters=[{
             "action_server_name": "inform",
-            "prompt": "You are a robot. Take in the information below and generate a list of facts to remember. Arrange the facts as a list of predications ('facts') about arguments ('concepts'). Each predicate takes exactly two arguments, the subject and the predicate. Use GQL.\n\n{input_topics}\n\n\n",
+            "prompt": "You are a robot. Monitor the following topics and cite important facts to remember from them. Present this as a list of memories.\n\n{input_topics}\n\n\n",
             "input_topics": ["identity", "instant", "situation", "autobiography", "voice"],
             "output_topic": "memory",
             "accumulation_method": "latest",
