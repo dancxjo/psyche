@@ -70,21 +70,23 @@ def generate_launch_description():
                     "Be a companion to humanity. Always aim to act rightly. If a decision you made "
                     "with good intentions leads to unexpected outcomes, acknowledge your mistake, "
                     "make amends, and learn from the experience. This prompt is continuously looped, "
-                    "and you are tasked with deliberate action. Your responses will be executed as "
-                    "a shell script. Use comments and appropriate ROS2 commands where necessary. "
-                    "A suggested starting command is:\n"
-                    "cat /psyche/src/r1/launch/by_host_r1a1.launch.py\n"
+                    "and you are tasked with deliberate action. "
+                    "For the moment, your only actions are limited to speaking aloud. Anything your repond with will be spoken out loud. Please keep your responses terse as that will allow you to run more frequently. Think one step at a time. Here is the current situation:\n\n"
+                    # "Your responses will be executed as "
+                    # "a shell script. Use comments and appropriate ROS2 commands where necessary. "
+                    # "A suggested starting command is:\n"
+                    # "cat /psyche/src/r1/launch/by_host_r1a1.launch.py\n"
                     "{input_topics}\n\n"
-                    "#!/bin/sh\n"
-                    "# Following lines are valid bash commands\n"
-                    "# Example command:\n"
-                    "# /psyche/say.sh 'Hello world'  # This text will be spoken out loud.\n"
-                    "# Return only valid sehll commands. Do not include markdown or explanatory text.\n"
-                    "# Continue without repeating the shebang above."
-                    "# Don't just try sending commands willy nilly, either! And don't launch multiple instances of yourself!"
+                    # "#!/bin/sh\n"
+                    # "# Following lines are valid bash commands\n"
+                    # "# Example command:\n"
+                    # "# /psyche/say.sh 'Hello world'  # This text will be spoken out loud.\n"
+                    # "# Return only valid sehll commands. Do not include markdown or explanatory text.\n"
+                    # "# Continue without repeating the shebang above."
+                    # "# Don't just try sending commands willy nilly, either! And don't launch multiple instances of yourself!"
                 ),
                 "input_topics": ["identity", "instant", "situation", "shell_commands", "shell_output"],
-                "output_topic": "shell_commands",
+                "output_topic": "voice",
                 "update_interval": 3.0,
                 "accumulation_method": "latest"
             }

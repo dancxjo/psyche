@@ -80,7 +80,7 @@ class Transcriber(Node):
         
     def publish_transcription(self, transcription):
         self.get_logger().debug('Publishing transcription')
-        self.transcription_pub.publish(String(data=f"I could be mistaken, but I think I heard someone say earlier: '{transcription}'"))
+        self.transcription_pub.publish(String(data=f"I could be mistaken, but I think I heard someone say earlier [this very well could be your own voice and a case of autophonia--totes normal] (also, if you hear phantom 'Thanks for watching!' messages and the like, it's just a hallucination, until it is not): '{transcription}'"))
 
 def main(args=None):
     rclpy.init(args=args)
