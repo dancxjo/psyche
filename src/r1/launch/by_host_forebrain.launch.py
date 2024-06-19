@@ -26,7 +26,7 @@ def generate_launch_description():
             parameters=[
                 {"model": "llama3:instruct"},
                 {"base_url": f"http://192.168.0.7:11434"},
-                {"action_server_name": "bare_instruct"}
+                {"action_server_name": "instruct"}
             ],
         )
 
@@ -38,7 +38,7 @@ def generate_launch_description():
             parameters=[
                 {"model": "llama3:instruct"},
                 {"base_url": f"http://192.168.0.7:11434"},
-                {"action_server_name": "instruct"}
+                {"action_server_name": "inform"}
             ],
         )
 

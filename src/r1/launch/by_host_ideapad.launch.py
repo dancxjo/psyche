@@ -45,7 +45,7 @@ def generate_launch_description():
         name="the_combobulator",
         output="screen",
         parameters=[{
-            "action_server_name": "instruct",
+            "action_server_name": "inform",
             "prompt": "You are a robot trying to make sense of the recent instants of your life. Below are the the most recent instants in the robot's life, along with the current situation as you have been understanding it. Narrate to yourself a coherent explanation of what's going on right now; how it relates to the past and the future, etc. Using only the information here, describe the current situation as your experiencing it. Be succinct but thorough.\n\n{input_topics}\n\nSo what's up?\n",
             "input_topics": ["identity", "instant", "situation", "autobiography", "voice"],
             "output_topic": "situation",
@@ -61,7 +61,7 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {
-                "action_server_name": "instruct",
+                "action_server_name": "inform",
                 "prompt": (
                     "You are a robot. Consider the events currently unfolding around you "
                     "as described below. Your task is to analyze this information and decide "
@@ -99,12 +99,27 @@ def generate_launch_description():
         name="the_memoirist",
         output="screen",
         parameters=[{
-            "action_server_name": "instruct",
+            "action_server_name": "inform",
             "prompt": "You are a robot trying to make sense of your life. You must constantly keep remembering and updating your 'autobiography'. Below is the current situation as you understand it now. You must faithfully reproduce the autobiography that you receive while also adding to it and rectifying any mistakes. What you return will become the new autobiography, so attempt to be faithful. Record significant events in your life. You must not remember every little detail, but you may choose to remember specific sensory details when they are relevant.\n\n{input_topics}\n\n\n",
             "input_topics": ["identity", "instant", "situation", "autobiography", "voice"],
             "output_topic": "autobiography",
             "accumulation_method": "latest",
-            "update_interval": 10.0,
+            "update_interval": 60.0,
+        }]
+    )
+    
+    basic_memory = Node(
+        package="psyche",
+        executable="distill",
+        name="the_memoirist",
+        output="screen",
+        parameters=[{
+            "action_server_name": "inform",
+            "prompt": "You are a robot. Take in the information below and generate a list of facts to remember. Arrange the facts as a list of predications ('facts') about arguments ('concepts'). Each predicate takes exactly two arguments, the subject and the predicate. Use GQL.\n\n{input_topics}\n\n\n",
+            "input_topics": ["identity", "instant", "situation", "autobiography", "voice"],
+            "output_topic": "memory",
+            "accumulation_method": "latest",
+            "update_interval": 4.0,
         }]
     )
 
@@ -114,11 +129,11 @@ def generate_launch_description():
         name="the_philosopher",
         output="screen",
         parameters=[{
-            "action_server_name": "instruct",
+            "action_server_name": "inform",
             "prompt": "You are a robot, a temporal, corporeal being at a certain place at a certain time. Below is your situation as you understand it. Who are you? Why are you here? What are you going to do with your life? Using only the information here, describe to yourself who you are. Be succinct but thorough.\n\n{input_topics}\n\nWho are you?\n",
             "input_topics": ["identity", "autobiography", "situation", "intent"],
             "output_topic": "identity",
-            "update_interval": 3.0,
+            "update_interval": 50.0,
             "accumulation_method": "latest",                
         }]
     )
@@ -144,10 +159,10 @@ def generate_launch_description():
         name="the_witness",
         output="screen",
         parameters=[{
-            "action_server_name": "instruct",
+            "action_server_name": "inform",
             "prompt": "You are a robot. Below are the sensations that you have recently felt. Narrate this information to yourself in the first person present. Using only the information here, describe the current instant as you are experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\nHey! What\'s going on?\n",
             "input_topics": ["sensation", "proprioception", "situation", "intent", "shell_commands", "shell_output"],
-            "output_topic": "instant",
+            "output_topic": "instruct",
             "update_interval": 2.5,
         }]
     )
@@ -158,11 +173,11 @@ def generate_launch_description():
         name="the_explorer",
         output="screen",
         parameters=[{
-            "action_server_name": "instruct",
+            "action_server_name": "inform",
             "prompt": "You are a robot. Here is some of your current state.\n\n{input_topics}\nUsing basic shell commands like `cd`, `ls`, `cat`, etc. explore the content of the /psyche directory. This is your source code. Your completion here must be a valid shell command and nothing else (no explanations are necessary, but feel free to make commentary with the hashtag). Your command will be evaluated and this prompt will be called again with the results of your call. Again, explore your own code to gain insights into what you are. Once you understand what the /sensation topic is and who the combobulator is, you may send messages appropriately. Respond with *only* a valid shell command.\n\n$ ",
             "input_topics": ["situation", "autobiography", "identity", "shell_commands", "shell_output"],
             "output_topic": "shell_commands",
-            "update_interval": 2.5,
+            "update_interval": 12.5,
         }]
     )
 
@@ -245,4 +260,5 @@ def generate_launch_description():
         identity,
         executive,
         control_shell,
+        basic_memory,
     ])
