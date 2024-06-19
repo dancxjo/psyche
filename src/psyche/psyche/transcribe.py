@@ -10,6 +10,7 @@ class Transcriber(Node):
     def __init__(self):
         super().__init__('audio_transcriber')
         
+        self.run_once = False
         self.declare_parameters(namespace='',
                         parameters=[
                             ('model', 'small'),
@@ -38,20 +39,7 @@ class Transcriber(Node):
         self.segments_to_transcribe.append(msg.data)
         self.get_logger().debug(f'Segment queued {len(self.segments_to_transcribe)}')
 
-    def transcribe_in_all_the_ways(self, audio):
-        recognizer = [self.recognizer.recognize_google, self.recognizer.recognize_whisper]
-        for rec in recognizer:
-            def threaded_recognition(rec, audio):
-                try:
-                    transcription = rec(audio)
-                    self.get_logger().debug(f"Transcription: {transcription}")
-                    self.publish_transcription(transcription)
-                except Exception as e:
-                    self.get_logger().error(f"Failed to transcribe audio: {str(e)}")
-            #threading.Thread(target=threaded_recognition, args=(rec, audio)).start()
-            threaded_recognition(rec, audio)
-
-    def transcribe_audio_whisper(self, audio, language, model):
+    def transcribe_audio_whisper(self, audio, language, model):        
         try:
             transcription = self.recognizer.recognize_whisper(audio, language=language, model=model)
             self.get_logger().debug(f"Transcription: {transcription}")
@@ -80,7 +68,12 @@ class Transcriber(Node):
         try:
             with sr.AudioFile(audio_buffer) as source:
                 audio = self.recognizer.record(source)
-                threading.Thread(target=self.transcribe_audio_whisper, args=(audio, language, model)).start()
+                # Make sure we only download the model once
+                if not self.run_once:
+                    self.transcribe_audio_whisper(audio, language, model)
+                    self.run_once = True
+                else:
+                    threading.Thread(target=self.transcribe_audio_whisper, args=(audio, language, model)).start()
                 # self.transcribe_in_all_the_ways(audio)
         except Exception as e:
             self.get_logger().error(f"Failed to transcribe audio: {str(e)}")
