@@ -204,6 +204,13 @@ def generate_launch_description():
                 ])
         )    
     
+    audio_transcriber = Node(
+        package="psyche",
+        executable="listen_for_speech",
+        name="audio_segmenter",
+        output="screen",
+    )
+    
     return LaunchDescription([
         direct_dev_talk,
         voice,
@@ -211,6 +218,7 @@ def generate_launch_description():
         heartbeat,
         usb_cam,
         vision,
+        audio_transcriber,
 #        platform,
         sentience,
         combobulation,

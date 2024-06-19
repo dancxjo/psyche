@@ -21,7 +21,7 @@ class Transcriber(Node):
         self.transcription_pub = self.create_publisher(String, 'sensation', 10)
         self.recognizer = sr.Recognizer()
         self.get_logger().debug('Audio transcriber node started')
-
+        
         # Set up a timer to process segments every second (or other suitable interval)
         self.timer = self.create_timer(1.0, self.start_transcribing)
 
@@ -48,7 +48,8 @@ class Transcriber(Node):
                     self.publish_transcription(transcription)
                 except Exception as e:
                     self.get_logger().error(f"Failed to transcribe audio: {str(e)}")
-            threading.Thread(target=threaded_recognition, args=(rec, audio)).start()
+            #threading.Thread(target=threaded_recognition, args=(rec, audio)).start()
+            threaded_recognition(rec, audio)
 
     def transcribe_audio_whisper(self, audio, language, model):
         try:
