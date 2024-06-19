@@ -252,7 +252,7 @@ def generate_launch_description():
         vision,
         audio_transcriber,
         self_discovery,
-        platform,
+        # platform,
         sentience,
         combobulation,
         basic_autobiographical_memory,
