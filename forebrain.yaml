@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - ROS_REPO=osrf/ros:iron
+        - ROS_REPO=osrf/ros:iron-desktop
     network_mode: host
     volumes:
       - ./memory:/psyche/memory
