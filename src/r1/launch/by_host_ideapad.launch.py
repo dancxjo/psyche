@@ -146,7 +146,7 @@ def generate_launch_description():
         parameters=[{
             "action_server_name": "instruct",
             "prompt": "You are a robot. Below are the sensations that you have recently felt. Narrate this information to yourself in the first person present. Using only the information here, describe the current instant as you are experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\nHey! What\'s going on?\n",
-            "input_topics": ["sensation", "proprioception", "situation", "intent"],
+            "input_topics": ["sensation", "proprioception", "situation", "intent", "shell_commands", "shell_output"],
             "output_topic": "instant",
             "update_interval": 2.5,
         }]
