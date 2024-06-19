@@ -89,9 +89,6 @@ class Distiller(Node):
                 # Encode to base64
                 encoded = base64.b64encode(img_png).decode('utf-8')
 
-                with open('/test.png', 'wb') as f:
-                    f.write(img_png)
-                    
                 return encoded
 
             if isinstance(msg, String):

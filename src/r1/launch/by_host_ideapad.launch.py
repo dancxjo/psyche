@@ -29,23 +29,6 @@ def generate_launch_description():
             output="screen",
         )
 
-    platform = IncludeLaunchDescription(
-            XMLLaunchDescriptionSource([
-                    PathJoinSubstitution([
-                        FindPackageShare('create_bringup'),
-                        'launch',
-                        'create_1.launch'
-                    ])
-                ])
-        )    
-
-    imu = Node(
-        package="mpu6050driver",
-        executable="mpu6050driver",
-        name="mpu6050driver",
-        output="screen",
-    )
-
     heartbeat = Node(
             package="psyche",
             executable="heartbeat",
@@ -187,7 +170,7 @@ def generate_launch_description():
         name="usb_cam",
         output="screen",
         parameters=[{
-            "video_device": "/dev/video0",
+            "video_device": "/dev/video2",
             "image_width": 1280,
             "image_height": 720,
             "framerate": 3.0,
@@ -211,16 +194,24 @@ def generate_launch_description():
         }]
     )
 
+    platform = IncludeLaunchDescription(
+            XMLLaunchDescriptionSource([
+                    PathJoinSubstitution([
+                        FindPackageShare('create_bringup'),
+                        'launch',
+                        'create_1.launch'
+                    ])
+                ])
+        )    
     
     return LaunchDescription([
-#        direct_dev_talk,
+        direct_dev_talk,
         voice,
         boot_announcer,
         heartbeat,
         usb_cam,
-        imu,
         vision,
-        platform,
+#        platform,
         sentience,
         combobulation,
         basic_autobiographical_memory,
