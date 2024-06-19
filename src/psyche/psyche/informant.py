@@ -67,12 +67,12 @@ class Informant(LanguageProcessor):
             "params": params,
             "id": self.cur_id
         }
-        self.get_logger().debug(f"Executing {verb} with params: {str(params)}")
+        self.get_logger().info(f"Executing {verb} with params: {str(params)}")
         try:
             response = requests.post(API_URL, headers=HEADERS, data=json.dumps(payload))
             response.raise_for_status()  # This will raise an exception for HTTP error codes
             json_response = response.json()
-            self.get_logger().debug(f"Response: {str(json_response)}")
+            self.get_logger().info(f"Response: {str(json_response)}")
             return yaml.safe_dump(json_response)
         except requests.exceptions.RequestException as e:
             self.get_logger().error(f"Request failed: {e}")
@@ -80,18 +80,18 @@ class Informant(LanguageProcessor):
         
     def add_document(self, msg):
         if re.search(r"(\$\s*)+ME_THINKS(\$\s*)+", msg.data):
-            self.get_logger().debug("Client asked to skip this response. Consider throttling.")
+            self.get_logger().info("Client asked to skip this response. Consider throttling.")
             self.thoughts.publish(msg)
             return
-        self.get_logger().debug(f"Received document: {msg.data}")
+        self.get_logger().info(f"Received document: {msg.data}")
         message_lines = msg.data.split("\n")
-        self.get_logger().debug(f"Message lines: {message_lines}")
+        self.get_logger().info(f"Message lines: {message_lines}")
         title = re.sub(r'[^\w\s]', '', message_lines[0]).strip()
-        self.get_logger().debug(f"Title: {title}")
+        self.get_logger().info(f"Title: {title}")
         body = "\n".join(message_lines[1:])
-        self.get_logger().debug(f"Body: {body}")
+        self.get_logger().info(f"Body: {body}")
         
-        self.get_logger().debug(f"Adding document: {msg.data}")
+        self.get_logger().info(f"Adding document: {msg.data}")
         timestamp = datetime.datetime.now().isoformat()
         self.db.add_texts([body], [{"timestamp": timestamp}])
         self.execute_wiki_command("appendPage", {"page": title, "text": f"\n----\n{body}\n"})
@@ -114,8 +114,8 @@ class Informant(LanguageProcessor):
         self.split_docs = self.text_splitter1.split_documents(self.raw_docs)
         # self.split_docs = self.text_splitter2.split_documents(self.split_docs1)
         self.documents = self.raw_docs
-        self.get_logger().debug(f'Documents loaded and split. {self.documents}')
-        self.get_logger().debug('Documents loaded and split.')        
+        self.get_logger().info(f'Documents loaded and split. {self.documents}')
+        self.get_logger().info('Documents loaded and split.')        
 
     def setup_embeddings(self):
         self.declare_parameter('embeddings_model', 'mxbai-embed-large')
@@ -157,7 +157,7 @@ class Informant(LanguageProcessor):
         retrieval_chain = create_retrieval_chain(self.retriever, combined_docs_chain)
 
         response = retrieval_chain.invoke({"input": "Who is PETE?"})
-        self.get_logger().debug(f"Response: {response}")
+        self.get_logger().info(f"Response: {response}")
 
         rag_chain = retrieval_chain
 
@@ -165,7 +165,7 @@ class Informant(LanguageProcessor):
 
         self.chain = rag_chain | (lambda input: {"relevant_memories": input.get("answer"), "input": input.get("input")}) | self.prompt | self.llm | self.output_parser
 
-        self.get_logger().debug('Processing chain created with RAG system.')
+        self.get_logger().info('Processing chain created with RAG system.')
         
 def main(args=None):
     rclpy.init(args=args)
