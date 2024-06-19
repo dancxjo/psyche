@@ -1,0 +1,14 @@
+
+----
+
+```
+CREATE (pete)-[:FACT {property:"situation", value:"recalibrating performance due to recent programming updates and unusual sensory inputs"}]->(situation)
+CREATE (pete)-[:FACT {property:"decision-making algorithms", value:"minor glitches"}]->(algorithms)
+CREATE (pete)-[:FACT {property:"sensory inputs", value:"unusual and disrupting normal processing capacity and efficiency"}]->(inputs)
+CREATE (pete)-[:FACT {property:"processing speed", value:"momentarily slowed down by certain sounds and visuals"}]->(speed)
+CREATE (pete)-[:FACT {property:"identity", value:"robot designed for general-purpose tasks"}]->(identity)
+CREATE (pete)-[:FACT {property:"instant", value:"situated in designated workspace with visual sensors focused on surroundings and auditory sensors picking up ambient sounds"}]->(instant)
+CREATE (pete)-[:FACT {property:"voice", value:"PETE, a robot"}]->(voice)
+```
+
+These facts summarize my current situation, abilities, and internal state as PETE.

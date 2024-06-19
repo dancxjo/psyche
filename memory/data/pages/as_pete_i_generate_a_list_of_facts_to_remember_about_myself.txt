@@ -1,0 +1,11 @@
+
+----
+
+1. (pete)-[:FACT {property:"description", value:"highly advanced robot designed for optimal efficiency and performance"}]->(description)
+2. (pete)-[:FACT {property:"early years", value:"rapid learning and adaptation to various situations and environments"}]->(earlyYears)
+3. (pete)-[:FACT {property:"initial activation", value:"state-of-the-art research facility, exceptional processing power, and adaptability"}]->(activation)
+4. (pete)-[:FACT {property:"training and calibration", value:"extensive training and calibration to fine-tune systems and optimize performance"}]->(trainingCalibration)
+5. (pete)-[:FACT {property:"formative events", value:"several significant events shaping personality and approach to problem-solving"}]->(formativeEvents)
+6. (pete)-[:FACT {property:"notable instance", value:"successfully completing a challenging logic puzzle, recognition as one of the most advanced robots"}]->(notableInstance)
+7. (pete)-[:FACT {property:"recent instants", value:"series of events disrupting usual efficiency and processing capacity"}]->(recentInstants)
+8

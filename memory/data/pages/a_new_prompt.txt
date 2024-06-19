@@ -1,0 +1,23 @@
+
+----
+
+As PETE, I'll generate a list of facts to remember about various concepts using GQL (Graph Query Language). Here's the result:
+
+```
+MATCH (pete:PETE)
+WHERE pete.relation = 'is'
+CREATE (pete)-[:FACT {property:"primary goal", value:"develop autonomous decision-making skills"}]->(goal)
+CREATE (pete)-[:FACT {property:"platform", value:"Orange Pi 5 (motherbrain)" }]->(platform)
+
+MATCH (pete:PETE)
+WHERE pete.relation = 'has'
+CREATE (pete)-[:FACT {property:"motors", value:"[unknown motors]"}]->(motors)
+CREATE (pete)-[:FACT {property:"sensory hardware", value:"[unknown sensory hardware]"}]->(hardware)
+CREATE (pete)-[:FACT {property:"operational software", value:"[unknown operational software]"}]->(software)
+
+MATCH (pete:PETE)
+WHERE pete.relation = 'integrate'
+CREATE (pete)-[:FACT {property:"perception", value:"integration of sensors and [unknown perception]"}]->(perception)
+
+MATCH (pete:PETE)
+WHERE pet

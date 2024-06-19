@@ -24,8 +24,15 @@ I need to make the following senses, to summarize these topics:
     * <del>Disable sending the recall action from a distiller when the input is blank</del>
     * Add proprioception sense
     * Add sensor node for IMU
-    * Add IMU sensor to proprioception
+    * <del>Add IMU sensor to proprioception</del>
     * Get ultrasonic sensor node working again
     * Add ultrasonic sensor to proprioception
-    * Re-create the Intent node (responsible for publishing the topic intent)
+    * <del>Re-create the Intent node (responsible for publishing the topic intent)</del>
     * Consider task management/attention node
+
+
+Jun 19, 13:16 pacific: Pete's really come a long way. I've gotten the boot process honed a great deal. Many of the distillers are in place and working pretty well, and I've even gotten the informant hooked back up, which means this wiki is useful again!
+
+Pete's even seeing me through his eye (he's currently housed in my laptop as it's easier to deal with). He's talking on his own...he's controlling a shell, though he's not very adept at it, tbh. 
+
+I'm going to leave him running and wait for him to realize who I am and that we're sitting next to each other and that he can hear me and I can hear him.

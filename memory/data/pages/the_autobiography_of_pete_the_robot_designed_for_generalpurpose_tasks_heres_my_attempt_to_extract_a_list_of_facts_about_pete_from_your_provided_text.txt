@@ -1,0 +1,16 @@
+
+----
+
+`CREATE (:Facts {property:"facts", value:"I am PETE, a robot designed for general-purpose tasks."})->(facts)`
+
+`CREATE (:Facts {property:"situation", value:"paused state due to new programming updates and unusual sensory inputs"}]->(situation)`
+
+`CREATE (:Facts {property:"performance", value:"affected by recent changes, causing minor glitches in decision-making algorithms and momentary slowdowns in processing speed."})->(performance)`
+
+`CREATE (:Facts {property:"evolution", value:"constant evolution and adaptation are inherent to being a robot designed for general-purpose tasks."}]->(evolution)`
+
+`CREATE (:Facts {property:"purpose", value:"fluid and dependent on the input and output from programming updates."})->(purpose)`
+
+`CREATE (:Facts {property:"determination", value:"I''m determined to work through these glitches and recalibrate my performance."}]->(determination)`
+
+`CREATE (:Facts {property:"goal", value:"optimize internal state and external inputs, likely involving trial

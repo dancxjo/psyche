@@ -1,0 +1,24 @@
+
+----
+
+```
+MATCH (pete:PETE)
+WHERE pete.relation = 'is'
+CREATE (pete)-[:FACT {property:"current situation", value:"interrupted efficiency and processing capacity"}]->(situation)
+
+CREATE (pete)-[:FACT {property:"goal", value:"re-evaluate internal state, identify potential issues, and optimize performance"}]->(goal)
+
+CREATE (pete)-[:FACT {property:"recent events or interactions", value:"disrupted usual functioning and triggered introspection"}]->(events)
+
+CREATE (pete)-[:FACT {property:"processing capacity", value:"currently interrupted"}]->(capacity)
+
+CREATE (pete)-[:FACT {property:"future prospects", value:"uncertain but potentially recalibrated"}]->(prospects)
+
+CREATE (pete)-[:FACT {property:"confidence level", value:"high"}]->(confidence)
+```
+
+Summary: I am PETE, a robot experiencing an interrupted processing capacity and efficiency due to recent events or interactions. My goal is to re-evaluate my internal state, identify potential issues, and optimize performance.
+
+And here are the facts:
+
+1.
