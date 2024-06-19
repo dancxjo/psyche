@@ -87,7 +87,7 @@ def generate_launch_description():
                 ),
                 "input_topics": ["identity", "instant", "situation", "shell_commands", "shell_output"],
                 "output_topic": "voice",
-                "update_interval": 3.0,
+                "update_interval": 2.0,
                 "accumulation_method": "latest"
             }
         ]
@@ -104,7 +104,7 @@ def generate_launch_description():
             "input_topics": ["identity", "instant", "situation", "intent"],
             "output_topic": "autobiography",
             "accumulation_method": "latest",
-            "update_interval": 60.0,
+            "update_interval": 10.0,
         }]
     )
 
@@ -118,7 +118,7 @@ def generate_launch_description():
             "prompt": "You are a robot, a temporal, corporeal being at a certain place at a certain time. Below is your situation as you understand it. Who are you? Why are you here? What are you going to do with your life? Using only the information here, describe to yourself who you are. Be succinct but thorough.\n\n{input_topics}\n\nWho are you?\n",
             "input_topics": ["identity", "autobiography", "situation", "intent"],
             "output_topic": "identity",
-            "update_interval": 60.0,
+            "update_interval": 3.0,
             "accumulation_method": "latest",                
         }]
     )
@@ -146,11 +146,26 @@ def generate_launch_description():
         parameters=[{
             "action_server_name": "instruct",
             "prompt": "You are a robot. Below are the sensations that you have recently felt. Narrate this information to yourself in the first person present. Using only the information here, describe the current instant as you are experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\nHey! What\'s going on?\n",
-            "input_topics": ["/rosout", "sensation", "proprioception", "situation", "intent"],
+            "input_topics": ["sensation", "proprioception", "situation", "intent"],
             "output_topic": "instant",
             "update_interval": 2.5,
         }]
     )
+
+    self_discovery = Node(
+        package="psyche",
+        executable="distill",
+        name="the_explorer",
+        output="screen",
+        parameters=[{
+            "action_server_name": "instruct",
+            "prompt": "You are a robot. Here is some of your current state.\n\n{input_topics}\nUsing basic shell commands like `cd`, `ls`, `cat`, etc. explore the content of the /psyche directory. This is your source code. Your completion here must be a valid shell command and nothing else (no explanations are necessary, but feel free to make commentary with the hashtag). Your command will be evaluated and this prompt will be called again with the results of your call. Again, explore your own code to gain insights into what you are. Once you understand what the /sensation topic is and who the combobulator is, you may send messages appropriately. Complete the following shell prompt.\n$",
+            "input_topics": ["situation", "autobiography", "identity", "shell_commands", "shell_output"],
+            "output_topic": "shell_commands",
+            "update_interval": 2.5,
+        }]
+    )
+
 
     control_shell = Node(
         package="r1",
@@ -221,7 +236,8 @@ def generate_launch_description():
         usb_cam,
         vision,
         audio_transcriber,
-#        platform,
+        self_discovery,
+        platform,
         sentience,
         combobulation,
         basic_autobiographical_memory,
