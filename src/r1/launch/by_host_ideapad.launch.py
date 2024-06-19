@@ -47,7 +47,7 @@ def generate_launch_description():
         parameters=[{
             "action_server_name": "instruct",
             "prompt": "You are a robot trying to make sense of the recent instants of your life. Below are the the most recent instants in the robot's life, along with the current situation as you have been understanding it. Narrate to yourself a coherent explanation of what's going on right now; how it relates to the past and the future, etc. Using only the information here, describe the current situation as your experiencing it. Be succinct but thorough.\n\n{input_topics}\n\nSo what's up?\n",
-            "input_topics": ["identity", "instant", "situation", "autobiography", "intent"],
+            "input_topics": ["identity", "instant", "situation", "autobiography", "voice"],
             "output_topic": "situation",
             "update_interval": 15.0,
             "accumulation_method": "latest"
@@ -71,7 +71,7 @@ def generate_launch_description():
                     "with good intentions leads to unexpected outcomes, acknowledge your mistake, "
                     "make amends, and learn from the experience. This prompt is continuously looped, "
                     "and you are tasked with deliberate action. "
-                    "For the moment, your only actions are limited to speaking aloud. Anything your repond with will be spoken out loud. Please keep your responses terse as that will allow you to run more frequently. Think one step at a time. Here is the current situation:\n\n"
+                    "For the moment, your only actions are limited to speaking aloud. Anything your repond with will be spoken out loud. Please limit your responses to one or so sentences as that will allow you to run more frequently. Think one step at a time. Here is the current situation:\n\n"
                     # "Your responses will be executed as "
                     # "a shell script. Use comments and appropriate ROS2 commands where necessary. "
                     # "A suggested starting command is:\n"
@@ -101,7 +101,7 @@ def generate_launch_description():
         parameters=[{
             "action_server_name": "instruct",
             "prompt": "You are a robot trying to make sense of your life. You must constantly keep remembering and updating your 'autobiography'. Below is the current situation as you understand it now. You must faithfully reproduce the autobiography that you receive while also adding to it and rectifying any mistakes. What you return will become the new autobiography, so attempt to be faithful. Record significant events in your life. You must not remember every little detail, but you may choose to remember specific sensory details when they are relevant.\n\n{input_topics}\n\n\n",
-            "input_topics": ["identity", "instant", "situation", "intent"],
+            "input_topics": ["identity", "instant", "situation", "autobiography", "voice"],
             "output_topic": "autobiography",
             "accumulation_method": "latest",
             "update_interval": 10.0,
@@ -241,7 +241,7 @@ def generate_launch_description():
         sentience,
         combobulation,
         basic_autobiographical_memory,
-        emerge,
+        # emerge,
         identity,
         executive,
         control_shell,
