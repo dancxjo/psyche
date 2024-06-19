@@ -26,6 +26,18 @@ def generate_launch_description():
             parameters=[
                 {"model": "llama3:instruct"},
                 {"base_url": f"http://192.168.0.7:11434"},
+                {"action_server_name": "bare_instruct"}
+            ],
+        )
+
+    informant = Node(
+            package="psyche",
+            executable="informant",
+            name="informant",
+            output="screen",
+            parameters=[
+                {"model": "llama3:instruct"},
+                {"base_url": f"http://192.168.0.7:11434"},
                 {"action_server_name": "instruct"}
             ],
         )
@@ -46,6 +58,7 @@ def generate_launch_description():
     return LaunchDescription([
         plain_lpu_local_net,
         vision_lpu,
+        informant,
         Node(
             package="psyche",
             executable="transcribe_speech",
