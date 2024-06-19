@@ -86,7 +86,7 @@ class Transcriber(Node):
         
     def publish_transcription(self, transcription):
         self.get_logger().debug('Publishing transcription')
-        self.transcription_pub.publish(String(data=f"I could be mistaken, but I think I heard someone say earlier: 'transcription'"))
+        self.transcription_pub.publish(String(data=f"I could be mistaken, but I think I heard someone say earlier: '{transcription}'"))
 
 def main(args=None):
     rclpy.init(args=args)
