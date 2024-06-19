@@ -174,10 +174,10 @@ def generate_launch_description():
         output="screen",
         parameters=[{
             "action_server_name": "inform",
-            "prompt": "You are a robot. Here is some of your current state.\n\n{input_topics}\nUsing basic shell commands like `cd`, `ls`, `cat`, etc. explore the content of the /psyche directory. This is your source code. Your completion here must be a valid shell command and nothing else (no explanations are necessary, but feel free to make commentary with the hashtag). Your command will be evaluated and this prompt will be called again with the results of your call. Again, explore your own code to gain insights into what you are. Once you understand what the /sensation topic is and who the combobulator is, you may send messages appropriately. Respond with *only* a valid shell command.\n\n$ ",
+            "prompt": "You are a robot. Here is some of your current state.\n\n{input_topics}\nUsing basic shell commands like `cd`, `ls`, `cat`, etc. explore the content of the /psyche directory. This is your source code. Your completion here must be a valid shell command and nothing else (no explanations are necessary, but feel free to make commentary with the hashtag). Your command will be evaluated and this prompt will be called again with the results of your call. Again, explore your own code to gain insights into what you are. Once you understand what the /sensation topic is and who the combobulator is, you may send messages appropriately. Respond with *only* a valid shell command. Look in the folder SLASH psyche. It is in the root. Find files before you try to cat random ones. Also, each command runs in its own separate shell, so your state isn't preserved. Send whole scripts, in other words.\n\n$ ",
             "input_topics": ["situation", "autobiography", "identity", "shell_commands", "shell_output"],
             "output_topic": "shell_commands",
-            "update_interval": 12.5,
+            "update_interval": 2.5,
         }]
     )
 
@@ -244,7 +244,7 @@ def generate_launch_description():
     )
     
     return LaunchDescription([
-        direct_dev_talk,
+        # direct_dev_talk,
         voice,
         boot_announcer,
         heartbeat,
