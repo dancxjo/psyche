@@ -43,7 +43,7 @@ class ThoughtWatcher(Node):
 
     def extract_shell_commands(self, thought):
         commands = []
-        commands = re.findall(r'```(\w+)\s+(.*?)\s*```', thought, re.MULTILINE)
+        commands = re.findall(r'```(\w+)\s+(.*?)\s*```', thought, re.DOTALL | re.MULTILINE)
         
         return commands
 
