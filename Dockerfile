@@ -64,8 +64,15 @@ RUN git clone --branch fix-std-string https://github.com/revyos-ros/libcreate.gi
 #RUN git clone https://github.com/ros-perception/image_pipeline.git
 #RUN git clone https://github.com/ros-perception/image_common.git
 RUN apt-get install -y ros-$ROS_DISTRO-image-transport-plugins ros-${ROS_DISTRO}-image-transport* ros-${ROS_DISTRO}-image-pipeline*
-RUN git clone https://github.com/clydemcqueen/opencv_cam.git
+#RUN git clone https://github.com/clydemcqueen/opencv_cam.git
 RUN git clone https://github.com/ptrmu/ros2_shared.git
+RUN git clone https://github.com/christianrauch/camera_ros.git src/camera_ros
+
+RUN apt install -y pkg-config python3-yaml python3-ply python3-jinja2 openssl libyaml-dev libssl-dev libudev-dev libatomic1 meson
+
+RUN pip install colcon-meson
+RUN git clone https://git.libcamera.org/libcamera/libcamera.git src/libcamera
+
 
 RUN echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> $HOME/.bashrc
 RUN echo "export ROS_DOMAIN_ID=42" >> $HOME/.bashrc
@@ -75,6 +82,8 @@ RUN echo "alias ros_source=\"source /opt/ros/$ROS_DISTRO/setup.bash\"" >> $HOME/
 RUN echo "alias psyche_source=\"source /psyche/install/setup.bash\"" >> $HOME/.bashrc
 RUN echo "alias resource=\"ros_source && psyche_source\"" >> $HOME/.bashrc
 RUN echo "alias pbuild=\"here=$(pwd) && cd /psyche && colcon build && resource && cd '\$here'\"" >> $HOME/.bashrc
+
+#RUN apt install -y ros-$ROS_DISTRO-camera-ros
 
 COPY . /psyche
 RUN rm -rf /psyche/{build,install,log}

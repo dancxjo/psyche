@@ -21,8 +21,8 @@ services:
         - "/dev/gpiomem1:/dev/gpiomem2"
         - "/dev/gpiomem1:/dev/gpiomem3"
         - "/dev/gpiomem1:/dev/gpiomem4"
-        - "/dev/snd/controlC0:/dev/snd/controlC0"
-        - "/dev/snd/pcmC0D0p:/dev/snd/pcmC0D0p"
-        - "/dev/snd/pcmC0D0c:/dev/snd/pcmC0D0c"
+        - "/dev/snd/controlC2:/dev/snd/controlC0"
+        - "/dev/snd/pcmC2D0p:/dev/snd/pcmC0D0p"
+        - "/dev/snd/pcmC2D0c:/dev/snd/pcmC0D0c"
     environment:
       - ALSA_CARDS=0

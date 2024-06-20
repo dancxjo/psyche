@@ -225,9 +225,9 @@ def generate_launch_description():
     )
 
     usb_cam = Node(
-        package="usb_cam",
-        executable="usb_cam_node_exe",
-        name="usb_cam",
+        package="camera_ros",
+        executable="camera_node",
+        name="camera",
         output="screen",
         parameters=[{
             "video_device": "/dev/video0",
