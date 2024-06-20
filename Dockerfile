@@ -70,8 +70,8 @@ RUN git clone https://github.com/christianrauch/camera_ros.git src/camera_ros
 
 RUN apt install -y pkg-config python3-yaml python3-ply python3-jinja2 openssl libyaml-dev libssl-dev libudev-dev libatomic1 meson
 
-RUN pip install colcon-meson
-RUN git clone https://git.libcamera.org/libcamera/libcamera.git src/libcamera
+# RUN pip install colcon-meson
+# RUN git clone https://git.libcamera.org/libcamera/libcamera.git src/libcamera
 
 
 RUN echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> $HOME/.bashrc
