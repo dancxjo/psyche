@@ -103,7 +103,8 @@ RUN adduser --disabled-password pete
 RUN usermod -aG audio pete
 RUN usermod -aG video pete
 
-RUN chown -R pete:pete /psyche
+RUN chown -R :pete /psyche
+RUN chmod -R g-w /psyche
 
 RUN sudo apt install -y avahi-daemon avahi-discover avahi-utils libnss-mdns
 RUN sudo systemctl enable avahi-daemon

@@ -8,6 +8,7 @@ services:
     network_mode: host
     volumes:
       - "/psyche/src:/psyche/src"
+      - "/psyche/home:/home/pete"
     devices:
         - "/dev/ttyUSB0:/dev/ttyUSB0"
         - "/dev/video0:/dev/video0"
