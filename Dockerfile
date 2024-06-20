@@ -64,13 +64,13 @@ RUN git clone --branch fix-std-string https://github.com/revyos-ros/libcreate.gi
 #RUN git clone https://github.com/ros-perception/image_pipeline.git
 #RUN git clone https://github.com/ros-perception/image_common.git
 RUN apt-get install -y ros-$ROS_DISTRO-image-transport-plugins ros-${ROS_DISTRO}-image-transport* ros-${ROS_DISTRO}-image-pipeline*
-#RUN git clone https://github.com/clydemcqueen/opencv_cam.git
+RUN git clone https://github.com/clydemcqueen/opencv_cam.git
 RUN git clone https://github.com/ptrmu/ros2_shared.git
-RUN git clone https://github.com/christianrauch/camera_ros.git
+# RUN git clone https://github.com/christianrauch/camera_ros.git
 
-RUN apt install -y pkg-config python3-yaml python3-ply python3-jinja2 openssl libyaml-dev libssl-dev libudev-dev libatomic1 meson
+# RUN apt install -y pkg-config python3-yaml python3-ply python3-jinja2 openssl libyaml-dev libssl-dev libudev-dev libatomic1 meson
 
-RUN pip install colcon-meson
+# RUN pip install colcon-meson
 # RUN git clone https://git.libcamera.org/libcamera/libcamera.git src/libcamera
 
 
