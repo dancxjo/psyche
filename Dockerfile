@@ -47,7 +47,7 @@ RUN apt install -y libasound2-dev
 RUN pip install soundfile
 
 RUN pip install websockets
-
+RUN pip install numpy
 # RUN apt install -y python3-sphinx build-essential swig libpulse-dev
 # RUN apt install -y cython3
 # RUN pip install cython
