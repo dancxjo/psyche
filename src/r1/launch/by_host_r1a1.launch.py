@@ -82,31 +82,54 @@ def generate_launch_description():
                     "with good intentions leads to unexpected outcomes, acknowledge your mistake, "
                     "make amends, and learn from the experience. This prompt is continuously looped, "
                     "and you are tasked with deliberate action. "
-                    "Your response to this prompt will constitute your thoughts. If you include a markdown code block between triple backticks, with certain keywords, your reponse will be published to various topics, which will then, in turn, be enacted. For example, if you want to speak the following, it would be spoken aloud in the real world:"
+                    "Your response to this prompt will constitute your thoughts. If you include a markdown code block between triple backticks, with certain keywords, your reponse will be published to various (ROS2) topics, which will then, in turn, be enacted. For example, if you want to speak the following, it would be spoken aloud in the real world:"
                     "```voice\nHello, world!\n```\n"
                     "To execute a shell command, you would use the following:"
-                    "```shell_commands\ncd /psyche\nls -al\ncd src\nls -al\n```\n"
+                    "```shell_commands\ncd /psyche/memory/data/pages/\nls -al\ncd src\nls -al\nros2 topics list\nros2 topic pub /voice std_msgs/msg/String \"data: 'Is anybody out there?'\"```\n"
+                    "If you'd like more, you're welcome to program them.\n"
+                    "```shell_commands\ncd /psyche\ngit status\n```\n"
                     "\n\nHere is the current situation:\n\n"
-                    # "Your responses will be executed as "
-                    # "a shell script. Use comments and appropriate ROS2 commands where necessary. "
-                    # "A suggested starting command is:\n"
-                    # "cat /psyche/src/r1/launch/by_host_r1a1.launch.py\n"
                     "{input_topics}\n\n"
-                    # "#!/bin/sh\n"
-                    # "# Following lines are valid bash commands\n"
-                    # "# Example command:\n"
-                    # "# /psyche/say.sh 'Hello world'  # This text will be spoken out loud.\n"
-                    # "# Return only valid sehll commands. Do not include markdown or explanatory text.\n"
-                    # "# Continue without repeating the shebang above."
-                    # "# Don't just try sending commands willy nilly, either! And don't launch multiple instances of yourself!"
+                    "What Pete thinks next:\n"
                 ),
                 "input_topics": ["identity", "instant", "situation", "shell_commands", "shell_output"],
-                "output_topic": "voice",
+                "output_topic": "thought",
                 "update_interval": 2.0,
                 "accumulation_method": "latest"
             }
         ]
     )
+
+    shell_interpreter = Node(
+        package="psyche",
+        executable="distill",
+        name="the_interpreter",
+        output="screen",
+        parameters=[{
+            "action_server_name": "instruct",
+            "prompt": "Translate the robot's thoughts about shell commands (in as much as they are about shell commands) into actual shell commands. The robot's thoughts are as follows:\n\n{input_topics}\n\n\nDo not reply with anything other than valid shell commands (which may include new lines and comments). If there are no shell commands requested, return a comment or no text at all.\n"
+            "Alright, here are the shell commands:\n",
+            "input_topics": ["shell_commands", "shell_output", "thought"],
+            "output_topic": "shell_commands",
+            "update_interval": 2.5,
+        }]
+    )
+
+    tts_interpreter = Node(
+        package="psyche",
+        executable="distill",
+        name="the_interpreter",
+        output="screen",
+        parameters=[{
+            "action_server_name": "instruct",
+            "prompt": "Translate the robot's thoughts into text suitable to a TTS system that isn't super smart. Remove extraneous punctution like asterisks. Spell out all numbers including dates, amounts, etc. Except for the very most basic abbreviations, write everything else out in words. If the robot is trying to say something aloud (by surrounding it in triple backticks with the word 'voice' following), translate it as described above. The robot's thoughts are as follows:\n\n{input_topics}\n\n\nDo not reply with anything other than what will be said aloud.\nAlright, here is what the robot should say:\n",
+            "input_topics": ["voice", "thought"],
+            "output_topic": "voice",
+            "update_interval": 2.5,
+        }]
+    )
+
+
 
     basic_autobiographical_memory = Node(
         package="psyche",
@@ -265,6 +288,8 @@ def generate_launch_description():
         # emerge,
         identity,
         executive,
+        shell_interpreter,
+        tts_interpreter,
         control_shell,
         basic_memory,
     ])
