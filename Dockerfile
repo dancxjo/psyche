@@ -108,8 +108,6 @@ RUN chown -R pete:pete /psyche
 RUN sudo apt install -y avahi-daemon avahi-discover avahi-utils libnss-mdns
 RUN sudo systemctl enable avahi-daemon
 
-RUN echo "192.168.0.7 forebrain.local" >> /etc/hosts
-RUN echo "192.168.0.20 victus.local" >> /etc/hosts
-RUN echo "192.168.0.3 ideapad.local" >> /etc/hosts
+EXPOSE 5353/udp
 
 CMD ["/psyche/launch.sh"]
