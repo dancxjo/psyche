@@ -17,7 +17,7 @@ class TTSNode(Node):
         self.declare_parameters(namespace='',
                                 parameters=[
                                     ('voice_id', 'p317'),
-                                    ('coqui_base_url', "http://192.168.0.7:5002")
+                                    ('coqui_base_url', "http://forebrain.local:5002")
                                 ])
         self.subscription = self.create_subscription(String, 'voice', self.voice_callback, 10)
         self.publisher = self.create_publisher(ByteMultiArray, 'streamed_voice', 10)

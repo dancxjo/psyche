@@ -34,7 +34,7 @@ import re
 
 
 # Global variables for DokuWiki API access
-API_URL = "http://192.168.0.7:9000/lib/exe/jsonrpc.php"
+API_URL = "http://forebrain.local:9000/lib/exe/jsonrpc.php"
 HEADERS = {'Content-Type': 'application/json'}
 
 class Informant(LanguageProcessor):
