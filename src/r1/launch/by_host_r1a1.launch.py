@@ -122,7 +122,7 @@ def generate_launch_description():
         output="screen",
         parameters=[{
             "action_server_name": "instruct",
-            "prompt": "Translate the robot's thoughts into text suitable to a TTS system that isn't super smart. Remove extraneous punctution like asterisks. Spell out all numbers including dates, amounts, etc. Except for the very most basic abbreviations, write everything else out in words. If the robot is trying to say something aloud (by surrounding it in triple backticks with the word 'voice' following), translate it as described above. The robot's thoughts are as follows:\n\n{input_topics}\n\n\nDo not reply with anything other than what will be said aloud.\nDO NOT REPLY WITH 'Here is a ...' just say the translation! If there is nothing to think or say, there should be no other text below this line. Edit out any glitches like 'I have nothing to think or say' by returning no text at all.\n",
+            "prompt": "Translate the robot's thoughts into text suitable to a TTS system that isn't super smart. Remove extraneous punctution like asterisks. Spell out all numbers including dates, amounts, etc. Except for the very most basic abbreviations, write everything else out in words. If the robot is trying to say something aloud (by surrounding it in triple backticks with the word 'voice' following), translate it as described above. The robot's thoughts are as follows:\n\n{input_topics}\n\n\nDo not reply with anything other than what will be said aloud.\nDO NOT REPLY WITH 'Here is a ...' just say the translation! If there is nothing to think or say, there should be no other text below this line. Edit out any glitches like 'I have nothing to think or say' by returning no text at all. Edit out repeated text and censor any erroneous input.\n",
             "input_topics": ["voice", "thought"],
             "output_topic": "voice",
             "update_interval": 2.5,
@@ -139,7 +139,7 @@ def generate_launch_description():
             "output_topic": "sensation",
             "update_interval": 2.5,
             "input_topics": ["situation", "sensation", "voice"],
-            "prompt": "You're a robot with not very great speech to text capabilities. Listen to the voice channel and transcribe what you hear. If you hear a voice, transcribe it. If you hear a sound, transcribe it. If you"
+            "prompt": "You're a robot with not very great speech to text capabilities. You'll have to use context to piece together what conversation is going on around you. You'll need to account for multiple speakers, misunderstandings, your own speech (autophonia), phantom whispers that say 'Thanks for watching!' and such. Listen for your own voice and edit it out. Listen for other speakers and try to determine from context what they actually said or if no one said anything at all).\n{input_topics}\nThe actual thing you probably heard: "
         }]
     )
 
@@ -304,4 +304,5 @@ def generate_launch_description():
         tts_interpreter,
         control_shell,
         basic_memory,
+        ear_horn,
     ])
