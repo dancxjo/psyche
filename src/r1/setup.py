@@ -31,6 +31,7 @@ setup(
             "speak_directly = r1.direct_speech:main",
             "tutorial = r1.tutorial:main",
             "direct_dev_talk = r1.direct_dev_talk:main",
+            "watch_thoughts_to_act = r1.actor:main",
         ],
     },
 )
