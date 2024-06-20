@@ -96,4 +96,7 @@ RUN usermod -aG video pete
 
 RUN chown -R pete:pete /psyche
 
+RUN sudo apt install -y avahi-daemon avahi-discover avahi-utils libnss-mdns
+RUN sudo systemctl enable avahi-daemon
+
 CMD ["/psyche/launch.sh"]
