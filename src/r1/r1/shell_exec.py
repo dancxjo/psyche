@@ -2,6 +2,9 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 import subprocess
+import os
+import pwd
+import subprocess
 
 class ShellSession(Node):
     def __init__(self):
@@ -17,7 +20,15 @@ class ShellSession(Node):
     def execute_command(self, command):
         try:
             self.get_logger().info(f'Executing command: {command}')
-            result = subprocess.run(command, shell=True, text=True, capture_output=True)
+            uid = pwd.getpwnam('pete').pw_uid 
+            gid = pwd.getpwnam('pete').pw_gid 
+            
+            # Linux command to add user "pete" and group "pete": sudo useradd -m pete
+            
+            os.setgid(gid)
+            os.setuid(uid)
+
+            result = subprocess.run(command, shell=True, text=True, capture_output=True, preexec_fn=os.setpgrp)
             self.get_logger().info(f'Command executed with return code: {result.returncode}')
             return result.stdout if result.returncode == 0 else result.stderr
         except Exception as e:
