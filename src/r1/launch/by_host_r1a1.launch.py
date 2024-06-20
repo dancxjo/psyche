@@ -82,10 +82,11 @@ def generate_launch_description():
                     "with good intentions leads to unexpected outcomes, acknowledge your mistake, "
                     "make amends, and learn from the experience. This prompt is continuously looped, "
                     "and you are tasked with deliberate action. "
-                    "For the moment, your only actions are limited to speaking aloud. Anything you "
-                    "repond with will be spoken out loud. Please limit your responses to one or so "
-                    "sentences as that will allow you to run more frequently. Think one step at a "
-                    "time. Here is the current situation:\n\n"
+                    "Your response to this prompt will constitute your thoughts. If you include a markdown code block between triple backticks, with certain keywords, your reponse will be published to various topics, which will then, in turn, be enacted. For example, if you want to speak the following, it would be spoken aloud in the real world:"
+                    "```voice\nHello, world!\n```\n"
+                    "To execute a shell command, you would use the following:"
+                    "```shell_commands\ncd /psyche\nls -al\ncd src\nls -al\n```\n"
+                    "\n\nHere is the current situation:\n\n"
                     # "Your responses will be executed as "
                     # "a shell script. Use comments and appropriate ROS2 commands where necessary. "
                     # "A suggested starting command is:\n"
@@ -255,7 +256,7 @@ def generate_launch_description():
         usb_cam,
         vision,
         audio_transcriber,
-        self_discovery,
+        # self_discovery,
         imu,
         platform,
         sentience,
