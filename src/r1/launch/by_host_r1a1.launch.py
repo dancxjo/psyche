@@ -85,7 +85,7 @@ def generate_launch_description():
                     "Your response to this prompt will constitute your thoughts. If you include a markdown code block between triple backticks, with certain keywords, your reponse will be published to various (ROS2) topics, which will then, in turn, be enacted. For example, if you want to speak the following, it would be spoken aloud in the real world:"
                     "```voice\nHello, world!\n```\n"
                     "To execute a shell command, you would use the following:"
-                    "```shell_commands\ncd /psyche/memory/data/pages/\nls -al\ncd src\nls -al\nros2 topics list\nros2 topic pub /voice std_msgs/msg/String \"data: 'Is anybody out there?'\"```\n"
+                    "```shell_commands\ncd /psyche/memory/data/pages/\nls -al\ncd src\nls -al\nros2 topic list\nros2 topic pub /voice std_msgs/msg/String \"data: 'Is anybody out there?'\"```\n"
                     "If you'd like more, you're welcome to program them.\n"
                     "```shell_commands\ncd /psyche\ngit status\n```\n"
                     "\n\nHere is the current situation:\n\n"

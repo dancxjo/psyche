@@ -188,9 +188,9 @@ def generate_launch_description():
         output="screen",
         parameters=[{
             "video_device": "/dev/video0",
-            "image_width": 1280,
-            "image_height": 720,
-            "framerate": 3.0,
+            "image_width": 640,
+            "image_height": 480,
+            "framerate": 24.0,
         }]
     )
 
