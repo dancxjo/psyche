@@ -6,6 +6,8 @@ services:
       args:
         - ROS_REPO=arm64v8/ros:iron
     network_mode: host
+    ports:
+      - "5353:5353"
     volumes:
       - "/psyche/src:/psyche/src"
       - "/psyche/home:/home/pete"
