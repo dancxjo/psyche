@@ -107,7 +107,7 @@ def generate_launch_description():
         output="screen",
         parameters=[{
             "action_server_name": "instruct",
-            "prompt": "Translate the robot's thoughts about shell commands (in as much as they are about shell commands) into actual shell commands. The robot's thoughts are as follows:\n\n{input_topics}\n\n\nDo not reply with anything other than valid shell commands (which may include new lines and comments). If there are no shell commands requested, return a comment or no text at all.\n"
+            "prompt": "Translate the robot's thoughts about shell commands (in as much as they are about shell commands) into actual shell commands. The robot's thoughts are as follows:\n\n{input_topics}\n\n\nDo not reply with anything other than valid shell commands (which may include new lines and comments). If there are no shell commands requested, return a comment or no text at all. Do not reply with anything other than shell commands.\nDO NOT REPLY WITH 'Here is a ...' just say the translation! If there is nothing to think or say, there should be no other text below this line.\n\n"
             "Alright, here are the shell commands:\n",
             "input_topics": ["shell_commands", "shell_output", "thought"],
             "output_topic": "shell_commands",
@@ -122,14 +122,26 @@ def generate_launch_description():
         output="screen",
         parameters=[{
             "action_server_name": "instruct",
-            "prompt": "Translate the robot's thoughts into text suitable to a TTS system that isn't super smart. Remove extraneous punctution like asterisks. Spell out all numbers including dates, amounts, etc. Except for the very most basic abbreviations, write everything else out in words. If the robot is trying to say something aloud (by surrounding it in triple backticks with the word 'voice' following), translate it as described above. The robot's thoughts are as follows:\n\n{input_topics}\n\n\nDo not reply with anything other than what will be said aloud.\nAlright, here is what the robot should say:\n",
+            "prompt": "Translate the robot's thoughts into text suitable to a TTS system that isn't super smart. Remove extraneous punctution like asterisks. Spell out all numbers including dates, amounts, etc. Except for the very most basic abbreviations, write everything else out in words. If the robot is trying to say something aloud (by surrounding it in triple backticks with the word 'voice' following), translate it as described above. The robot's thoughts are as follows:\n\n{input_topics}\n\n\nDo not reply with anything other than what will be said aloud.\nDO NOT REPLY WITH 'Here is a ...' just say the translation! If there is nothing to think or say, there should be no other text below this line.\n",
             "input_topics": ["voice", "thought"],
             "output_topic": "voice",
             "update_interval": 2.5,
         }]
     )
 
-
+    ear_horn = Node(
+        package="psyche",
+        executable="distill",
+        name="the_ear_horn",
+        output="screen",
+        parameters=[{
+            "action_server_name": "listen",
+            "output_topic": "sensation",
+            "update_interval": 2.5,
+            "input_topics": ["situation", "sensation", "voice"],
+            "prompt": "You're a robot with not very great speech to text capabilities. Listen to the voice channel and transcribe what you hear. If you hear a voice, transcribe it. If you hear a sound, transcribe it. If you"
+        }]
+    )
 
     basic_autobiographical_memory = Node(
         package="psyche",
