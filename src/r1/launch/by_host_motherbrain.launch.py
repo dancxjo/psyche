@@ -10,8 +10,8 @@ from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 
-forebrain_host = "forebrain.local"
-victus_host = "victus.local"
+forebrain_host = "192.168.0.7"
+victus_host = "192.168.0.20"
 offboard_host = "ideapad.local"
 
 def generate_launch_description():
