@@ -93,11 +93,6 @@ COPY asound.conf /etc/asound.conf
 RUN adduser --disabled-password pete
 RUN usermod -aG audio pete
 RUN usermod -aG video pete
-RUN usermod -aG dialout pete
-RUN usermod -aG gpio pete
-RUN usermod -aG i2c pete
-RUN usermod -aG plugdev pete
-RUN usermod -aG tty pete
 
 RUN chown -R pete:pete /psyche
 
