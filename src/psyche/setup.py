@@ -35,6 +35,7 @@ setup(
             'identity = psyche.identity:main',
             'stream_voice = psyche.stream:main',
             'stream_text = psyche.voice_stream_text:main',
+            'watch = psyche.continuous_vision:main',
         ],
     },
 )
