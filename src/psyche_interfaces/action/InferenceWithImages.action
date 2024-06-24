@@ -3,4 +3,5 @@ string[] images # for llava vision model; base64 encoded images
 ---
 string response
 ---
-StreamedChunk chunk
+string chunk
+int8 granularity # 0 = raw chunk; 1 = word level; 2 = sentence level; 3 = full response

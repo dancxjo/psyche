@@ -12,9 +12,9 @@ import base64
 import cv2
 import numpy as np
 
-import os
+from .inference_client import InferenceClient
 
-class Distiller(Node):
+class Distiller(InferenceClient):
     """
     A node that listens to one or more topics, transforms them via an LPU and publishes the topic
     """
@@ -46,11 +46,7 @@ class Distiller(Node):
         self.action_server_name = self.get_parameter('action_server_name').get_parameter_value().string_value
         self.support_images = self.get_parameter('image_support').get_parameter_value().bool_value
         self.image_topics = self.get_parameter('input_images').get_parameter_value().string_array_value
-        
-        self.Inference = InferenceWithImages if self.support_images else PlainTextInference
-        self.get_logger().debug(f'Using action server {self.action_server_name} and inference type {self.Inference}')
-        self.action_client = ActionClient(self, self.Inference, self.action_server_name)
-        
+                
         self.output_pub = self.create_publisher(String, self.output_topic, 4)
         self.input_queue = {}
         self.input_subs = []
@@ -115,6 +111,7 @@ class Distiller(Node):
         return dumped
     
     def update(self):
+        # TODO: Use super().infer() here
         self.get_logger().debug('Distilling...')
         if not self.prompt:
             self.get_logger().error('No prompt set')
@@ -162,73 +159,7 @@ class Distiller(Node):
         future = self.action_client.send_goal_async(goal, feedback_callback=self.on_feedback)
         future.add_done_callback(self.on_inferred)
         
-    def on_chunk(self, chunk: str):
-        '''A hook for raw chunks sent back from the inference server'''
-        pass
-    
-    def on_word(self, word: str):
-        '''A hook for units of text _on par_ with "words". In the last sentence ["_", "on", "par_", "with", '"', "words"""] is more like it.'''
-        pass
-    
-    # This is helpful if you are sending this to a TTS node
-    def on_sentence(self, sentence: str):
-        '''A hook for full sentences. This is the most useful for most applications, like streaming to /voice. (/voice will get its own sentence splitting, but this allows asynchronous speech and yields to other nodes in the meantime.)'''
-        pass
-        
-    def on_result(self, result: str):
-        '''A hook for the final result. Use the on_sentence hook if you can possibly use the results in a streaming fashion. This is the last hook called.'''
-        self.output_pub.publish(String(data=result))
-        
-    def goal_response_callback(self, future) -> None:
-        """
-        Callback for handling the response after sending the goal.
-        """
-        try:
-            goal_handle = future.result()
-            if not goal_handle.accepted:
-                self.get_logger().debug('Goal rejected :(')
-                return
 
-            self.get_logger().debug('Goal accepted :)')
-            self._get_result_future = goal_handle.get_result_async()
-            self._get_result_future.add_done_callback(self.on_response)
-        except Exception as e:
-            self.get_logger().error(f'Error in goal response callback: {e}')
-
-    def on_inferred(self, future):
-        try:
-            goal_handle = future.result()
-            if not goal_handle.accepted:
-                self.get_logger().error('Goal rejected')
-                return
-            
-            self.get_logger().debug('Goal accepted')
-            future = goal_handle.get_result_async()
-            future.add_done_callback(self.on_response)
-        except Exception as e:
-            self.get_logger().error(f'Error in inference done: {e}')
-    
-    def on_feedback(self, feedback_msg):
-        feedback = feedback_msg.feedback
-        
-        self.get_logger().debug(f'Feedback: {feedback.chunk.chunk}')
-        
-        if feedback.chunk.level == 0:
-            self.on_chunk(feedback.chunk.chunk)
-        elif feedback.chunk.level == 1:
-            self.on_word(feedback.chunk.chunk)
-        elif feedback.chunk.level == 2:
-            self.on_sentence(feedback.chunk.chunk)
-        else:
-            self.get_logger().error('Unknown feedback level')
-    
-    def on_response(self, future):
-        try:
-            result = future.result().result
-            self.on_result(result.response)
-        except Exception as e:
-            self.get_logger().error(f'Error in processing response: {e}')
-        
 def main(args=None):
     rclpy.init(args=args)
     # TODO: Get a better name in here for this
