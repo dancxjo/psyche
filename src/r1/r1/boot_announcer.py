@@ -7,34 +7,34 @@ from psyche_interfaces.action import PlainTextInference, InferenceWithImages
 
 topics = {
     "voice": "Voice initialized.",
-    "bumper": "Platform initialized.",
+    # "bumper": "Platform initialized.",
     "sensation": "Sensation initialized.",
-    "proprioception": "Proprioception initialized.",
-    "twists": "Navigation initialized.",
-    "instant": "Sensory integration initialized.",
-    "identity": "Identity initialized.",
+    # "proprioception": "Proprioception initialized.",
+    # "twists": "Navigation initialized.",
+    # "instant": "Sensory integration initialized.",
+    # "identity": "Identity initialized.",
     "situation": "Combobulation initialized.",
-    "shell_output": "Receiving standard output.",
-    "autobiography": "Autobiography initialized.",
-    "feeling": "Emotions initialized.",
-    "song": "Cantation initialized.",
-    "imu": "Inertial measurement initialized.",
+    # "shell_output": "Receiving standard output.",
+    # "autobiography": "Autobiography initialized.",
+    # "feeling": "Emotions initialized.",
+    # "song": "Cantation initialized.",
+    # "imu": "Inertial measurement initialized.",
 }
 
 class BootAnnouncer(Node):
     def __init__(self):
         super().__init__('boot_announcer')
         self.voice = self.create_publisher(String, 'voice', 10)
-        self.say('Robot 1 initializing...')
+        self.say('Robot one initializing...')
         # Wait for all the services to complete initialization
         self.act1 = ActionClient(self, PlainTextInference, 'instruct')
         self.act2 = ActionClient(self, InferenceWithImages, 'inspect')
         
-        self.say('Ready?')
+        self.say('Initializing ell emm yooz...')
         self.act1.wait_for_server(timeout_sec=0)
-        self.say('Get set.')
+        self.say('Ell emm one initialized.')
         self.act2.wait_for_server()
-        self.say('Go!')
+        self.say('Ell emm two initialized.')
 
         self.topics = {}
     

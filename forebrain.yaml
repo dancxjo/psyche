@@ -6,8 +6,6 @@ services:
       args:
         - ROS_REPO=osrf/ros:iron-desktop
     network_mode: host
-    volumes:
-      - ./memory:/psyche/memory
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
 
@@ -23,14 +21,12 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
   
   memory:
-    image: crazymax/dokuwiki:latest
+    image: neo4j:community
     ports:
-      - "9000:8000"
+      - "7474:7474"
+      - "7687:7687"
     volumes:
       - ./memory:/data
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Los_Angeles
-      - MEMORY_LIMIT=256M
-      - UPLOAD_MAX_SIZE=16M
+      - NEO4J_AUTH=none
+

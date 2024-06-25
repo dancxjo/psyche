@@ -37,6 +37,7 @@ setup(
             'stream_text = psyche.voice_stream_text:main',
             'watch = psyche.continuous_vision:main',
             'integrate = psyche.integration:main',
+            'memorize = psyche.graph_memory:main',
         ],
     },
 )

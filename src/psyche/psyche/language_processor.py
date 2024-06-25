@@ -146,10 +146,8 @@ class LanguageProcessor(Node):
                         return result
                     
             # Flush the buffers
-            if word_buffer:
-                self.report_chunk(goal_handle, word_buffer.strip(), 1)
-            if sentence_buffer:
-                self.report_chunk(goal_handle, sentence_buffer.strip(), 2)
+            self.report_chunk(goal_handle, word_buffer.strip(), 1)
+            self.report_chunk(goal_handle, sentence_buffer.strip(), 2)
             goal_handle.succeed()
             return result
         except Exception as e:
