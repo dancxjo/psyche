@@ -30,11 +30,11 @@ class BootAnnouncer(Node):
         self.act1 = ActionClient(self, PlainTextInference, 'instruct')
         self.act2 = ActionClient(self, InferenceWithImages, 'inspect')
         
-        self.say('Initializing ell emm yooz...')
+        self.say('Initializing language models...')
         self.act1.wait_for_server(timeout_sec=0)
-        self.say('Ell emm one initialized.')
+        self.say('Language model one initialized.')
         self.act2.wait_for_server()
-        self.say('Ell emm two initialized.')
+        self.say('Language model two initialized.')
 
         self.topics = {}
     
@@ -51,7 +51,7 @@ class BootAnnouncer(Node):
         return callback
 
     def finish(self):
-        self.say('Alright! Let\'s go!')
+        self.say('Robot one initialized.')
 
     def say(self, msg):
         self.get_logger().info('Saying: %s' % msg)

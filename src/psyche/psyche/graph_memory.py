@@ -27,7 +27,9 @@ class GraphMemory(InferenceClient):
         self.get_logger().info(f"Extracted {len(blocks)} blocks: {blocks}")
         blocks = [block[1] for block in blocks]
         if blocks:
+            self.execution_log += f"Extracted {len(blocks)} Cypher blocks; encoded in code fences\n"
             return blocks
+        self.execution_log += f"No code fences found; assuming entire message is Cypher\n"
         return [result]
     
     def run_cypher(self, cypher: str):
@@ -60,6 +62,7 @@ class GraphMemory(InferenceClient):
             else:
                 self.get_logger().warning(f"Ignored invalid Cypher block: {block}")
                 self.execution_log += f"Result: Ignored invalid Cypher block\n"
+
         self.memory_publisher.publish(String(data=self.execution_log))
         self.busy = False
         self.infer_situation()
@@ -73,7 +76,7 @@ class GraphMemory(InferenceClient):
         self.current_situation = msg.data
         if not self.busy:
             self.infer_situation()
-            
+    
     def infer_situation(self):
         if self.busy:
             self.get_logger().debug("Busy, skipping")
@@ -84,7 +87,7 @@ class GraphMemory(InferenceClient):
             return
         
         self.busy = True
-        self.infer("""Identify all the entities mentioned in the provided situation and the relationships mentioned between them. Express these in neo4j Cypher. Attempt to locate prevoiusly created entities before creating new ones. Link duplicate nodes as necessary, marking them as duplicates. Query as necessary. Update and correct old graphs as necessary.\nSituation to translate to Cypher: {situation}\n\nReminder: Respond only with valid Cypher. Do not create nodes or relationships that already exist. If no new information is available, do not provide any code.\n\n{execution_log}\nCypher:\n""", {"history": str(self.memories), "situation": self.current_situation, "execution_log": self.execution_log })
+        self.infer("""Identify all the entities mentioned in the provided situation and the relationships mentioned between them. Express these in neo4j Cypher. Attempt to locate prevoiusly created entities before creating new ones. Link duplicate nodes as necessary, marking them as duplicates. Query as necessary. Update and correct old graphs as necessary.\nSituation to translate to Cypher: {situation}\n\nReminder: Respond only with valid Cypher. Do not create nodes or relationships that already exist. If no new information is available, do not provide any code.\nUse the previous execution log to guide your next query as available and useful.\nReview and refine your memories in the graph db.\n\n{execution_log}\nCypher:\n""", {"history": str(self.memories), "situation": self.current_situation, "execution_log": self.execution_log })
 
 def main(args=None):
     rclpy.init(args=args)

@@ -88,9 +88,8 @@ def generate_launch_description():
         executable="memorize",
         name="the_memory",
         output="screen",
-        
     )
-
+    
     usb_cam = Node(
        package="usb_cam",
         executable="usb_cam_node_exe",
@@ -127,16 +126,16 @@ def generate_launch_description():
         )
     
     return LaunchDescription([
-       llama3,
-       llava,
-       codellama,
-       voice,
-       boot_announcer,
-       heartbeat,
+        llama3,
+        llava,
+        codellama,
+        voice,
+        boot_announcer,
+        heartbeat,
         usb_cam,
         vision,
         audio_segmenter,
         audio_transcriber,
-       sentience,
-       graph_memory,
+        sentience,
+        graph_memory,
     ])
