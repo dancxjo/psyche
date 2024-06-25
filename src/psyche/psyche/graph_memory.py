@@ -33,10 +33,14 @@ class GraphMemory(InferenceClient):
     def run_cypher(self, cypher: str):
         self.get_logger().info(f"Running Cypher: {cypher}")
         with self.db.session() as session:
-            result = session.run(cypher)
-            self.get_logger().info(f"Result: {result}")
-            return result.data()
-    
+            try:
+                result = session.run(cypher)
+                self.get_logger().info(f"Result: {result}")
+                return result.data()
+            except Exception as e:
+                self.get_logger().error(f"Error running Cypher: {e}")
+                return []
+
     def on_result(self, result: str):
         self.get_logger().info(f"Received result: {result}")
         self.memories.append(result)
@@ -45,17 +49,26 @@ class GraphMemory(InferenceClient):
         self.get_logger().info(f"Extracted {len(blocks)} Cypher blocks {blocks}")
         self.execution_log = "Execution Log:\n"
         for block in blocks:
-            self.execution_log += f"Cypher Block: {block}\n"
-            try:
-                result = self.run_cypher(block)
-                self.execution_log += f"Result: {result}\n"
-            except Exception as e:
-                self.get_logger().error(f"Error running Cypher: {e}")
-                self.execution_log += f"Result: Error: {str(e)}\n"
+            if self.is_valid_cypher(block):
+                self.execution_log += f"Cypher Block: {block}\n"
+                try:
+                    result = self.run_cypher(block)
+                    self.execution_log += f"Result: {result}\n"
+                except Exception as e:
+                    self.get_logger().error(f"Error running Cypher: {e}")
+                    self.execution_log += f"Result: Error: {str(e)}\n"
+            else:
+                self.get_logger().warning(f"Ignored invalid Cypher block: {block}")
+                self.execution_log += f"Result: Ignored invalid Cypher block\n"
         self.memory_publisher.publish(String(data=self.execution_log))
         self.busy = False
         self.infer_situation()
-            
+
+    def is_valid_cypher(self, block: str):
+        # A simple check to see if the block contains valid Cypher keywords
+        valid_keywords = ["MATCH", "CREATE", "MERGE", "DELETE", "RETURN", "SET"]
+        return any(keyword in block for keyword in valid_keywords)
+        
     def situation_callback(self, msg):
         self.current_situation = msg.data
         if not self.busy:
