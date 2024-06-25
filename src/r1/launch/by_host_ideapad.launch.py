@@ -38,11 +38,11 @@ def generate_launch_description():
         name="the_combobulator",
         output="screen",
         parameters=[{
-            "action_server_name": "inform",
+            "action_server_name": "dedicated_instruct",
             "prompt": "You are a robot trying to make sense of the recent instants of your life. Below are the the most recent instants in the robot's life, along with the current situation as you have been understanding it. Narrate to yourself a coherent explanation of what's going on right now; how it relates to the past and the future, etc. Using only the information here, describe the current situation as your experiencing it. Be succinct but thorough.\n\n{input_topics}\n\nSo what's up?\n",
             "input_topics": ["identity", "instant", "situation", "autobiography", "voice"],
             "output_topic": "situation",
-            "update_interval": 15.0,
+            "update_interval": 5.0,
             "accumulation_method": "latest"
         }]
     )
@@ -146,9 +146,9 @@ def generate_launch_description():
         name="the_noticer",
         output="screen",
         parameters=[{
-            "action_server_name": "inform",
-            "prompt": "You are a robot. Monitor the following topics and cite important facts to remember from them. Present this as a list of memories.\n\n{input_topics}\n\n\n",
-            "input_topics": ["identity", "instant", "situation", "autobiography", "voice"],
+            "action_server_name": "dedicated_instruct",
+            "prompt": "You are a robot. Monitor your current situation. Using the information here, in GQL, find or create all the important entities and their relationships.\n\n{input_topics}\n\n\nGQL:\n",
+            "input_topics": ["situation"],
             "output_topic": "memory",
             "accumulation_method": "latest",
             "update_interval": 4.0,
@@ -172,43 +172,9 @@ def generate_launch_description():
 
     sentience = Node(
         package="psyche",
-        executable="distill",
+        executable="integrate",
         name="the_witness",
         output="screen",
-        parameters=[{
-            "action_server_name": "inform",
-            "prompt": "You are a robot. Below are the sensations that you have recently felt. Narrate this information to yourself in the first person present. Using only the information here, describe the current instant as you are experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\nHey! What\'s going on?\n",
-            "input_topics": ["sensation", "proprioception", "situation", "intent", "shell_commands", "shell_output"],
-            "output_topic": "instruct",
-            "update_interval": 2.5,
-        }]
-    )
-
-    slm = Node(
-            package="psyche",
-            executable="lpu",
-            name="small_lpu",
-            output="screen",
-            parameters=[
-                {"model": "phi3"},
-                {"base_url": f"http://192.168.0.20:11434"},
-                {"action_server_name": "little"}
-            ],
-        )
-    
-    reframe_vision = Node(
-        package="psyche",
-        executable="distill",
-        name="reframe_vision",
-        output="screen",
-        parameters=[
-            {"action_server_name": "little"},
-            {"prompt": "Rephrase the description of an image as if it were what was being seen. Instead of 'In the image, there is basket a fruit', just say 'I see a basket of fruit.'\n\n{input_topics}\n\nWhat do you see?\n"},
-            {"input_topics": ["vision"]},
-            {"output_topic": "sensation"},
-            {"update_interval": 1.0},
-            {"accumulation_method": "queue"}
-        ],
     )
 
     control_shell = Node(
@@ -231,7 +197,7 @@ def generate_launch_description():
         name="camera",
         output="screen",
         parameters=[{
-            "video_device": "/dev/video0",
+            "video_device": "/dev/video2",
             "image_width": 640,
             "image_height": 480,
             "framerate": 30.0,
@@ -260,25 +226,36 @@ def generate_launch_description():
             output="screen",
         )
     
+    dedicated_forebrain_lmu = Node(
+            package="psyche",
+            executable="lpu",
+            name="dedicated_lpu",
+            output="screen",
+            parameters=[
+                {"model": "llama3:instruct"},
+                {"base_url": f"http://192.168.0.7:11434"},
+                {"action_server_name": "dedicated_instruct"}
+            ],
+        )
+
+    
     return LaunchDescription([
-#        voice,
-#        boot_announcer,
-#        heartbeat,
-        usb_cam,
-        vision,
-        slm,
-        reframe_vision,
-        audio_segmenter,
-       audio_transcriber,
+    #    voice,
+    #    boot_announcer,
+    #    heartbeat,
+        # usb_cam,
+        # vision,
+        # audio_segmenter,
+        # audio_transcriber,
         # imu,
         # platform,
-#        sentience,
-#        combobulation,
+    #    sentience,
+    #    combobulation,
 #        basic_autobiographical_memory,
 #        identity,
-#        executive,
-#        thought_watcher,
-#        control_shell,
-#        basic_memory,
+    #    executive,
+    #    thought_watcher,
+    #    control_shell,
+    #    basic_memory,
 #        ear_horn,
     ])
