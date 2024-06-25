@@ -15,6 +15,43 @@ victus_host = "192.168.0.20"
 offboard_host = "ideapad.local"
 
 def generate_launch_description():
+    llama3 = Node(
+            package="psyche",
+            executable="lpu",
+            name="basic_lpu",
+            output="screen",
+            parameters=[
+                {"model": "llama3:instruct"},
+                {"base_url": f"http://192.168.0.20:11434"},
+                {"action_server_name": "instruct"}
+            ],
+        )
+
+    codellama = Node(
+            package="psyche",
+            executable="lpu",
+            name="basic_lpu2",
+            output="screen",
+            parameters=[
+                {"model": "codellama:13b"},
+                {"base_url": f"http://192.168.0.7:11434"},
+                {"action_server_name": "code"}
+            ],
+        )
+
+    llava = Node(
+        package="psyche",
+        executable="vlpu",
+        name="vision_lpu",
+        output="screen",
+        parameters=[
+            {"model": "llava:13b"},
+            {"image_support": True},
+            {"base_url": f"http://192.168.0.7:11434"},
+            {"action_server_name": "inspect"}
+        ],
+    )
+
     boot_announcer = Node(
             package="r1",
             executable="announce_boot",
@@ -89,20 +126,10 @@ def generate_launch_description():
             output="screen",
         )
     
-    dedicated_forebrain_lmu = Node(
-            package="psyche",
-            executable="lpu",
-            name="dedicated_lpu",
-            output="screen",
-            parameters=[
-                {"model": "llama3:instruct"},
-                {"base_url": f"http://192.168.0.7:11434"},
-                {"action_server_name": "dedicated_instruct"}
-            ],
-        )
-    
     return LaunchDescription([
-       dedicated_forebrain_lmu,
+       llama3,
+       llava,
+       codellama,
        voice,
        boot_announcer,
        heartbeat,
@@ -110,16 +137,6 @@ def generate_launch_description():
         vision,
         audio_segmenter,
         audio_transcriber,
-        # imu,
-        # platform,
        sentience,
-    #    combobulation,
        graph_memory,
-#        basic_autobiographical_memory,
-#        identity,
-    #    executive,
-    #    thought_watcher,
-    #    control_shell,
-    #    basic_memory,
-#        ear_horn,
     ])

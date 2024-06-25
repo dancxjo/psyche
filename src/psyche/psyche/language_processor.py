@@ -48,7 +48,7 @@ class LanguageProcessor(Node):
         if self.model_type == 'openai':
             self.llm = ChatOpenAI(model=self.model)
         else:
-            self.llm = Ollama(model=self.model, base_url=self.base_url, temperature=0.9, num_predict=256)
+            self.llm = Ollama(model=self.model, base_url=self.base_url)
         
         self.get_logger().debug('Language model initialized with model: {0}'.format(self.model))
 
