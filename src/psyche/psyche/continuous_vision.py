@@ -115,7 +115,8 @@ class ContinuousVision(InferenceClient):
         np_arr = np.frombuffer(image.data, np.uint8)
         img_yuv = np_arr.reshape((image.height, image.width, 2))
         img_bgr = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR_YUY2)
-        _, img = cv2.imencode('.png', img_bgr)#, [cv2.IMWRITE_JPEG_QUALITY, 30])
+        _, img = cv2.imencode('.jpg', img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 30])
+        # self.save_image(img_bgr, "jpg")
         encoded = str(base64.b64encode(img).decode('utf-8'))
         return encoded
 
