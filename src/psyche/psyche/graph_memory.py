@@ -22,6 +22,9 @@ class GraphMemory(InferenceClient):
         self.execution_log = ""
         
     def extract_cypher_blocks(self, result: str):
+        # When switching to codellama, it spits out code the right way
+        return [result]
+        # This is only necessary when using a more conversational lmu
         pattern = re.compile(r"```(cypher)?\s*(.*?)\s*(```|$)", re.DOTALL)
         blocks = pattern.findall(result)
         self.get_logger().info(f"Extracted {len(blocks)} blocks: {blocks}")
