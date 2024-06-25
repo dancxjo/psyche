@@ -26,8 +26,7 @@ class InferenceClient(Node):
     def infer(self, prompt_template: str, inputs: dict = {}):
         if not self.is_valid_input(prompt_template, inputs):
             self.get_logger().error('Invalid input')
-            # TODO: We probably shouldn't swallow this error
-            return
+            raise ValueError('Invalid input')
         
         input = self.generate_prompt(prompt_template, inputs)
         self.get_logger().debug(f"Generated prompt: {input}")

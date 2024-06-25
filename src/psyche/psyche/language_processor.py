@@ -88,8 +88,8 @@ class LanguageProcessor(Node):
     def report_chunk(self, goal_handle, chunk, chunk_level=0):
         self.get_logger().debug(f"Reporting chunk")
         feedback_msg = self.Inference.Feedback()
-        feedback_msg.chunk.chunk = chunk
-        feedback_msg.chunk.level = chunk_level
+        feedback_msg.chunk = chunk
+        feedback_msg.granularity = chunk_level
         self.get_logger().debug(f"{feedback_msg}")
         goal_handle.publish_feedback(feedback_msg)
         self.get_logger().debug(f"fed back")
