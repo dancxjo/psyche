@@ -55,9 +55,6 @@ class VisionEnabledLanguageProcessor(LanguageProcessor):
 
         try:
             self.get_logger().debug(f"Sending request")
-            with open("/payload.json", "w") as f:
-                json.dump(payload, f)
-                
             with requests.post(f"{self.base_url}/api/generate", json=payload, headers=headers, stream=True) as response:
                 self.get_logger().debug(f"Sent request")
                 response.raise_for_status()
