@@ -19,7 +19,8 @@ class ContinuousVision(InferenceClient):
             self.image_callback,
             10
         )
-        self.sensation_publisher = self.create_publisher(String, 'sensation', 90)
+        self.sensation_publisher = self.create_publisher(String, 'sensation', 10)
+        self.vision_publisher = self.create_publisher(String, 'vision', 10)
         self.get_logger().info("Continuous Vision node started")
         self.busy = False
         self.timer = self.create_timer(1, self.handle_queue)
@@ -29,7 +30,8 @@ class ContinuousVision(InferenceClient):
         self.sensation_publisher.publish(String(data=sentence))    
     
     def on_result(self, result: str):
-        self.get_logger().info(f"Received result: {result}")  
+        self.get_logger().info(f"Received result: {result}")
+        self.vision_publisher.publish(String(data=result))
         self.busy = False
         
     def decode_image(self, encoded_image):
@@ -41,9 +43,9 @@ class ContinuousVision(InferenceClient):
     
     def save_image(self, image, image_type):
         ''' Save the image to disk '''
-        _, encoded = cv2.imencode('.jpg', image)
+        _, encoded = cv2.imencode('.png', image)
         base64_encoded = base64.b64encode(encoded).decode('utf-8')
-        filename = f"{image_type}_image{self.counter}.jpg"
+        filename = f"{image_type}_image{self.counter}.png"
         with open(filename, "wb") as file:
             file.write(base64.b64decode(base64_encoded))
         self.counter += 1
@@ -51,30 +53,30 @@ class ContinuousVision(InferenceClient):
 
     def handle_queue(self):
         if self.busy:
-            self.get_logger().info("Busy, deferring to queue")
+            self.get_logger().debug("Busy, deferring to queue")
             return
         
-        if len(self.image_queue) < 2:
+        if len(self.image_queue) < 1:
             self.get_logger().info("Not enough frames in queue")
             return
         
         self.busy = True
         
-        # Decode images and calculate differences between consecutive frames
-        difference_images = []
-        for i in range(len(self.image_queue) - 1):
-            current_frame = self.decode_image(self.image_queue[i])
-            next_frame = self.decode_image(self.image_queue[i + 1])
-            diff = cv2.absdiff(current_frame, next_frame)
-            difference_images.append(diff)
+        # # Decode images and calculate differences between consecutive frames
+        # difference_images = []
+        # for i in range(len(self.image_queue) - 1):
+        #     current_frame = self.decode_image(self.image_queue[i])
+        #     next_frame = self.decode_image(self.image_queue[i + 1])
+        #     diff = cv2.absdiff(current_frame, next_frame)
+        #     difference_images.append(diff)
         
-        composite_image = self.make_action_over_time_image(difference_images)
-        _, comp_encoded = cv2.imencode('.jpg', composite_image)
-        comp_base64 = base64.b64encode(comp_encoded).decode('utf-8')
+        # composite_image = self.make_action_over_time_image(difference_images)
+        # _, comp_encoded = cv2.imencode('.jpg', composite_image)
+        # comp_base64 = base64.b64encode(comp_encoded).decode('utf-8')
             
-        images = [self.image_queue[0], self.image_queue[-1], comp_base64]
+        images = [self.image_queue[-1]]
               
-        self.infer(f"""These are footage captured by a robot over a span of time. The first image is the first frame, the second is the last frame and the third is a composite of the differences between frames in the intervening space—a kind of motion blur of the intervening space. Describe what is happening in the images. Refer to the content of the images and not the images themselves: instead of saying "The image shows a man," say "There is a man".""", {"images": images})
+        self.infer(f"""This is footage from a robot's first person perspective. Synthesize a succinct approximation of what is happening in the image. Start your response with "I see...".\n\nResponse:\n""", {"images": images})
         
         self.image_queue = []
         self.get_logger().info("Queue cleared")
@@ -115,8 +117,8 @@ class ContinuousVision(InferenceClient):
         np_arr = np.frombuffer(image.data, np.uint8)
         img_yuv = np_arr.reshape((image.height, image.width, 2))
         img_bgr = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR_YUY2)
-        _, img = cv2.imencode('.jpg', img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 30])
-        # self.save_image(img_bgr, "jpg")
+        _, img = cv2.imencode('.png', img_bgr)#, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        #self.save_image(img_bgr, "jpg")
         encoded = str(base64.b64encode(img).decode('utf-8'))
         return encoded
 

@@ -41,7 +41,7 @@ class Transcriber(Node):
 
     def transcribe_audio_whisper(self, audio, language, model):        
         try:
-            transcription = self.recognizer.recognize_whisper(audio, language=language, model=model)
+            transcription = self.recognizer.recognize_google(audio)#, language=language, model=model)
             self.get_logger().debug(f"Transcription: {transcription}")
             if transcription.strip() != "":
                 self.publish_transcription(transcription)
@@ -80,7 +80,7 @@ class Transcriber(Node):
         
     def publish_transcription(self, transcription):
         self.get_logger().debug('Publishing transcription')
-        self.transcription_pub.publish(String(data=f"You could be mistaken, but you think you heard someone say earlier: '{transcription}'\n[this very well could be your own voice and a case of autophonia--totes normal] (also, if you hear phantom 'Thanks for watching!' messages and the like, it's just a hallucination, until it is not)--use context clues to fit this into the situation at hand."))
+        self.transcription_pub.publish(String(data=f"I think I just heard: '{transcription}'"))
 
 def main(args=None):
     rclpy.init(args=args)

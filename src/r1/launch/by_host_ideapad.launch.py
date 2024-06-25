@@ -184,6 +184,32 @@ def generate_launch_description():
         }]
     )
 
+    slm = Node(
+            package="psyche",
+            executable="lpu",
+            name="small_lpu",
+            output="screen",
+            parameters=[
+                {"model": "phi3"},
+                {"base_url": f"http://192.168.0.20:11434"},
+                {"action_server_name": "little"}
+            ],
+        )
+    
+    reframe_vision = Node(
+        package="psyche",
+        executable="distill",
+        name="reframe_vision",
+        output="screen",
+        parameters=[
+            {"action_server_name": "little"},
+            {"prompt": "Rephrase the description of an image as if it were what was being seen. Instead of 'In the image, there is basket a fruit', just say 'I see a basket of fruit.'\n\n{input_topics}\n\nWhat do you see?\n"},
+            {"input_topics": ["vision"]},
+            {"output_topic": "sensation"},
+            {"update_interval": 1.0},
+            {"accumulation_method": "queue"}
+        ],
+    )
 
     control_shell = Node(
         package="r1",
@@ -219,12 +245,20 @@ def generate_launch_description():
         output="screen",
     )
     
-    audio_transcriber = Node(
+    # TODO: Detect & filter non-speech
+    audio_segmenter = Node(
         package="psyche",
         executable="listen_for_speech",
         name="audio_segmenter",
         output="screen",
     )
+    
+    audio_transcriber = Node(
+            package="psyche",
+            executable="transcribe_speech",
+            name="audio_comprehension",
+            output="screen",
+        )
     
     return LaunchDescription([
 #        voice,
@@ -232,7 +266,10 @@ def generate_launch_description():
 #        heartbeat,
         usb_cam,
         vision,
-#        audio_transcriber,
+        slm,
+        reframe_vision,
+        audio_segmenter,
+       audio_transcriber,
         # imu,
         # platform,
 #        sentience,
