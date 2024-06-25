@@ -2,6 +2,7 @@ import rclpy
 from std_msgs.msg import String
 from .inference_client import InferenceClient
 import re
+from neo4j import GraphDatabase
 
 class GraphMemory(InferenceClient):
     def __init__(self):
@@ -17,7 +18,8 @@ class GraphMemory(InferenceClient):
         self.current_situation = ""
         self.busy = False
         self.get_logger().info("Graph memory node started")
-    
+        self.db = GraphDatabase.driver("bolt://192.168.0.7:7687")
+        
     def extract_cypher_blocks(self, result: str):
         pattern = re.compile(r"```(cypher)?\s*(.*?)\s*(```|$)", re.DOTALL)
         blocks = pattern.findall(result)
@@ -26,12 +28,21 @@ class GraphMemory(InferenceClient):
             blocks = [blocks[1]]
         return blocks
     
+    def run_cypher(self, cypher: str):
+        self.get_logger().info(f"Running Cypher: {cypher}")
+        with self.db.session() as session:
+            result = session.run(cypher)
+            self.get_logger().info(f"Result: {result}")
+            return result.data()
+    
     def on_result(self, result: str):
         self.get_logger().info(f"Received result: {result}")
         self.memories.append(result)
         # self.memory_publisher.publish(String(data=result))
         blocks = self.extract_cypher_blocks(result)
         self.get_logger().info(f"Extracted {len(blocks)} Cypher blocks {blocks}")
+        for block in blocks:
+            self.run_cypher(block)
         self.busy = False
         self.infer_situation()
             
