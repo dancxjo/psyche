@@ -11,6 +11,7 @@ from .inference_client import InferenceClient
 class ContinuousVision(InferenceClient):
     def __init__(self):
         super().__init__('continuous_vision', "inspect", InferenceWithImages)
+        self.counter = 0
         self.image_queue = []
         self.image_subscription = self.create_subscription(
             Image,
@@ -18,27 +19,48 @@ class ContinuousVision(InferenceClient):
             self.image_callback,
             10
         )
-        self.sensation_publisher = self.create_publisher(String, 'sensation', 10)
+        self.sensation_publisher = self.create_publisher(String, 'sensation', 90)
         self.get_logger().info("Continuous Vision node started")
         self.busy = False
         self.timer = self.create_timer(1, self.handle_queue)
+    
     def on_sentence(self, sentence: str):
         self.get_logger().info(f"Received sentence: {sentence}")
         self.sensation_publisher.publish(String(data=sentence))    
+    
     def on_result(self, result: str):
         self.get_logger().info(f"Received result: {result}")  
+        self.busy = False
+        
+    def decode_image(self, encoded_image):
+        ''' Decode a base64 encoded image to a NumPy array suitable for OpenCV processing '''
+        data = base64.b64decode(encoded_image)
+        np_arr = np.frombuffer(data, dtype=np.uint8)
+        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        return img
+    
+    def save_image(self, image, image_type):
+        ''' Save the image to disk '''
+        _, encoded = cv2.imencode('.jpg', image)
+        base64_encoded = base64.b64encode(encoded).decode('utf-8')
+        filename = f"{image_type}_image{self.counter}.jpg"
+        with open(filename, "wb") as file:
+            file.write(base64.b64decode(base64_encoded))
+        self.counter += 1
+        self.get_logger().info(f"{image_type.capitalize()} image saved as {filename}")
+
     def handle_queue(self):
         if self.busy:
             self.get_logger().info("Busy, deferring to queue")
             return
         
-        if len(self.image_queue) < 2:  # Need at least two frames to make a difference
+        if len(self.image_queue) < 2:
             self.get_logger().info("Not enough frames in queue")
             return
         
         self.busy = True
         
-        # Calculate differences between consecutive frames
+        # Decode images and calculate differences between consecutive frames
         difference_images = []
         for i in range(len(self.image_queue) - 1):
             current_frame = self.decode_image(self.image_queue[i])
@@ -46,57 +68,34 @@ class ContinuousVision(InferenceClient):
             diff = cv2.absdiff(current_frame, next_frame)
             difference_images.append(diff)
         
-        # Create a composite image from the differences
         composite_image = self.make_action_over_time_image(difference_images)
-        self.image_queue = []  # Clear the queue after processing
-        self.busy = False
+        _, comp_encoded = cv2.imencode('.jpg', composite_image)
+        comp_base64 = base64.b64encode(comp_encoded).decode('utf-8')
+            
+        images = [self.image_queue[0], self.image_queue[-1], comp_base64]
+              
+        self.infer(f"""These are footage captured by a robot over a span of time. The first image is the first frame, the second is the last frame and the third is a composite of the differences between frames in the intervening space—a kind of motion blur of the intervening space. Describe what is happening in the images. Refer to the content of the images and not the images themselves: instead of saying "The image shows a man," say "There is a man".""", {"images": images})
         
-        self.handle_queue() # Immediately start processing again
-        
-    def decode_image(self, encoded):
-        ''' Decode base64 encoded image to an OpenCV image '''
-        img_data = base64.b64decode(encoded)
-        np_arr = np.fromstring(img_data, np.uint8)
-        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-        return img
-        
-    def make_action_over_time_image(self, images):
-        ''' Make a single image from multiple difference images '''
-        height = min(img.shape[0] for img in images)
-        width = sum(img.shape[1] for img in images)
-        composite_image = np.zeros((height, width, 3), dtype=np.uint8)
-        
-        x_offset = 0
-        for img in images:
-            composite_image[:, x_offset:x_offset + img.shape[1]] = img
-            x_offset += img.shape[1]
-        
-        return composite_image
-    
-    def handle_queue(self):
-        if self.busy:
-            self.get_logger().info(f"Busy, deferring to queue")
-            return
-        self.get_logger().info(f"handling image queue")
-        if len(self.image_queue) < 1:
-            self.get_logger().info(f"Queue is empty")
-            return
-        self.busy = True        
-        self.get_logger().info(f"Handling queue of {len(self.image_queue)} images")
-        head = self.image_queue[0]
-        tail = self.image_queue[-1]
-        middle = self.make_action_over_time_image(self.image_queue[1:-1])
-        images = [head, middle, tail]
-        counter = 1
-        for image in images:
-            filename = f"image{counter}.jpg"
-            with open(filename, "wb") as file:
-                file.write(base64.b64decode(image))
-            counter += 1
         self.image_queue = []
-        self.get_logger().info(f"Queue cleared")
-        self.infer("The images show the beginning, middle and end of a moment. What do the images contain? Speak only of the content of the images, not the images themselves.", {'images': images})
-        self.get_logger().info(f"Triggered inference. Queue handled.")
+        self.get_logger().info("Queue cleared")
+
+    def make_action_over_time_image(self, images):
+        ''' Overlay images by averaging them '''
+        # Convert all images to float type for averaging
+        # avg_image = np.zeros(images[0].shape, np.float32)
+        avg_image = images[0].astype(np.float32)
+        for img in images:
+            avg_image += img.astype(np.float32)
+        
+        # Divide by the number of images to average
+        avg_image /= len(images)
+        
+        avg_image += 128  # Add 128 to make the image brighter
+                
+        # Convert back to 8-bit to save as JPEG
+        avg_image = np.clip(avg_image, 0, 255).astype(np.uint8)
+        
+        return avg_image
             
     def generate_prompt(self, prompt_template: str, inputs: dict = {}):
         self.get_logger().info(f"Generating prompt")
@@ -107,6 +106,7 @@ class ContinuousVision(InferenceClient):
         response = super().generate_prompt(prompt_template, shrunken_inputs)
         self.get_logger().info(f"Got the base prompt {response}")
         return { "prompt": response["prompt"], "images": images }
+    
     def image_callback(self, msg):
         processed_image = self.process_frame(msg)
         self.image_queue.append(processed_image)
@@ -115,7 +115,7 @@ class ContinuousVision(InferenceClient):
         np_arr = np.frombuffer(image.data, np.uint8)
         img_yuv = np_arr.reshape((image.height, image.width, 2))
         img_bgr = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR_YUY2)
-        _, img = cv2.imencode('.jpg', img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 30])
+        _, img = cv2.imencode('.png', img_bgr)#, [cv2.IMWRITE_JPEG_QUALITY, 30])
         encoded = str(base64.b64encode(img).decode('utf-8'))
         return encoded
 

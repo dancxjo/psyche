@@ -205,9 +205,9 @@ def generate_launch_description():
         name="camera",
         output="screen",
         parameters=[{
-            "video_device": "/dev/video0",
-            "image_width": 320,
-            "image_height": 240,
+            "video_device": "/dev/video2",
+            "image_width": 640,
+            "image_height": 480,
             "framerate": 30.0,
         }]
     )
