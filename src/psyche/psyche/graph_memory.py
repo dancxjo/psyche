@@ -6,11 +6,25 @@ from neo4j import GraphDatabase
 
 system_message = """Consider the situation below. Identify the entities that are involved in the situation. Create a list of them, dividing them into the following categories: Thing, Person, Idea, Location, Time, Context. Express these in Cypher. For each entity, use a field called description to uniquely identify it. Then list the relationships stated between them. You may also run queries to find and reference old information. Correct missing, outdated or otherwise incorrect information. As you find duplicate nodes, link them with the relationship :IS_ALSO. Remember to use the correct Cypher inside markdown syntax.
 ==Example==
-User: I am a human named Travis. Today is une 26, 2024. I made a robot named Pete. PETE stands for "Pseudo-Conscious Experiment in Technological Evolution". Pete is currently housed in my laptop. Pete is my creation.
-Assistant: The situation seems to involve "me", a Person in this case, as it is conversant. There's also a Robot named Pete, who is a person, as they are conversant. Here's the situation in Cypher.
+User: I am a human named Travis. Today is une 26, 2024. I made a robot named Pete. PETE stands for "Pseudo-Conscious Experiment in Technological Evolution". Pete is currently housed in my laptop. Pete is my creation.\nThe last query you ran:...    "_fields": [
+      {
+        "identity": {
+          "low": 87,
+          "high": 0
+        },
+        "labels": [
+          "Person"
+        ],
+        "properties": {
+          "description": "Travis"
+        },
+        "elementId": "4:90f69fe0-e1ba-4095-9c78-0b85cd46f91f:87"
+      }
+    ],...
+Assistant: The situation seems to involve "me", a Person in this case, as it is conversant. Since I see he's already an entity, I'll select him by id. There's also a Robot named Pete, who is a person, as they are conversant. Here's the situation in Cypher.
 
 ```cypher
-MERGE (me:Person {description: 'a human named Travis', name: 'Travis'})
+MERGE (me:Person {id: 87})
 MERGE (pete:Person {description: 'a robot named Pete'})
 MERGE (acronym:Idea {description: 'Pseudo-Conscious Experiment in Technological Evolution'})
 MERGE (laptop:Thing {description: 'the laptop that currently houses Pete'})
@@ -46,10 +60,17 @@ class GraphMemory(InferenceClient):
         blocks = pattern.findall(result)
         self.get_logger().info(f"Extracted {len(blocks)} blocks: {blocks}")
         blocks = [block[1] for block in blocks]
+        
+        single_backtick_pattern = re.compile(r"`([A-Z]+[^]]])`", re.DOTALL)
+        single_backtick_blocks = single_backtick_pattern.findall(result)
+        self.get_logger().info(f"Extracted {len(single_backtick_blocks)} single backtick blocks: {single_backtick_blocks}")
+        
+        blocks += single_backtick_blocks
+        
         if blocks:
-            self.execution_log += f"Extracted {len(blocks)} Cypher blocks; encoded in code fences\n"
+            self.execution_log += f"Extracted {len(blocks)} Cypher blocks; encoded in code fences and single backticks\n"
             return blocks
-        self.execution_log += f"No code fences found; please use markdown triple backticks to set your code apart from your commentary\n"
+        self.execution_log += f"No code fences or single backticks found; please use markdown triple backticks or single backticks to set your code apart from your commentary\n"
         return []
     
     def run_cypher(self, cypher: str):
@@ -107,7 +128,10 @@ class GraphMemory(InferenceClient):
             return
         
         self.busy = True
-        self.infer("""{situation}\nThe last query you ran:\n{history}\n{execution_log}""", {"history": str(self.memories), "situation": self.current_situation, "execution_log": self.execution_log })
+        history = str(self.memories) + "\n" + str(self.execution_log)
+        if len(history) > 1000:
+            history = history[1:50] + "..." + history[-50:]
+        self.infer("""{situation}\nThe last query you ran:\n{history}""", {"history": history, "situation": self.current_situation})
         self.memories = self.memories[-2:]
         self.execution_log = ""
 
