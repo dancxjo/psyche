@@ -17,8 +17,8 @@ offboard_host = "ideapad.local"
 def generate_launch_description():
     llama3 = Node(
             package="psyche",
-            executable="lpu",
-            name="basic_lpu",
+            executable="ollama_lpu",
+            name="llama3_on_victus",
             output="screen",
             parameters=[
                 {"model": "llama3:instruct"},
@@ -29,8 +29,8 @@ def generate_launch_description():
 
     codellama = Node(
             package="psyche",
-            executable="lpu",
-            name="basic_lpu2",
+            executable="ollama_lpu",
+            name="codellama_on_forebrain",
             output="screen",
             parameters=[
                 {"model": "codellama:13b"},
@@ -42,7 +42,7 @@ def generate_launch_description():
     llava = Node(
         package="psyche",
         executable="vlpu",
-        name="vision_lpu",
+        name="llava_on_forebrain",
         output="screen",
         parameters=[
             {"model": "llava:13b"},

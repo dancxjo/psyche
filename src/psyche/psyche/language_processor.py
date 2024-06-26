@@ -28,7 +28,7 @@ class LanguageProcessor(Node):
         self.supports_images = self.get_parameter("image_support").get_parameter_value().bool_value
         self.Inference = InferenceWithImages if self.supports_images else PlainTextInference
         self.prompt = PromptTemplate.from_template("{input}")
-        self.initialize_langchain()
+        self.initialize()
         self._action_server = ActionServer(
             self,
             self.Inference,
@@ -60,7 +60,7 @@ class LanguageProcessor(Node):
         self.chain = self.prompt | self.llm | self.output_parser
         self.get_logger().debug('Processing chain created.')
 
-    def initialize_langchain(self):
+    def initialize(self):
         """
         Sets up the language model and related components based on ROS parameters.
         """

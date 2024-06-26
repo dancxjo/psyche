@@ -1,4 +1,6 @@
 string prompt
+string system
+bool json
 string[] images # for llava vision model; base64 encoded images
 ---
 string response
