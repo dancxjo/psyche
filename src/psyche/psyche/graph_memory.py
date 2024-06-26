@@ -23,14 +23,26 @@ User: I am a human named Travis. Today is une 26, 2024. I made a robot named Pet
     ],...
 Assistant: The situation seems to involve "me", a Person in this case, as it is conversant. Since I see he's already an entity, I'll select him by id. There's also a Robot named Pete, who is a person, as they are conversant. Here's the situation in Cypher.
 
+I already know about Travis, so I'll select him by id. (See record above.)
 ```cypher
 MERGE (me:Person {id: 87})
+```
+
+Now I'll add the new entities.
+```cypher
 MERGE (pete:Person {description: 'a robot named Pete'})
 MERGE (acronym:Idea {description: 'Pseudo-Conscious Experiment in Technological Evolution'})
 MERGE (laptop:Thing {description: 'the laptop that currently houses Pete'})
+```
+
+I'll also add the relationships between them.
+```cypher
 MERGE (me)-[:CREATED {before: '2024-06-26'}]->(pete)
 MERGE (pete)-[:IS_NAMED_FOR]->(acronym)
 MERGE (laptop)-[:HOUSES {as_of: '2024-06-26'}]->(pete)
+
+Lastly, I'll return the entities that were created so I can pick them up in the next round so I don't create duplicates.
+```cypher
 RETURN me, pete, acronym, laptop
 ```
 """
@@ -91,18 +103,19 @@ class GraphMemory(InferenceClient):
         blocks = self.extract_cypher_blocks(result)
         self.get_logger().info(f"Extracted {len(blocks)} Cypher blocks {blocks}")
         self.execution_log = "Execution Log:\n"
-        for block in blocks:
-            if self.is_valid_cypher(block):
-                self.execution_log += f"Cypher Block: {block}\n"
-                try:
-                    result = self.run_cypher(block)
-                    self.execution_log += f"Result: {result}\n"
-                except Exception as e:
-                    self.get_logger().error(f"Error running Cypher: {e}")
-                    self.execution_log += f"Result: Error: {str(e)}\n"
-            else:
-                self.get_logger().warning(f"Ignored invalid Cypher block: {block}")
-                self.execution_log += f"Result: Ignored invalid Cypher block\n"
+        block = "\n".join(blocks)
+
+        if self.is_valid_cypher(block):
+            self.execution_log += f"Cypher Block: {block}\n"
+            try:
+                result = self.run_cypher(block)
+                self.execution_log += f"Result: {result}\n"
+            except Exception as e:
+                self.get_logger().error(f"Error running Cypher: {e}")
+                self.execution_log += f"Result: Error: {str(e)}\n"
+        else:
+            self.get_logger().warning(f"Ignored invalid Cypher block: {block}")
+            self.execution_log += f"Result: Ignored invalid Cypher block\n"
 
         # self.memory_publisher.publish(String(data=self.execution_log))
         self.busy = False
