@@ -33,7 +33,7 @@ def generate_launch_description():
             name="codellama_on_forebrain",
             output="screen",
             parameters=[
-                {"model": "codellama:13b"},
+                {"model": "llama3:instruct"},
                 {"base_url": f"http://192.168.0.7:11434"},
                 {"action_server_name": "code"}
             ],
@@ -88,6 +88,9 @@ def generate_launch_description():
         executable="memorize",
         name="the_memory",
         output="screen",
+        parameters=[{
+            "action_server_name": "code",
+        }]
     )
     
     usb_cam = Node(
