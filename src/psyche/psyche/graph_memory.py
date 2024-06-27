@@ -8,7 +8,7 @@ import ollama
 import json
 
 system_message = """In well formatted JSON, list the relevant entities and their relationships as described in the natural language description of the situation. Use the following format:
-{ "entities": [{"variable": "me", "category": "Person", "description": "an artificial intelligence named Pete"}, {"variable": "body", "category": "Thing", "description": "a laptop"}], "relationships": [{"source": "body", "target": "pete", "predicate": "EMBODIES"}], "updates": [{ "target": "me", "field": "name", "value": "Pete"}] }. Use only the PascalCased categories of Person, Place, Thing, Event or Idea. Capture other features in the description. As you learn more about nodes, update their fields as shown in the example. Try to capture what's in the situation faithfully. You must define all entities before you can reference them in a relationship."""
+{ "entities": [{"variable": "me", "category": "Person", "description": "an artificial intelligence named Pete"}, {"variable": "body", "category": "Thing", "description": "a laptop"}], "relationships": [{"source": "body", "predicate": "EMBODIES", "target": "pete"}], "updates": [{ "target": "me", "field": "name", "value": "Pete"}] }. Use only the PascalCased categories of Person, Place, Thing, Event or Idea. Capture other features in the description. As you learn more about nodes, update their fields as shown in the example. Try to capture what's in the situation faithfully. You must define all entities before you can reference them in a relationship."""
 
 
 old = """You are a graph memory system. You are responsible for storing memories in a graph database. You receive situations and Cypher queries from the user, and you must rewrite the query to correctly translate the situation into a graph. First, identify the entities involved in the situation, create them in the graph database, and establish the relationships between them. As you receive the results of your queries, integrate them into the Cypher translation. You must always use the correct Cypher inside markdown syntax: Any code you write between single backticks or triple backticks will be replace the user's query. Correct the user's query. Use MERGE instead of MATCH to create new entities when needed. Make sure the query matches the situation provided. Also, help find duplicate nodes as you come across them. Include in your script a relationship :IS_ALSO between nodes that are duplicates. Always make sure to return the IDs and values of all the relevant nodes in your query a RETURN ID(a), a, ID(b), b, ID(c), c. Only include one return statement at the end of the command. Only one command at a time. You will see this prompt again.\n\nNext query including database updates and corrections:\n\n"""
@@ -35,26 +35,27 @@ class GraphMemory(InferenceClient):
         client = chromadb.Client()
         self.collection = client.create_collection(name="docs")
 
-    def embed_node(self, node):
+    def embed_node(self, id, node):
         # TODO: This uses the local Ollama instance
-        response = ollama.embeddings(model="mxbai-embed-large", prompt=str(node))
+        response = ollama.embeddings(model="all-minilm", prompt=str(node))
         embedding = response["embedding"]
         self.collection.add(
-            ids=[node["id"]],
+            ids=[id],
             embeddings=[embedding],
-            documents=[node]
+            documents=[str(node)]
         )
 
     def query_embeddings(self, prompt):
         # TODO: This uses the local Ollama instance
         response = ollama.embeddings(
             prompt=prompt,
-            model="mxbai-embed-large"
+            model="all-minilm"
         )
         results = self.collection.query(
             query_embeddings=[response["embedding"]],
             n_results=10
         )
+        self.get_logger().info(f"Results for query embeddings: {results}")
         return results['documents']
 
     def generate_prompt(self, prompt_template: str, inputs: dict = {}):
@@ -65,16 +66,26 @@ class GraphMemory(InferenceClient):
         return rv
     
     def get_entity_cypher(self, entity):
-        declaration = entity['variable'] + ":" + entity['category'].replace(" ", "")
+        varb = entity['variable'].replace(" ", "_")
+        declaration = varb + ":" + entity['category'].replace(" ", "")
         fields = []
         for key, value in entity.items():
+            escaped = value.replace("'", "\\'")
             if key not in ["variable", "category"]:
-                fields.append(f"{key}: '{value}'")
+                fields.append(f"{key}: '{escaped}'")
         fields = ", ".join(fields)
         return f"MERGE ({declaration} {{{fields}}})"
     
     def get_relationship_cypher(self, relationship):
-        return f"MERGE ({relationship['source']})-[:{relationship['predicate']}]->({relationship['target']})"
+        source = relationship['source'].replace(" ", "_")
+        target = relationship['target'].replace(" ", "_")
+        return f"MERGE ({source})-[:{relationship['predicate']}]->({target})"
+    
+    def get_updates_cypher(self, update):
+        target = update['target']
+        key = update['field']
+        value = update['value'].replace("'", "\\'")
+        return f"""SET {target}.{key} = '{value}'"""
     
     def translate_to_cypher(self, result_as_str):
         json_string = result_as_str
@@ -97,7 +108,7 @@ class GraphMemory(InferenceClient):
         
         settings = []
         if "updates" in result:
-            settings = [f"SET {update['target']}.{update['field']} = '{update['value'].replace("'", "''")}'" for update in result["updates"]]
+            settings = [self.get_updates_cypher(update) for update in result["updates"]]
         
         blocks = [self.get_entity_cypher(entity) for entity in entities] + [self.get_relationship_cypher(relationship) for relationship in relationships] + settings + ["RETURN " + ", ".join([f"{entity['variable']}" for entity in entities])]
         
@@ -133,9 +144,9 @@ class GraphMemory(InferenceClient):
                     for key, value in res.items():
                         docs[key] = value
                 self.get_logger().info(f"Docs: {docs}")
-                for id, doc in docs.items():
-                    self.embed_node(doc)
-                    self.get_logger().info(f"Embedded node: {id}")                        
+                for varb, doc in docs.items():
+                    self.embed_node(varb, doc)
+                    self.get_logger().info(f"Embedded node: {varb}")                        
                 return data
             except Exception as e:
                 self.get_logger().error(f"Error running Cypher inner block: {e}")
