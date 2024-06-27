@@ -55,8 +55,9 @@ class GraphMemory(InferenceClient):
         self.get_logger().info(f"Results for query embeddings: {results}")
         relationships = ""
         docs = results.get('documents', [])[0]
-        for doc in docs:
-            self.get_logger().info(f"Document: {doc}")
+        for docstr in docs:
+            self.get_logger().info(f"Document: {docstr}")
+            doc = json.loads(docstr)
             doc_id = doc.get('id')
             if doc_id:
                 self.get_logger().info(f"ID: {doc_id}")
