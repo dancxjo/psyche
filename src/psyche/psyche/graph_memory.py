@@ -8,11 +8,7 @@ import ollama
 import json
 
 system_message = """In well formatted JSON, list the relevant entities and their relationships as described in the natural language description of the situation. Use the following format:
-{ "entities": [{"variable": "me", "category": "Person", "description": "an artificial intelligence named Pete"}, {"variable": "body", "category": "Thing", "description": "a laptop"}], "relationships": [{"source": "body", "predicate": "EMBODIES", "target": "pete"}], "updates": [{ "target": "me", "field": "name", "value": "Pete"}] }. Use only the PascalCased categories of Person, Place, Thing, Event or Idea. Capture other features in the description. As you learn more about nodes, update their fields as shown in the example. Try to capture what's in the situation faithfully. You must define all entities before you can reference them in a relationship."""
-
-
-old = """You are a graph memory system. You are responsible for storing memories in a graph database. You receive situations and Cypher queries from the user, and you must rewrite the query to correctly translate the situation into a graph. First, identify the entities involved in the situation, create them in the graph database, and establish the relationships between them. As you receive the results of your queries, integrate them into the Cypher translation. You must always use the correct Cypher inside markdown syntax: Any code you write between single backticks or triple backticks will be replace the user's query. Correct the user's query. Use MERGE instead of MATCH to create new entities when needed. Make sure the query matches the situation provided. Also, help find duplicate nodes as you come across them. Include in your script a relationship :IS_ALSO between nodes that are duplicates. Always make sure to return the IDs and values of all the relevant nodes in your query a RETURN ID(a), a, ID(b), b, ID(c), c. Only include one return statement at the end of the command. Only one command at a time. You will see this prompt again.\n\nNext query including database updates and corrections:\n\n"""
-
+{ "entities": [{"variable": "me", "category": "Person", "description": "an artificial intelligence named Pete"}, {"variable": "body", "category": "Thing", "description": "a laptop"}], "relationships": [{"source": "body", "predicate": "IS_BODY_FOR", "target": "pete"}], "updates": [{ "target": "me", "field": "name", "value": "Pete"}] }. Use only the PascalCased categories of Person, Place, Thing, Event or Idea. Capture other features in the description. As you learn more about nodes, update their fields as shown in the example. Try to capture what's in the situation faithfully. You must define all entities before you can reference them in a relationship. The variable, source, body and predicate must be single words. Use lower case for variables."""
 
 class GraphMemory(InferenceClient):
     def __init__(self):
@@ -37,6 +33,7 @@ class GraphMemory(InferenceClient):
 
     def embed_node(self, id, node):
         # TODO: This uses the local Ollama instance
+        self.get_logger().info(f"Embedding node: {id} {str(node)}")
         response = ollama.embeddings(model="all-minilm", prompt=str(node))
         embedding = response["embedding"]
         self.collection.add(
@@ -53,10 +50,21 @@ class GraphMemory(InferenceClient):
         )
         results = self.collection.query(
             query_embeddings=[response["embedding"]],
-            n_results=10
+            n_results=2
         )
         self.get_logger().info(f"Results for query embeddings: {results}")
-        return results['documents']
+        relationships = ""
+        docs = results.get('documents', [])[0]
+        for doc in docs:
+            self.get_logger().info(f"Document: {doc}")
+            # id = doc['id']
+            # if id:
+            #     self.get_logger().info(f"ID: {id}")
+            #     results = self.db.session().run(f"MERGE (n)-[r]->(m) WHERE ID(n)={id} RETURN r")
+            #     rels = results.data()
+                # self.get_logger().info(f"Relationships: {rels}")
+                # relationships += str(rels)
+        return {"docs": docs, "relationships": relationships}
 
     def generate_prompt(self, prompt_template: str, inputs: dict = {}):
         rv = {"system": system_message, "json": True, "prompt": prompt_template.format(**inputs)}
@@ -110,7 +118,7 @@ class GraphMemory(InferenceClient):
         if "updates" in result:
             settings = [self.get_updates_cypher(update) for update in result["updates"]]
         
-        blocks = [self.get_entity_cypher(entity) for entity in entities] + [self.get_relationship_cypher(relationship) for relationship in relationships] + settings + ["RETURN " + ", ".join([f"{entity['variable']}" for entity in entities])]
+        blocks = [self.get_entity_cypher(entity) for entity in entities] + [self.get_relationship_cypher(relationship) for relationship in relationships] + settings + ["RETURN " + ", ".join([f"ID({entity['variable']}), {entity['variable']}" for entity in entities])]
         
         return blocks
     
@@ -142,7 +150,13 @@ class GraphMemory(InferenceClient):
                 docs = {}
                 for res in data:
                     for key, value in res.items():
-                        docs[key] = value
+                        if "ID(" not in key:
+                            docs[key] = {**value, **docs.get(key, {})}
+                            continue
+                        varb = key.split("(")[1].split(")")[0]
+                        if varb not in docs:
+                            docs[varb] = {}
+                        docs[varb]['id'] = value
                 self.get_logger().info(f"Docs: {docs}")
                 for varb, doc in docs.items():
                     self.embed_node(varb, doc)
@@ -201,7 +215,7 @@ class GraphMemory(InferenceClient):
         if len(history) > 2000:
             history = history[1:1000] + "..." + history[-1000:]
              
-        self.infer("""<situation>{situation}</situation>\n<execution_log>{history}<execution_log>""", {"code": self.code, "history": history, "situation": self.current_situation})
+        self.infer("""<situation>{situation}</situation>\n<related_existing_nodes>{related_nodes}</related_existing_nodes>\n<execution_log>{history}<execution_log>""", {"code": self.code, "history": history, "situation": self.current_situation, "related_nodes": self.query_embeddings(self.current_situation)})
         self.memories = self.memories[-2:]
         self.execution_log = ""
 
