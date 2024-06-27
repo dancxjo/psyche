@@ -57,13 +57,13 @@ class GraphMemory(InferenceClient):
         docs = results.get('documents', [])[0]
         for doc in docs:
             self.get_logger().info(f"Document: {doc}")
-            # id = doc['id']
-            # if id:
-            #     self.get_logger().info(f"ID: {id}")
-            #     results = self.db.session().run(f"MERGE (n)-[r]->(m) WHERE ID(n)={id} RETURN r")
-            #     rels = results.data()
-                # self.get_logger().info(f"Relationships: {rels}")
-                # relationships += str(rels)
+            doc_id = doc.get('id')
+            if doc_id:
+                self.get_logger().info(f"ID: {doc_id}")
+                results = self.db.session().run(f"MERGE (n)-[r]->(m) WHERE ID(n)={doc_id} RETURN r")
+                rels = results.data()
+                self.get_logger().info(f"Relationships: {rels}")
+                relationships += str(rels)
         return {"docs": docs, "relationships": relationships}
 
     def generate_prompt(self, prompt_template: str, inputs: dict = {}):
