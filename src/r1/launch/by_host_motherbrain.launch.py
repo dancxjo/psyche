@@ -245,8 +245,8 @@ def generate_launch_description():
         parameters=[{
             "action_server_name": "inspect",
             "image_support": True,
-            "prompt": "You are acting as a constiuent of the mind of a robot. Describe the attached snapshots from your eye as the robot narrating what it is seeing to itself. This context might be helpful as well: {input_topics}",
-            "input_topics": ["situation", "instant"],
+            "prompt": "You are acting as a constiuent of the mind of a robot. Describe the attached snapshots from your forward facing camera as the robot narrating what it is seeing to itself. This context might be helpful as well: {input_topics}",
+            "input_topics": ["situation"],
             "input_images": ["/image_raw/compressed"],
             "output_topic": "sensation",
             "update_interval": 15.0,

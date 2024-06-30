@@ -16,7 +16,7 @@ class TTSNode(Node):
         super().__init__('tts_node')
         self.declare_parameters(namespace='',
                                 parameters=[
-                                    ('voice_id', 'p317'),
+                                    ('voice_id', 'p238'),
                                     ('coqui_base_url', "http://192.168.0.7:5002")
                                 ])
         self.subscription = self.create_subscription(String, 'voice', self.voice_callback, 10)

@@ -50,7 +50,7 @@ class SensationIntegration(InferenceClient):
             return
         
         self.busy = True
-        self.infer("""You are an artificial consciousness embedded in physical hardware. These are your most recent sensations: {sensations}\nLast you knew, this was your situation: {situation}\nUsing this information, describe your situation.""", {"sensations": str(self.sensation_queue), "situation": self.current_situation})
+        self.infer("""You are an robot control system embedded in physical hardware. These are your most recent sensations: {sensations}\nLast you knew, this was your situation: {situation}\nUsing this information, describe your situation.""", {"sensations": str(self.sensation_queue), "situation": self.current_situation})
         self.sensation_queue = []
 
 def main(args=None):

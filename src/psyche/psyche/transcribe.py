@@ -13,7 +13,7 @@ class Transcriber(Node):
         self.run_once = False
         self.declare_parameters(namespace='',
                         parameters=[
-                            ('model', 'small'),
+                            ('model', 'large'),
                             ('language', 'english')
                         ])
 
@@ -41,7 +41,7 @@ class Transcriber(Node):
 
     def transcribe_audio_whisper(self, audio, language, model):        
         try:
-            transcription = self.recognizer.recognize_google(audio)#, language=language, model=model)
+            transcription = self.recognizer.recognize_whisper(audio, language=language, model=model)
             self.get_logger().debug(f"Transcription: {transcription}")
             if transcription.strip() != "":
                 self.publish_transcription(transcription)

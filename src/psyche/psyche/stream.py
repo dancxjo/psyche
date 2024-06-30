@@ -9,7 +9,6 @@ import io
 
 app = Flask(__name__)
 
-voice_id = 'p330'
 chunk_size = 1024
 
 # Generate 10 minutes of silent audio at 440 Hz (adjust as needed)
@@ -62,7 +61,7 @@ class TTSNode(Node):
         super().__init__('tts_node')
         self.declare_parameters(namespace='',
                                 parameters=[
-                                    ('voice_id', 'p330'),
+                                    ('voice_id', 'p336'),
                                     ('chunk_size', 1024),
                                     ('port', 8000)
                                 ])

@@ -6,9 +6,26 @@ from neo4j import GraphDatabase
 import chromadb
 import ollama
 import json
+import re
 
-system_message = """In well formatted JSON, list the relevant entities and their relationships as described in the natural language description of the situation. Use the following format:
-{ "entities": [{"variable": "me", "category": "Person", "description": "an artificial intelligence named Pete"}, {"variable": "body", "category": "Thing", "description": "a laptop"}], "relationships": [{"source": "body", "predicate": "IS_BODY_FOR", "target": "pete"}], "updates": [{ "target": "me", "field": "name", "value": "Pete"}] }. Use only the PascalCased categories of Person, Place, Thing, Event or Idea. Capture other features in the description. As you learn more about nodes, update their fields as shown in the example. Try to capture what's in the situation faithfully. You must define all entities before you can reference them in a relationship. The variable, source, body and predicate must be single words. Use lower case for variables."""
+system_message = """You are an entity extractor. In well formatted JSON, list all the relevant entities described in the natural language description of the situation. For instance, if the prompt read: "There is an elephant wearing pants," you would return this { "entities": [{ "description": "an elephant wearing pants", "labels": ["elephant", "pants wearer"], "attributes": { "definite": false, "dubious": true}}, { "description": "my pants", "labels": ["pants"], "attributes": { "definite": true, "size": "large enough to fit an elephant" }]}. Define all entities mentioned in the situation, adding what you deem to be intrinsic properties as you go. Do not include the first person (i.e. the AI) here, as it is already defined. Furthermore, you will receive the entities are already defined. You should repeat those that are still valid, refining their attributes and labels as necessary.
+"""
+
+
+
+class Entity:
+    def __init__(self, description: str, labels: list[str], attributes: dict = {}):
+        self.variable_name = re.sub(r"(\w+)", lambda x: x.group(0).capitalize(), description).replace(" ", "")
+        self.variable_name = self.variable_name[0].lower() + self.variable_name[1:]
+        self.labels = [label.title().replace(" ", "") for label in labels]
+        self.attributes = attributes
+        
+    def for_model(self):
+        return {
+            "description": self.description,
+            "labels": self.labels,
+            "attributes": self.attributes
+        }
 
 class GraphMemory(InferenceClient):
     def __init__(self):
@@ -27,7 +44,7 @@ class GraphMemory(InferenceClient):
         # TODO: Get this hardcoding out of here
         self.db = GraphDatabase.driver("bolt://192.168.0.7:7687")
         self.execution_log = ""
-        self.code = ""
+        self.entities = ""
         client = chromadb.Client()
         self.collection = client.create_collection(name="docs")
 
@@ -74,17 +91,13 @@ class GraphMemory(InferenceClient):
         rv['related_nodes'] = related_nodes
         return rv
     
-    def get_entity_cypher(self, entity):
-        varb = entity['variable'].replace(" ", "_")
-        declaration = varb + ":" + entity['category'].replace(" ", "")
-        fields = []
-        for key, value in entity.items():
-            escaped = value.replace("'", "\\'")
-            if key not in ["variable", "category"]:
-                fields.append(f"{key}: '{escaped}'")
-        fields = ", ".join(fields)
-        return f"MERGE ({declaration} {{{fields}}})"
+    def get_entity_cypher(self, e: Entity):
+        return f"MERGE ({e.variable_name}:{e.labels[0]} {[f"" for key in e.attributes]}) SET {e.variable_name + ':' + ':'.join(e.labels)}"
     
+    def get_entity(self, e: Entity):
+        return json.dumps(e.for_model())
+
+        
     def get_relationship_cypher(self, relationship):
         source = relationship['source'].replace(" ", "_")
         target = relationship['target'].replace(" ", "_")
@@ -101,26 +114,19 @@ class GraphMemory(InferenceClient):
 
         result = json.loads(json_string)
         self.get_logger().info(f"Translating to Cypher: {result}")
+
         if "entities" not in result:
             self.get_logger().error("No entities found in result")
             return []
-        
-        if "relationships" not in result:
-            self.get_logger().error("No relationships found in result")
-            return []
-        
+
         entities = result["entities"]
-        relationships = result["relationships"]
+        self.entities = [Entity(entity['description'], entity['labels']) for entity in entities]
         
-        self.get_logger().info(f"Entities: {entities}")
-        self.get_logger().info(f"Relationships: {relationships}")
+        self.get_logger().info(f"Entities: {self.entities}")
         
-        settings = []
-        if "updates" in result:
-            settings = [self.get_updates_cypher(update) for update in result["updates"]]
+        blocks = [self.get_entity_cypher(entity) for entity in self.entities] + ["RETURN " + ", ".join([entity.variable_name for entity in self.entities])]
         
-        blocks = [self.get_entity_cypher(entity) for entity in entities] + [self.get_relationship_cypher(relationship) for relationship in relationships] + settings + ["RETURN " + ", ".join([f"ID({entity['variable']}), {entity['variable']}" for entity in entities])]
-        
+        self.get_logger().info(f"Blocks: {blocks}")
         return blocks
     
     def extract_cypher_blocks(self, result: str):
@@ -216,7 +222,7 @@ class GraphMemory(InferenceClient):
         if len(history) > 2000:
             history = history[1:1000] + "..." + history[-1000:]
              
-        self.infer("""<situation>{situation}</situation>\n<related_existing_nodes>{related_nodes}</related_existing_nodes>\n<execution_log>{history}<execution_log>""", {"code": self.code, "history": history, "situation": self.current_situation, "related_nodes": self.query_embeddings(self.current_situation)})
+        self.infer("""<situation>{situation}</situation>\n<related_existing_nodes>{related_nodes}</related_existing_nodes>\n<execution_log>{history}<execution_log>""", {"code": f"{[self.get_entity(e) for e in self.entities]}", "history": history, "situation": self.current_situation, "related_nodes": self.query_embeddings(self.current_situation)})
         self.memories = self.memories[-2:]
         self.execution_log = ""
 
