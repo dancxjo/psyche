@@ -23,10 +23,11 @@ def generate_launch_description():
         # plain_lpu_local_net,
         # vision_lpu,
         # informant,
-        # Node(
-        #     package="psyche",
-        #     executable="transcribe_speech",
-        #     name="audio_comprehension",
-        #     output="screen",
-        # )
+        Node(
+            package="psyche",
+            executable="transcribe_speech",
+            name="audio_comprehension",
+            output="screen",
+        )
+        # Whisper is hard to install
    ])
