@@ -7,18 +7,31 @@ import chromadb
 import ollama
 import json
 import re
+import inflection
 
-system_message = """You are an entity extractor. In well formatted JSON, list all the relevant entities described in the natural language description of the situation. For instance, if the prompt read: "There is an elephant wearing pants," you would return this { "entities": [{ "description": "an elephant wearing pants", "labels": ["elephant", "pants wearer"], "attributes": { "definite": false, "dubious": true}}, { "description": "my pants", "labels": ["pants"], "attributes": { "definite": true, "size": "large enough to fit an elephant" }]}. Define all entities mentioned in the situation, adding what you deem to be intrinsic properties as you go. Do not include the first person (i.e. the AI) here, as it is already defined. Furthermore, you will receive the entities are already defined. You should repeat those that are still valid, refining their attributes and labels as necessary.
+
+system_message = """You are an entity extractor. In well formatted JSON, list all the relevant entities described in the natural language description of the situation. For instance, if the prompt read: "There is an elephant wearing pants," you would return this { "entities": [{ "description": "anElephantWearingPants", "labels": ["Elephant", "PantsWearer"], "attributes": { "color": "gray", "isFictional": "maybe"}}, { "description": "myPants", "labels": ["pants"], "attributes": { "definite": true, "size": "large enough to fit an elephant" }], "relationships": [["anElepantWearingPants, "wears", "pants"], ["pants", "belong_to", "me"]]}. Define all entities mentioned in the situation, adding what you deem to be intrinsic properties as you go. Use only valid Cypher tokens when setting the values of description and labels. You must define the first person by adding the attribute self:true. Furthermore, you will receive the entities are already defined. You should repeat those that are still valid, refining their attributes and labels as necessary. Attempt to form distinct but not duplicated entities by adding attributes you think are relevant. Include a field relationships alongside entities and extract all the relationships in the natural language description. The relationships should be in the form of a list of lists, where each sublist contains the source entity, the predicate, and the target entity. Use upper and lower camel case as demonstrated above.
 """
 
-
+def to_json_value(value):
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, str):
+        return f'"{value}"'
+    if isinstance(value, list):
+        return f'[{", ".join([to_json_value(val) for val in value])}]'
+    if isinstance(value, dict):
+        return f'{{{", ".join([f"{to_json_value(key)}: {to_json_value(val)}" for key, val in value.items()])}}}'
+    return value
 
 class Entity:
     def __init__(self, description: str, labels: list[str], attributes: dict = {}):
-        self.variable_name = re.sub(r"(\w+)", lambda x: x.group(0).capitalize(), description).replace(" ", "")
-        self.variable_name = self.variable_name[0].lower() + self.variable_name[1:]
-        self.labels = [label.title().replace(" ", "") for label in labels]
-        self.attributes = attributes
+        self.variable_name = inflection.camelize(description, False)
+        self.labels = [inflection.camelize(label) for label in labels]
+        attrs = {}
+        for key, val in attributes.items():
+            attrs[inflection.camelize(key)] = to_json_value(val)
+        self.attributes = attrs
         
     def for_model(self):
         return {
@@ -79,7 +92,7 @@ class GraphMemory(InferenceClient):
             if doc_id:
                 self.get_logger().info(f"ID: {doc_id}")
                 results = self.db.session().run("MATCH (n)-[r]->(m) WHERE ID(n) = $doc_id RETURN type(r) as type, r, ID(m) as target_id", doc_id=doc_id)
-                rels = results.data()
+                rels = results#.data()
                 self.get_logger().info(f"Relationships: {rels}")
                 relationships += str(rels)
         return {"docs": docs, "relationships": relationships}
@@ -92,7 +105,7 @@ class GraphMemory(InferenceClient):
         return rv
     
     def get_entity_cypher(self, e: Entity):
-        return f"MERGE ({e.variable_name}:{e.labels[0]} {[f"" for key in e.attributes]}) SET {e.variable_name + ':' + ':'.join(e.labels)}"
+        return f"MERGE ({e.variable_name}:{e.labels[0]} {{{[f'{key}: {val}' for key, val in e.attributes.items()]}}}) SET {e.variable_name + ':' + ':'.join(e.labels)}"
     
     def get_entity(self, e: Entity):
         return json.dumps(e.for_model())
