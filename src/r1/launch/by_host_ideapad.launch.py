@@ -128,6 +128,20 @@ def generate_launch_description():
             output="screen",
         )
     
+    executive = Node(
+        package="psyche",
+        executable="executive",
+        name="the_executive",
+        output="screen",
+    )
+    
+    thought_watcher = Node(
+        package="r1",
+        executable="watch_thoughts_to_act",
+        name="thought_watcher",
+        output="screen",
+    )
+    
     return LaunchDescription([
         llama3,
         llava,
@@ -141,4 +155,6 @@ def generate_launch_description():
         # audio_transcriber,
         sentience,
         graph_memory,
+        thought_watcher,
+        executive,
     ])
