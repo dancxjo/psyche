@@ -105,7 +105,7 @@ class GraphMemory(InferenceClient):
         return rv
     
     def get_entity_cypher(self, e: Entity):
-        return f"MERGE ({e.variable_name}:{e.labels[0]} {{{[f'{key}: {val}' for key, val in e.attributes.items()]}}}) SET {e.variable_name + ':' + ':'.join(e.labels)}"
+        return f"MERGE ({e.variable_name}:{e.labels[0]} {{{', '.join([f'{key}: {val}' for key, val in e.attributes.items()])}}}) SET {e.variable_name + ':' + ':'.join(e.labels)}"
     
     def get_entity(self, e: Entity):
         return json.dumps(e.for_model())

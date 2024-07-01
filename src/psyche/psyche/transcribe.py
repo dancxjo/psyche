@@ -41,13 +41,13 @@ class Transcriber(Node):
 
     def transcribe_audio_whisper(self, audio, language, model):        
         try:
-            transcription = self.recognizer.recognize_whisper(audio, language=language, model=model)
-            transcription2 = self.recognizer.recognize_google(audio, language=language)
-            self.get_logger().debug(f"Transcription: {transcription} or {transcription2}")
-            if transcription.strip() != "" and transcription2.strip() != "":
-                self.publish_transcription(f"Either '{transcription}' or '{transcription2}'")
+            # transcription = self.recognizer.recognize_whisper(audio, language=language, model=model)
+            transcription = self.recognizer.recognize_google(audio)#, language=language)
+            self.get_logger().debug(f"Transcription: {transcription}")
+            if transcription.strip() != "":
+                self.publish_transcription(transcription)
         except Exception as e:
-            self.get_logger().error(f"Failed to transcribe audio: {str(e)}")
+            self.get_logger().error(f"Failed to transcribe audio: {e}")
 
     def process_audio(self, audio_data_list):
         self.get_logger().debug(f'Processing audio {type(audio_data_list)}')

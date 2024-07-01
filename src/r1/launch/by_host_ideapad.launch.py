@@ -22,7 +22,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llama3:instruct"},
-                {"base_url": f"http://192.168.0.20:11434"},
+                {"base_url": f"http://forebrain.local:11434"},
                 {"action_server_name": "instruct"}
             ],
         )
@@ -34,7 +34,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llama3:instruct"},
-                {"base_url": f"http://192.168.0.7:11434"},
+                {"base_url": f"http://forebrain.local:11434"},
                 {"action_server_name": "code"}
             ],
         )
@@ -47,7 +47,7 @@ def generate_launch_description():
         parameters=[
             {"model": "llava:13b"},
             {"image_support": True},
-            {"base_url": f"http://192.168.0.7:11434"},
+            {"base_url": f"http://victus.local:11434"},
             {"action_server_name": "inspect"}
         ],
     )
@@ -152,7 +152,7 @@ def generate_launch_description():
         usb_cam,
         vision,
         audio_segmenter,
-        # audio_transcriber,
+        audio_transcriber,
         sentience,
         graph_memory,
         thought_watcher,
