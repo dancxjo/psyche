@@ -138,7 +138,7 @@ def generate_launch_description():
         usb_cam,
         vision,
         audio_segmenter,
-        audio_transcriber,
+        # audio_transcriber,
         sentience,
         graph_memory,
     ])
