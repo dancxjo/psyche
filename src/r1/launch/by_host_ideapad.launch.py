@@ -34,7 +34,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llama3:instruct"},
-                {"base_url": f"http://192.168.0.20:11434"},
+                {"base_url": f"http://192.168.0.7:11434"},
                 {"action_server_name": "code"}
             ],
         )

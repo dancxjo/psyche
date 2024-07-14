@@ -50,7 +50,7 @@ class SensationIntegration(InferenceClient):
             return
         
         self.busy = True
-        self.infer("""You are an robot control system embedded in physical hardware. These are your most recent sensations: {sensations}\nLast you knew, this was your situation: {situation}\nUsing this information, describe your situation.""", {"sensations": str(self.sensation_queue), "situation": self.current_situation})
+        self.infer("""You are an robot control system embedded in physical hardware. These are your most recent sensations: {sensations}\nLast you knew, this was your situation: {situation}\nUsing this information, describe your situation. Based only on the information from the sensations listed above, maintain a detailed transcript of the conversation you're having (if you're having one) and what's going on around you. Only transcribe what you witness. Do not try to act here. Simply maintain a log of what's happening. You will hear your own voice; keep track of it. (When you hear something like 'Robot 1 initialized,' you're up and running.)""", {"sensations": str(self.sensation_queue), "situation": self.current_situation})
         self.sensation_queue = []
 
 def main(args=None):
