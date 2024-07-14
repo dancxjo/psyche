@@ -22,7 +22,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llama3:instruct"},
-                {"base_url": f"http://forebrain.local:11434"},
+                {"base_url": f"http://192.168.0.20:11434"},
                 {"action_server_name": "instruct"}
             ],
         )
@@ -34,7 +34,7 @@ def generate_launch_description():
             output="screen",
             parameters=[
                 {"model": "llama3:instruct"},
-                {"base_url": f"http://forebrain.local:11434"},
+                {"base_url": f"http://192.168.0.20:11434"},
                 {"action_server_name": "code"}
             ],
         )
@@ -47,7 +47,7 @@ def generate_launch_description():
         parameters=[
             {"model": "llava:13b"},
             {"image_support": True},
-            {"base_url": f"http://victus.local:11434"},
+            {"base_url": f"http://192.168.0.7:11434"},
             {"action_server_name": "inspect"}
         ],
     )
@@ -100,8 +100,8 @@ def generate_launch_description():
         output="screen",
         parameters=[{
             "video_device": "/dev/video0",
-            "image_width": 800,
-            "image_height": 600,
+            "image_width": 960,
+            "image_height": 540,
             "framerate": 30.0,
         }]
     )

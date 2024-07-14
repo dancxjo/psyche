@@ -32,7 +32,7 @@ class Executive(InferenceClient):
             self.situation_callback,
             1
         )
-        self.thought_pub = self.create_publisher(String, 'thought', 3)
+        self.thought_pub = self.create_publisher(String, 'sensation', 3)
         self.busy = False
 
     def generate_prompt(self, prompt_template: str, inputs: dict = {}):
@@ -42,7 +42,7 @@ class Executive(InferenceClient):
     def on_result(self, result: str):
         self.get_logger().info(f"Received result: {result}")
         self.reflections += result + "\n"
-        self.thought_pub.publish(String(data=result))
+        self.thought_pub.publish(String(data=f"I think: {result}"))
         self.busy = False
         self.infer_situation()
 
