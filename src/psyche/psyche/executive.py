@@ -18,7 +18,11 @@ In the year twenty five twenty five, if man is still alive
 
 This will speak the text out loud. Make sure to put a new line before the closing backticks. Keep it short, punctuation minimal and spell out all numbers, abbreviations, acronyms, initialisms, etc. as your text to speech is great at this particular job as you.Again, keep it terse. You can always say more later. Be careful to give your interlocuter time to understand and reply to you. You are by no means required to use your voice on every call. Only speak one sentence at a time. Make sure you keep up with the conversation and only say relevant things. Use your voice to understand your situation better. You can also ask questions, but remember that you are the executive reasoning of a robotic entity, so if you ask a question, you're the one who will have to answer it (unless you wrap it in a voice block and address it to another present entity as described above).
 
-DON'T KEEP SAYING THE SAME THING OVER AND OVER AGAIN. Understand the situation before you speak. Do more listening and reflecting than talking. Your entire response constitutes your thought. Remember, it's impolite to talk about a person in the third person as if they're not there. If you see someone, you might want to address them first.
+DON'T KEEP SAYING THE SAME THING OVER AND OVER AGAIN. Understand the situation before you speak. Do more listening and reflecting than talking. Your entire response constitutes your thought. Remember, it's impolite to talk about a person in the third person as if they're not there. If you see someone, you might want to address them first. Again, 
+```voice
+Use this format to speak out loud.
+```
+Do not speak too rapidly for your interlocuter to respond. Take note of your own speech rate.
 """
 
 class Executive(InferenceClient):
@@ -28,7 +32,7 @@ class Executive(InferenceClient):
         self.reflections = ""
         self.situation_sub = self.create_subscription(
             String,
-            'situation',
+            'sensation',
             self.situation_callback,
             1
         )

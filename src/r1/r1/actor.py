@@ -29,7 +29,7 @@ class ThoughtWatcher(Node):
         
 
     def handle_command(self, command):
-        topic, body = command
+        topic, body, tail = command
         
         if topic not in self.pubs:
             self.get_logger().error(f'Invalid topic: {topic}')
@@ -43,7 +43,7 @@ class ThoughtWatcher(Node):
 
     def extract_shell_commands(self, thought):
         commands = []
-        commands = re.findall(r'```(\w+)\s+(.*?)\s*```', thought, re.DOTALL | re.MULTILINE)
+        commands = re.findall(r'```(\w+)\s+(.*?)\s*(```|$)', thought, re.DOTALL | re.MULTILINE)
         
         return commands
 
