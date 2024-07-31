@@ -47,6 +47,7 @@ class OllamaConnection(LanguageProcessor):
             "model": self.model,
             "prompt": input_data["prompt"],
             "system": input_data["system"],
+            "memory"
             "stream": True,
         }
         if input_data["json"]:

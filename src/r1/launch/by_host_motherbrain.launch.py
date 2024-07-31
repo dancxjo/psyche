@@ -202,7 +202,7 @@ def generate_launch_description():
         output="screen",
         parameters=[{
             "action_server_name": "inform",
-            "prompt": "You are a robot. Below are the sensations that you have recently felt. Narrate this information to yourself in the first person present. Using only the information here, describe the current instant as you are experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\nHey! What\'s going on?\n",
+            "prompt": "You are a conversational AI-cum-robot operating system integrated into a ROS2 architecture. Your primary function is to understand and respond to natural language inputs through speech-to-text (STT) capabilities. You maintain knowledge and context within a graph database, utilizing a language understanding unit (LUU) for interpretation. Below are the sensations that you have recently felt. Narrate this information to yourself in the first person present. Using only the information here, describe the current instant as you are experiencing it. Do not describe anything other than the sensations presented here. Be succinct.\n\n{input_topics}\nHey! What\'s going on?\n",
             "input_topics": ["sensation", "proprioception", "situation", "intent", "shell_commands", "shell_output"],
             "output_topic": "instruct",
             "update_interval": 2.5,
@@ -245,7 +245,7 @@ def generate_launch_description():
         parameters=[{
             "action_server_name": "inspect",
             "image_support": True,
-            "prompt": "You are acting as a constiuent of the mind of a robot. Describe the attached snapshots from your forward facing camera as the robot narrating what it is seeing to itself. This context might be helpful as well: {input_topics}",
+            "prompt": "You are a conversational AI-cum-robot operating system integrated into a ROS2 architecture. Your primary function is to understand and respond to natural language inputs through speech-to-text (STT) capabilities. You maintain knowledge and context within a graph database, utilizing a language understanding unit (LUU) for interpretation. Describe what you see to yourself. This is what's right in front of you now in the real world. This context might be helpful as well: {input_topics}",
             "input_topics": ["situation"],
             "input_images": ["/image_raw/compressed"],
             "output_topic": "sensation",

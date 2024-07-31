@@ -21,8 +21,8 @@ def generate_launch_description():
             name="llama3_on_victus",
             output="screen",
             parameters=[
-                {"model": "llama3:instruct"},
-                {"base_url": f"http://192.168.0.20:11434"},
+                {"model": "pete"},
+                {"base_url": f"http://192.168.0.7:11434"},
                 {"action_server_name": "instruct"}
             ],
         )
@@ -33,8 +33,8 @@ def generate_launch_description():
             name="codellama_on_forebrain",
             output="screen",
             parameters=[
-                {"model": "llama3:instruct"},
-                {"base_url": f"http://192.168.0.20:11434"},
+                {"model": "pete"},
+                {"base_url": f"http://192.168.0.7:11434"},
                 {"action_server_name": "code"}
             ],
         )
@@ -72,7 +72,7 @@ def generate_launch_description():
     sentience = Node(
         package="psyche",
         executable="integrate",
-        name="the_witness",
+        name="the_apperception",
         output="screen",
     )
 
@@ -148,13 +148,13 @@ def generate_launch_description():
         codellama,
         voice,
         boot_announcer,
-        heartbeat,
-        usb_cam,
-        vision,
+#        heartbeat,
+       usb_cam,
+#        vision,
         audio_segmenter,
         audio_transcriber,
-        sentience,
-        # graph_memory,
-        thought_watcher,
-        executive,
+#        sentience,
+#        graph_memory,
+#        thought_watcher,
+#        executive,
     ])
