@@ -4,3 +4,5 @@
 - Favor thorough inline documentation and add tests when feasible.
 - After editing `Dockerfile` or compose files, run `docker compose -f forebrain.yaml build` to ensure images build successfully.
 - Reuse Docker build caches when possible to avoid re-downloading dependencies.
+- Document new services (e.g., Qdrant) in the Docker guides and create
+  persistent data directories when adding them to compose files.

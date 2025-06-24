@@ -16,10 +16,13 @@ docker compose -f forebrain.yaml build
 
 This step caches packages so subsequent builds are faster. If you modify the `Dockerfile` or compose files, rerun the build command.
 
+The compose setup now also starts a Qdrant server for vector storage. Its data
+is persisted under `./qdrant_data`.
+
 ## Running the Container
 Two helper scripts exist under `launch/` for different hardware setups:
 
-- `launch/forebrain.sh` – launches the main ROS stack alongside additional services like OLLAMA and Neo4j.
+ - `launch/forebrain.sh` – launches the main ROS stack alongside additional services like OLLAMA, Neo4j, and Qdrant.
 - `launch/motherbrain.sh` – tailored for a single-board computer with attached devices.
 
 Execute the appropriate script to start the containers in detached `screen` sessions:

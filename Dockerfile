@@ -33,7 +33,7 @@ RUN pip install langchain-community
 RUN pip install langchain-openai
 RUN pip install sentence_splitter
 RUN pip install langchain-text-splitters
-RUN pip install faiss-cpu
+RUN pip install qdrant-client
 RUN pip install langchainhub
 RUN pip install langchain_experimental
 RUN pip install gpiod

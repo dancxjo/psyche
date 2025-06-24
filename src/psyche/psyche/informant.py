@@ -1,7 +1,8 @@
 import glob
 from .language_processor import LanguageProcessor
 from langchain_community.document_loaders import TextLoader
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Qdrant
+from qdrant_client import QdrantClient
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.document_loaders import DirectoryLoader
@@ -135,7 +136,15 @@ class Informant(LanguageProcessor):
         )        
     
     def setup_retriever(self):
-        self.db = FAISS.from_documents(self.split_docs, self.real_embeddings)
+        self.declare_parameter('qdrant_url', 'http://localhost:6333')
+        qdrant_url = self.get_parameter('qdrant_url').get_parameter_value().string_value
+        client = QdrantClient(url=qdrant_url)
+        self.db = Qdrant.from_documents(
+            self.split_docs,
+            self.real_embeddings,
+            client=client,
+            collection_name='memories',
+        )
         self.retriever = self.db.as_retriever(search_kwargs={"k": 10})
     
     def setup_chain(self):

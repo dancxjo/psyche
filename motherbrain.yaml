@@ -29,3 +29,10 @@ services:
         - "/dev/snd/pcmC2D0c:/dev/snd/pcmC0D0c"
     environment:
       - ALSA_CARDS=0
+
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./qdrant_data:/qdrant/storage
