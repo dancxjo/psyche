@@ -1,0 +1,3 @@
+psyche_interfaces/msg/Intention intent
+psyche_interfaces/msg/Feedback feedback
+builtin_interfaces/Time stamp

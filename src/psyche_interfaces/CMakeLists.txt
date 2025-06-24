@@ -10,13 +10,19 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/PlainTextInference.action"
   "action/InferenceWithImages.action"
   "message/StreamedChunk.msg"
-  "message/Sensation.msg"
-  DEPENDENCIES std_msgs sensor_msgs
+  "msg/Sensation.msg"
+  "msg/Impression.msg"
+  "msg/Urge.msg"
+  "msg/Intention.msg"
+  "msg/Feedback.msg"
+  "msg/Completion.msg"
+  DEPENDENCIES std_msgs sensor_msgs builtin_interfaces
 )
 
 if(BUILD_TESTING)
