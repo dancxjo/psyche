@@ -45,3 +45,15 @@ services:
       - "11434:11434"
     volumes:
       - ./ollama:/root/.ollama
+
+  ros2:
+    build:
+      context: .
+      dockerfile: Dockerfile.ros2
+    network_mode: host
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    volumes:
+      - ./ros2_ws:/ros2_ws
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"

@@ -2,5 +2,6 @@ qdrant_data/
 neo4j_data/
 tts/
 ollama/
+ros2_ws/
 __pycache__/
 *.pyc

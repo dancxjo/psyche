@@ -9,4 +9,5 @@ These instructions apply to the entire repository.
 - Update this file with lessons learned or reminders as the project evolves.
 
 - Ensure local volume directories (qdrant_data, neo4j_data, tts, ollama) exist but remain gitignored.
+- Ensure the ros2_ws workspace directory exists for the ROS container but stays gitignored.
 - Make scripts executable.
