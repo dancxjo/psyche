@@ -6,3 +6,5 @@
 - Reuse Docker build caches when possible to avoid re-downloading dependencies.
 - Document new services (e.g., Qdrant) in the Docker guides and create
   persistent data directories when adding them to compose files.
+- When defining ROS messages, reference types from this package as
+  `psyche_interfaces/MessageType` (without a `/msg` suffix).
