@@ -14,8 +14,6 @@
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>builtin_interfaces</depend>
-  <build_depend>builtin_interfaces</build_depend>
-  <exec_depend>builtin_interfaces</exec_depend>
 
   <member_of_group>rosidl_interface_packages</member_of_group>
 
