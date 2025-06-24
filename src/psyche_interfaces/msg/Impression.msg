@@ -1,2 +1,2 @@
-psyche_interfaces/msg/Sensation[] what
+psyche_interfaces/Sensation[] what
 string how
