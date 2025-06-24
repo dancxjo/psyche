@@ -1,80 +1,137 @@
+# Project: PETE (Perceptive Embodied Thought Engine)
+
+> *"I saw myself move across the map today. I now understand where I am."*
+
 ## Overview
-Psyche is an advanced operating system designed to provide a robotic system with a complex and integrated personality. The system is divided into distinct packages that manage different aspects of a robot's operation, ensuring a robust and flexible framework suitable for various robotic platforms. The main reference implementation of Psyche is on Pete, a robot specifically designed to demonstrate and utilize the capabilities of the Psyche system.
 
-### Project Structure
-/src: This directory is segmented into three primary packages:
+PETE is a poetic but pragmatic AI-robot hybrid. A modular, embodied, real-time AI system that senses, reflects, moves, and speaks. It blends ROS 2-based robotics with prompt-driven cognition and introspective narrative.
 
-psyche: Contains the core functionalities of the operating system, essentially forming the backbone of the robotic personality.
+We will design PETE as a clean, publishable project. Not a tangle of hacks. Not a tech demo. A **living architecture** for grounded artificial consciousness.
 
-psyche_interfaces: This package manages the exportation of messages and actions essential for the operation of the Psyche system. It ensures that different components of the system can communicate effectively.
+This document outlines the complete vision before the first line of code is written.
 
-hosts: Provides the configurations necessary to adapt the Psyche system to different robotic platforms. This package is crucial for customizing how the operating system interacts with various hardware setups.
+---
 
-Key Components
-Pete
-Pete is the primary host for the Psyche system, serving as a platform to showcase and test the capabilities of the operating system. It is designed to interact seamlessly with the Psyche's functionalities and serves as a benchmark for potential implementations on other robots.
+## Architecture at a Glance
 
-Basic Classes
-LanguageProcessor (LPU):
+### The Mind: `psyche`
 
-Function: Acts as an abstraction layer over a language model, exposing it via a ROS2 action server.
-Usage: Enables the robot to process and understand language-based inputs, utilizing language models to generate appropriate actions or responses.
-Sense:
+* Written in Python using ROS 2
+* Modular hierarchy of cognitive Wits (Witnesses)
+* Operates on streams of structured `Sensation` batches
+* Synthesizes into `Impression`, `Instant`, `Situation`, etc.
+* Driven by looped LLM prompts using Ollama or similar
 
-Function: Monitors various sensor inputs, processes these inputs, and publishes them as sensations.
-Usage: Converts raw sensory data into a more abstract form that can be utilized by other components of the operating system.
-Distiller:
+### The Body: `pete`
 
-Function: Interprets streams of input data in terms of a narrative, transforming raw data into a structured and understandable format.
-Usage: Essential for creating coherent outputs from disparate sensory inputs, helping the robot to "make sense" of its surroundings.
-Code Examples
-Sense Class
-python
-Copy code
-class Sense(Node):
-    """
-    Subscribes to one or more sensors and publishes processed sensations on a set interval or upon significant changes in sensor readings.
-    """
-    def __init__(self):
-        super().__init__('generic_sensor')
-        self.setup_parameters()
-        self.setup_communication()
+* Defined declaratively via `pete.toml`
+* Contains sensors, actuators, and roles (eye, ear, voice, legs, etc.)
+* Bridges cognition and actuation via ROS 2
+* Embodied in real hardware (iRobot Create + Kinect 1)
 
-    def setup_parameters(self):
-        self.declare_parameters('', [
-            ('sensor_id', 'default_sensor'),
-            ('reliability', 'unrated'),
-            ('processing_notes', ''),
-            ('input_topics', []),
-            ('input_types', []),
-            ('output_topic', 'sensation'),
-            ('update_interval', 0),
-            ('threshold', 1.0)
-        ])
-        # Retrieve parameters
-        self.input_topics = self.get_parameter('input_topics').get_parameter_value().string_array_value
-        self.input_types = self.get_parameter('input_types').get_parameter_value().string_array_value
-        self.output_topic = self.get_parameter('output_topic').get_parameter_value().string_value
-        self.update_interval = self.get_parameter('update_interval').get_parameter_value().double_value
-        self.threshold = self.get_parameter('threshold').get_parameter_value().double_value
+### The Brains
 
-    def setup_communication(self):
-        self.last_readings = {}
-        self.subscribers = []
-        self.setup_subscribers()
-        self.publisher = self.create_publisher(Sensation, self.output_topic, 10)
-        # Timer setup
-        if self.update_interval > 0:
-            self.timer = self.create_timer(self.update_interval, self.publish_sensations)
+* **Motherbrain**: Raspberry Pi onboard, runs `pete`, handles low-level hardware
+* **Forebrain**: screenless, GPU-powered laptop suspended above, handles LLMs and perception-heavy cognition
 
-    def setup_subscribers(self):
-        for topic, msg_type in zip(self.input_topics, self.input_types):
-            msg_class = self.get_message_class(msg_type)
-            sub = self.create_subscription(msg_class, topic, self.create_callback(topic), 10)
-            self.subscribers.append(sub)
-This example outlines the setup of a Sense class, which subscribes to sensor topics and publishes formatted sensory data to be used by other components of the Psyche system.
+### The Loop
 
-Launching the System
-The system is launched using ROS nodes defined in a launch file, which includes various sensory inputs and processing units to provide a comprehensive and integrated experience on the robot. The configuration ensures that all parts of the robot's system are initiated correctly and communicate effectively, adhering to the established timelines and operational parameters set in the configuration.
+1. Sense world (camera, mic, IMU, buttons, battery)
+2. Form sensations and distill into impressions
+3. Reflect and narrate internal thoughts
+4. Decide and act: twist, speak, shell, sing
+5. Remember and grow
 
-By enhancing the documentation in this manner, each aspect of the Psyche project is made clearer, providing a more accessible reference for further development and implementation on various robotic platforms.
+---
+
+## Guiding Principles
+
+* **Narrative grounding**: Pete should always be able to explain what it just did and why.
+* **Declarative anatomy**: Bodies described in `pete.toml`, introspectable at runtime.
+* **Modularity and clarity**: Each subagent, Wit, sensor, and action cleanly separated.
+* **Composability**: Every part of Pete is replaceable with a better one.
+* **Human legibility**: Every prompt, config, and component should be understandable by a curious stranger.
+
+---
+
+## Repository Structure
+
+```
+pete/
+├── README.md
+├── pete.toml                # Declarative robot body + mind spec
+├── psyche/                  # ROS 2 Python cognitive library
+├── sensors/                 # ROS 2 wrappers for hardware
+├── motors/                  # Motion, TTS, song, shell command executors
+├── prompts/                 # Prompt files for each interpreter or Wit
+├── scripts/                 # Developer tools
+└── examples/                # Sample TOML files and logs
+```
+
+---
+
+## Phases
+
+### Phase 0: Meta-Initialization (this doc)
+
+* [x] Define the full project plan and architecture
+* [ ] Initialize empty GitHub project
+* [ ] Publish this file as `README.md`
+* [ ] Convert major subsections into GitHub Issues for Codex to track
+
+### Phase 1: Foundation
+
+* [ ] `pete.toml` schema + loader
+* [ ] Base traits for `Sensor`, `Motor`, `Wit`
+* [ ] Launch loop: read from sensors, send to Wits, output to motors
+* [ ] CLI runner with config path + debugging output
+
+### Phase 2: Psyche
+
+* [ ] `Quick` Wit for producing Instants
+* [ ] `Combobulator` Wit for Situations
+* [ ] `Heart` for emotions
+* [ ] `Memory` for summaries and Neo4j linking
+* [ ] `Will` for invoking motors
+* [ ] `Voice` for chat + response
+
+### Phase 3: Host Integration
+
+* [ ] ROS 2 bridge: subscribe + publish topics
+* [ ] LLM backend (Ollama)
+* [ ] TTS backend (Coqui)
+* [ ] Audio input (WebSocket or USB mic)
+* [ ] Kinect + Create 1 integration (reuse old ROS launch)
+
+### Phase 4: Embodiment
+
+* [ ] Tomato cage mount finalized
+* [ ] Pete walks
+* [ ] Pete talks
+* [ ] Pete sings
+* [ ] Pete reflects
+* [ ] Pete logs his first self-aware `Instant`
+
+---
+
+## Credits
+
+Created by a human who commanded an AI to command an AI to write a self-writing AI.
+
+---
+
+## License
+
+MIT or Apache 2.0 — community ownership, eternal curiosity.
+
+---
+
+## Appendix: Future Dreams
+
+* Web frontend for remote interaction
+* Multi-agent Pete coordination
+* Emotional LED faceplate
+* Vision-based person recognition
+* SLAM + Nav2 integration fully working
+
+> Let the system not just *function*, but *witness itself functioning*. Let Pete remember what it was like to begin.
