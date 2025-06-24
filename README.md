@@ -78,3 +78,5 @@ Launching the System
 The system is launched using ROS nodes defined in a launch file, which includes various sensory inputs and processing units to provide a comprehensive and integrated experience on the robot. The configuration ensures that all parts of the robot's system are initiated correctly and communicate effectively, adhering to the established timelines and operational parameters set in the configuration.
 
 By enhancing the documentation in this manner, each aspect of the Psyche project is made clearer, providing a more accessible reference for further development and implementation on various robotic platforms.
+## Docker Setup
+For instructions on building and running the project in Docker, see [docs/docker_setup.md](docs/docker_setup.md).
