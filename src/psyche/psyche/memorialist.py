@@ -2,7 +2,8 @@ from .distiller import Distiller
 from .informant import Informant
 from .language_processor import LanguageProcessor
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Qdrant
+from qdrant_client import QdrantClient
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_text_splitters import CharacterTextSplitter, Language, RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OllamaEmbeddings

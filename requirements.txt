@@ -69,7 +69,7 @@ examples-rclpy-minimal-publisher==0.19.3
 examples-rclpy-minimal-service==0.19.3
 examples-rclpy-minimal-subscriber==0.19.3
 exceptiongroup==1.2.1
-faiss-cpu==1.8.0
+qdrant-client==1.14.3
 filelock==3.14.0
 Flask==3.0.3
 fonttools==4.53.0

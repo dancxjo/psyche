@@ -44,7 +44,7 @@ pip install -qU \
     langchain-openai \
     sentence_splitter \
     langchain-text-splitters \
-    faiss-cpu \
+    qdrant-client \
     langchainhub \
     langchain_experimental \
     gpiod \
