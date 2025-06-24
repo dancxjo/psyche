@@ -1,0 +1,6 @@
+qdrant_data/
+neo4j_data/
+tts/
+ollama/
+__pycache__/
+*.pyc

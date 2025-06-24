@@ -7,3 +7,6 @@ These instructions apply to the entire repository.
 - Cache packages during tests when possible to avoid redundant downloads.
 - Provide thorough inline documentation and examples in the code.
 - Update this file with lessons learned or reminders as the project evolves.
+
+- Ensure local volume directories (qdrant_data, neo4j_data, tts, ollama) exist but remain gitignored.
+- Make scripts executable.
