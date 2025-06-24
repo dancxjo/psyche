@@ -27,10 +27,19 @@ if [ -e "/ros_entrypoint.sh" ]; then
     ros2 launch $debug_marks $HOST_PKG autoexec.launch.py
 else
     echo "Outside docker node, use base launch shell scripts"
-    if [ -e /psyche/launch/$(hostname).sh ]; then
-        /psyche/launch/$(hostname).sh
+    if [ -e ./launch/$(hostname).sh ]; then
+        ./launch/$(hostname).sh
+    else
+        echo "No launch script found for $(hostname), using default"
+        if [ -e ./launch/forebrain.sh ]; then
+            ./launch/forebrain.sh
+        else
+            echo "No default launch script found, exiting"
+            exit 1
+        fi
     fi
 fi
+
 
 ### If we get here, just spin
 tail -f /dev/null
