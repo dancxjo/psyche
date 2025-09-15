@@ -6,10 +6,16 @@ hostname = "ear.local"
 [layer1]
 mode = "client"
 scouting = true
-bridge_ros2dds = { enabled = false }
+bridge_ros2dds = { enabled = true }
 
 [layer2]
-ros_distro = "none"
+ros_distro = "jazzy"
+rmw = "rmw_cyclonedds_cpp"
+domain_id = 42
 
-[layer3]
-nodes = []
+[[layer3.nodes]]
+name = "imu_mpu6050"
+type = "direct"
+package = "python3"
+executable = "/home/runner/work/psyche/psyche/layer3/services/imu_mpu6050_node.py"
+namespace = "/ear"

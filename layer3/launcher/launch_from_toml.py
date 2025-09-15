@@ -67,11 +67,13 @@ def main() -> None:
         os.environ[str(key).upper()] = str(value)
 
     for node in cfg.nodes:
-        cmd = ["ros2"]
-        if node.type == "launch":
-            cmd += ["launch", node.package, node.executable]
+        if node.type == "direct":
+            # Direct script execution
+            cmd = [node.package, node.executable]
+        elif node.type == "launch":
+            cmd = ["ros2", "launch", node.package, node.executable]
         else:
-            cmd += ["run", node.package, node.executable]
+            cmd = ["ros2", "run", node.package, node.executable]
         print("Would run:", " ".join(cmd))
 
 
