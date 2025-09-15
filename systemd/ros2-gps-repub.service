@@ -3,12 +3,18 @@ Description=ROS2 republisher for Zenoh GNSS
 After=network-online.target
 Wants=network-online.target
 
+# Run the ROS2 bridge as dedicated 'pete' user (needs access to tty devices via dialout)
 [Service]
 Type=simple
-Restart=always
+User=pete
+Group=dialout
+RuntimeDirectory=psyched
 Environment=GNSS_IN_KEY=rt/gnss/ear0
 Environment=GNSS_OUT_TOPIC=/gps/fix
+WorkingDirectory=/opt/psyched
 ExecStart=/usr/local/bin/ros_exec /opt/psyched/venv/bin/python /opt/psyched/layer3/services/ros2_republish_gnss.py
+Restart=on-failure
+TimeoutStartSec=20
 
 [Install]
 WantedBy=multi-user.target
