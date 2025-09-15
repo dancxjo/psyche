@@ -25,7 +25,8 @@ install_base() {
   log "Installing ros-$DISTRO-ros-base and tools"
   apt-get update -y
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    ros-$DISTRO-ros-base python3-colcon-common-extensions python3-rosdep
+    ros-$DISTRO-ros-base python3-colcon-common-extensions python3-rosdep \
+    build-essential cmake gcc g++ ninja-build pkg-config
   rosdep init || true
   rosdep update || true
 }
