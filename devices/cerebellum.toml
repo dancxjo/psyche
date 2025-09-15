@@ -1,0 +1,24 @@
+[device]
+id = "cerebellum"
+roles = ["compute", "nav"]
+hostname = "cerebellum.local"
+
+[layer1]
+mode = "peer"
+scouting = true
+seed_peers = ["tcp/forebrain.local:7447"]
+bridge_ros2dds = { enabled = true }
+
+[layer2]
+ros_distro = "jazzy"
+rmw = "rmw_cyclonedds_cpp"
+domain_id = 42
+namespace = "/cerebellum"
+
+[[layer3.nodes]]
+name = "nav2_bringup"
+type = "launch"
+package = "nav2_bringup"
+executable = "bringup_launch.py"
+namespace = "/robot"
+params = ["layer3/services/nav2.yaml"]

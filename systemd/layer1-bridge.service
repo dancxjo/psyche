@@ -1,0 +1,12 @@
+[Unit]
+Description=Zenoh <-> ROS2 DDS bridge
+After=layer1-zenoh.service
+Requires=layer1-zenoh.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/zenoh-bridge-ros2dds -c /etc/zenoh/bridge_ros2.json5
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

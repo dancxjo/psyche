@@ -1,0 +1,15 @@
+[Unit]
+Description=Layer1 Zenoh fabric
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=SCOUT_SECS=4
+ExecStartPre=/usr/bin/mkdir -p /run/zenoh
+ExecStart=/usr/local/bin/zenoh_autonet.sh auto
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
