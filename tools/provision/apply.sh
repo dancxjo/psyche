@@ -181,9 +181,36 @@ install_files_and_units() {
   ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyche
 
   # Mark the repo safe for global git operations (avoid unsafe repo errors)
-  if command -v git >/dev/null 2>&1; then
-    git config --global --add safe.directory "$REPO_DIR" || true
-  fi
+  # Mark the repo safe for global git operations (avoid unsafe repo errors)
+  mark_git_safe() {
+    repo="$1"
+    # Prefer using git when available
+    if command -v git >/dev/null 2>&1; then
+      # Use --global when possible to make the setting available to the provisioning user
+      git config --global --add safe.directory "$repo" || true
+      return 0
+    fi
+
+    # Fallback: ensure /etc/gitconfig contains the safe.directory entry so all users
+    # treat the repo as safe. Use a temporary file and atomic move to avoid partial writes.
+    cfg=/etc/gitconfig
+    tmp=$(mktemp)
+    safe_section="[safe]\n\tdirectory = $repo\n"
+    # If /etc/gitconfig exists and already contains the directory, skip
+    if [ -f "$cfg" ] && grep -Fq "directory = $repo" "$cfg" >/dev/null 2>&1; then
+      rm -f "$tmp" || true
+      return 0
+    fi
+    # Merge existing config if present
+    if [ -f "$cfg" ]; then
+      cat "$cfg" > "$tmp" || true
+    fi
+    # Append safe section
+    printf "%b\n" "$safe_section" >> "$tmp" || true
+    install -m 0644 "$tmp" "$cfg" || true
+    rm -f "$tmp" || true
+  }
+  mark_git_safe "$REPO_DIR"
 
   install_unit layer1-zenoh.service
   install_unit layer1-bridge.service
@@ -450,9 +477,8 @@ enable_role_stacks() {
     else
       disable_unit cerebellum-containers.service
       log "ros2 republisher units removed from repo; skipping disable"
-    fi
-    fi
-    if grep -q '"mic"' /etc/psyched/device_roles.json; then
+  fi
+  if grep -q '"mic"' /etc/psyched/device_roles.json; then
       log "Ensuring ALSA tools and zenoh python for mic"
       ensure_alsa
       ensure_py_zenoh
