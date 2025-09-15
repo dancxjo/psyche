@@ -1,32 +1,5 @@
-This directory is intended to hold prebuilt wheels for zenoh-python (and any
-other binary wheels needed for provisioning constrained devices).
+# Wheels Directory (Deprecated)
 
-Usage
------
-- Place the wheel file(s) here (for example: `zenoh_python-0.11.0-cp311-cp311-manylinux2014_aarch64.whl`).
-- Alternatively, run the helper script at `tools/add_wheel.sh` from the repo root:
+**Note**: This directory is no longer needed since zenoh is now available as a pure Python wheel on PyPI.
 
-  ```bash
-  ./tools/add_wheel.sh /path/to/zenoh_python-...whl
-  ```
-
-Notes
------
-- Large binary files ( > ~50MB ) should usually be managed with Git LFS. If a wheel is larger than
-  GitHub's hard file size limit (~100MB), pushing will fail; use Git LFS in that case:
-
-  ```bash
-  git lfs install
-  git lfs track 'wheels/*.whl'
-  git add .gitattributes
-  git commit -m "Track wheels with Git LFS"
-  ```
-
-- The repository's provisioning already looks for wheels under `/opt/psyched/wheels`
-  (i.e., `REPO_DIR/wheels`). When a wheel matching the host arch and Python tag is
-  present, provisioning will install it instead of building locally.
-
-Security
---------
-- Only add wheels you trust (signed by you or a trusted maintainer). Installing arbitrary wheels
-  can run native code on the device.
+Previously, this directory held prebuilt wheels for zenoh-python to avoid building from source on constrained devices like the Raspberry Pi Zero 2W. The zenoh dependency has been simplified to use the standard PyPI package which works on all platforms without compilation.
