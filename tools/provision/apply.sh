@@ -105,7 +105,6 @@ data = tomllib.loads(path.read_text())
 roles = data.get("device", {}).get("roles", [])
 print(json.dumps({"roles": roles}))' "$DEVICE_TOML" >/etc/psyched/device_roles.json
   fi
-  fi
 
   # Python venv setup for daemons
   VENV_DIR="$REPO_DIR/venv"
