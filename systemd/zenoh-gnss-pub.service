@@ -5,11 +5,16 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-Restart=always
+User=pete
+Group=dialout
+RuntimeDirectory=psyched
 Environment=GNSS_DEVICE=/dev/ttyACM0
 Environment=GNSS_BAUD=9600
-Environment=GNSS_KEY=rt/gnss/ear0
-ExecStart=/opt/psyched/venv/bin/python /opt/psyched/layer3/services/zenoh_gnss_pub.py
+Environment=ZENOH_CONFIG=
+ExecStart=/opt/psyched/venv/bin/python -u /opt/psyched/layer3/services/zenoh_gnss_pub.py
+Restart=on-failure
+TimeoutStartSec=20
+# device access managed via dialout group or udev rules ensuring pete ownership
 
 [Install]
 WantedBy=multi-user.target
