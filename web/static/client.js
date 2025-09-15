@@ -20,6 +20,53 @@ socket.addEventListener('message', (ev) => {
         }
         return;
     }
+    if (data.startsWith('ZENOH_INIT:')) {
+        try {
+            const obj = JSON.parse(data.slice('ZENOH_INIT:'.length));
+            const keys = obj.keys || [];
+            const status = obj.status || {};
+            const info = document.getElementById('zenohInfo');
+            const list = document.getElementById('zenohList');
+            list.innerHTML = '';
+            if (!keys.length) {
+                info.textContent = 'No zenoh keys configured.';
+            } else {
+                info.textContent = 'Configured zenoh keys:';
+                keys.forEach(k => {
+                    const li = document.createElement('li');
+                    li.id = 'zenoh-' + k.replace(/[^a-zA-Z0-9_\-]/g, '_');
+                    const last = (status[k] && status[k].last) ? status[k].last : '(no data yet)';
+                    li.innerHTML = `<strong>${k}</strong>: <span class="zen-last">${last}</span>`;
+                    list.appendChild(li);
+                });
+            }
+        } catch (e) {
+            console.error('Invalid ZENOH_INIT payload', e);
+        }
+        return;
+    }
+    if (data.startsWith('ZENOH_UPD:')) {
+        try {
+            const obj = JSON.parse(data.slice('ZENOH_UPD:'.length));
+            const key = obj.key;
+            const payload = obj.payload;
+            const safeId = 'zenoh-' + key.replace(/[^a-zA-Z0-9_\-]/g, '_');
+            let li = document.getElementById(safeId);
+            if (!li) {
+                li = document.createElement('li');
+                li.id = safeId;
+                li.innerHTML = `<strong>${key}</strong>: <span class="zen-last">(no data yet)</span>`;
+                document.getElementById('zenohList').appendChild(li);
+            }
+            const span = li.querySelector('.zen-last');
+            if (span) span.textContent = payload;
+            // also add to the general topics list for visibility
+            addTopic(`ZENOH ${key}: ${payload}`);
+        } catch (e) {
+            console.error('Invalid ZENOH_UPD payload', e);
+        }
+        return;
+    }
     if (data.startsWith('ADD:')) {
         addTopic(data.slice(4));
         return;

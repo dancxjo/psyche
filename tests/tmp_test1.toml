@@ -1,0 +1,12 @@
+
+[device]
+id = "demo"
+
+[layer1]
+mode = "peer"
+
+[layer2]
+ros_distro = "jazzy"
+
+[layer3]
+nodes = []

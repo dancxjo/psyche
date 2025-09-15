@@ -1,0 +1,15 @@
+
+[device]
+id = "demo"
+
+[layer1]
+mode = "peer"
+
+[layer1.services.web]
+enabled = "yes"
+
+[layer2]
+ros_distro = "jazzy"
+
+[layer3]
+nodes = []

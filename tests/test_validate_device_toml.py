@@ -52,3 +52,29 @@ def test_validate_missing_section(tmp_path: pathlib.Path) -> None:
     # When / Then
     with pytest.raises(ValidationError):
         validate(bad)
+
+
+def test_validate_layer1_web_enabled_boolean(tmp_path: pathlib.Path) -> None:
+    """layer1.services.web.enabled must be a boolean if present."""
+    bad = tmp_path / "device.toml"
+    bad.write_text(
+        textwrap.dedent(
+            """
+            [device]
+            id = "demo"
+
+            [layer1]
+            mode = "peer"
+            [layer1.services.web]
+            enabled = "yes"
+
+            [layer2]
+            ros_distro = "jazzy"
+
+            [layer3]
+            nodes = []
+            """
+        )
+    )
+    with pytest.raises(ValidationError):
+        validate(bad)

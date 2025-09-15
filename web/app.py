@@ -14,6 +14,8 @@ from typing import List, Optional
 import asyncio
 import os
 import logging
+import json
+import time
 
 logger = logging.getLogger("psyche.web")
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +52,10 @@ manager = ConnectionManager()
 
 important_topics: List[str] = []
 
+# Track zenoh keys and their last seen payload/timestamp
+zenoh_status: dict = {}
+
+
 # Attempt to import zenoh-python and, if present, subscribe to configured keys
 try:
     import zenoh
@@ -82,6 +88,16 @@ async def zenoh_subscriber_loop():
         logger.info('No zenoh keys configured in environment; skipping subscription')
         return
 
+    # initialize status entries
+    for k in keys:
+        zenoh_status[k] = {"last": None, "ts": None}
+
+    # broadcast initial zenoh statuses to any connected clients
+    try:
+        await manager.broadcast("ZENOH_INIT:" + json.dumps({"keys": keys, "status": zenoh_status}))
+    except Exception:
+        logger.exception('Failed to broadcast zenoh init')
+
     try:
         z = zenoh.open()  # defaults; tweak via ZENOH_CONFIG env if needed
         logger.info('zenoh session opened')
@@ -98,9 +114,17 @@ async def zenoh_subscriber_loop():
                 payload = sample.payload.decode('utf-8')
             except Exception:
                 payload = str(sample.payload)
-            msg = f"ZENOH:{sample.key} {payload}"
-            # schedule broadcast in the event loop
-            asyncio.get_event_loop().create_task(manager.broadcast(msg))
+
+            # schedule async handler to update status and broadcast JSON
+            async def _handle():
+                try:
+                    zenoh_status[sample.key] = {"last": payload, "ts": time.time()}
+                    payload_obj = {"key": sample.key, "payload": payload, "ts": zenoh_status[sample.key]["ts"]}
+                    await manager.broadcast("ZENOH_UPD:" + json.dumps(payload_obj))
+                except Exception:
+                    logger.exception('error handling zenoh sample async')
+
+            asyncio.get_event_loop().create_task(_handle())
         except Exception:
             logger.exception('error handling zenoh sample')
 

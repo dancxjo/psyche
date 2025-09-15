@@ -20,3 +20,8 @@ type = "node"
 package = "image_proc"
 executable = "image_proc"
 namespace = "/vision"
+
+[layer3.services.web]
+enabled = true
+host = "0.0.0.0"
+port = 8000

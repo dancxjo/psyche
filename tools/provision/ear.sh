@@ -110,6 +110,11 @@ mode = "client"
 scouting = true
 bridge_ros2dds = { enabled = false }
 
+[layer1.services.web]
+enabled = true
+host = "0.0.0.0"
+port = 8080
+
 [layer2]
 ros_distro = "none"
 
@@ -123,6 +128,62 @@ TOML
   "mode": "router",
   "listen": ["tcp/0.0.0.0:7447"],
   "scouting": { "enabled": true }
+}
+
+setup_web_service() {
+  local toml=/opt/psyched/devices/ear.toml
+  if [ ! -f "$toml" ]; then
+    log "No device TOML at $toml; skipping web setup"
+    return 0
+  fi
+
+  # Check if layer1.services.web.enabled = true using a simple grep-based parse
+  if ! grep -A3 "\[layer1.services.web\]" "$toml" | grep -q "enabled\s*=\s*true"; then
+    log "Web service not enabled in $toml; skipping web setup"
+    return 0
+  fi
+
+  # Extract host and port (fallback to defaults)
+  local host port
+  host=$(grep -A3 "\[layer1.services.web\]" "$toml" | sed -n 's/^[[:space:]]*host[[:space:]]*=[[:space:]]*"\?\([^"]*\)"\?$/\1/p' | tr -d '\n')
+  port=$(grep -A3 "\[layer1.services.web\]" "$toml" | sed -n 's/^[[:space:]]*port[[:space:]]*=[[:space:]]*\([0-9]*\).*$/\1/p' | tr -d '\n')
+  host=${host:-0.0.0.0}
+  port=${port:-8080}
+
+  log "Setting up web service (host=$host port=$port)"
+
+  # Ensure pip is available
+  if ! command -v pip3 >/dev/null 2>&1; then
+    log "Installing python3-pip"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip || true
+  fi
+
+  # Install runtime requirements (fastapi, uvicorn). zenoh-python is optional.
+  log "Installing Python packages (fastapi, uvicorn, zenoh-python)"
+  pip3 install --no-cache-dir fastapi "uvicorn[standard]" zenoh-python || true
+
+  # Create systemd unit to run the FastAPI app. Assumes code lives under /opt/psyched
+  cat > /etc/systemd/system/psyche-web.service << UNIT
+[Unit]
+Description=Psyche Web UI (uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/psyched
+ExecStart=/usr/bin/python3 -m uvicorn web.app:app --host ${host} --port ${port}
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+  chmod 644 /etc/systemd/system/psyche-web.service || true
+  systemctl daemon-reload || true
+  systemctl enable --now psyche-web.service || true
+  log "Web service unit installed and enabled"
 }
 JSON
 

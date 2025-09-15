@@ -8,6 +8,11 @@ mode = "client"
 scouting = true
 bridge_ros2dds = { enabled = false }
 
+[layer1.services.web]
+enabled = true
+host = "0.0.0.0"
+port = 8080
+
 [layer2]
 ros_distro = "none"
 

@@ -295,6 +295,13 @@ print(" ".join(reqs))' "$DEVICE_TOML")
     fi
   fi
 
+  # Also install repository-wide requirements if present
+  if [ -f "$REPO_DIR/requirements.txt" ]; then
+    log "Installing repository requirements into venv"
+    # Use --no-cache-dir to avoid excessive disk use on small devices
+    "$PY_BIN" -m pip install --no-cache-dir -r "$REPO_DIR/requirements.txt" || true
+  fi
+
   systemctl daemon-reload
   systemctl enable --now layer1-zenoh.service || true
   # Enable bridge if requested in device TOML
@@ -318,9 +325,78 @@ setup_profile_env() {
 export PSYCHED_DIR=/opt/psyched
 if [ -f "$PSYCHED_DIR/layer2/rmw.env" ]; then
   set -a; . "$PSYCHED_DIR/layer2/rmw.env"; set +a
+fi
+# Only source the global ROS workspace setup if it exists
+if [ -f "/opt/ros_ws/install/setup.sh" ]; then
   . "/opt/ros_ws/install/setup.sh"
 fi
 SH
+}
+
+setup_web_service() {
+  log "Checking device TOML for web service"
+  if [ ! -f "$DEVICE_TOML" ]; then
+    log "No device TOML ($DEVICE_TOML); skipping web service setup"
+    return 0
+  fi
+
+  enabled=$(python3 -c "import tomllib,sys,pathlib
+p=pathlib.Path('$DEVICE_TOML')
+d=tomllib.loads(p.read_text())
+web=d.get('layer1',{}).get('services',{}).get('web',{})
+print(str(web.get('enabled',False)).lower())")
+  if [ "$enabled" != "true" ]; then
+    log "Web service not enabled in $DEVICE_TOML; skipping"
+    return 0
+  fi
+  host=$(python3 -c "import tomllib,sys,pathlib
+p=pathlib.Path('$DEVICE_TOML')
+d=tomllib.loads(p.read_text())
+web=d.get('layer1',{}).get('services',{}).get('web',{})
+print(web.get('host','0.0.0.0'))")
+  port=$(python3 -c "import tomllib,sys,pathlib
+p=pathlib.Path('$DEVICE_TOML')
+d=tomllib.loads(p.read_text())
+web=d.get('layer1',{}).get('services',{}).get('web',{})
+print(web.get('port',8080))")
+
+  log "Provisioning web service (host=$host port=$port)"
+  VENV_DIR="$REPO_DIR/venv"
+  PY_BIN="$VENV_DIR/bin/python"
+  if [ ! -x "$PY_BIN" ]; then
+    log "Venv python not found at $PY_BIN; ensure venv was created"
+    return 0
+  fi
+
+  # Install fastapi, uvicorn, zenoh-python into venv (best-effort)
+  log "Installing fastapi and uvicorn into venv"
+  set +e
+  "$PY_BIN" -m pip install --upgrade pip
+  "$PY_BIN" -m pip install --no-cache-dir fastapi "uvicorn[standard]" zenoh-python || true
+  set -e
+
+  # Create systemd unit using venv python to run uvicorn
+  cat > /etc/systemd/system/psyche-web.service <<'UNIT'
+[Unit]
+Description=Psyche Web UI (uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=$REPO_DIR
+ExecStart=$PY_BIN -m uvicorn web.app:app --host $host --port $port
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+  chmod 644 /etc/systemd/system/psyche-web.service || true
+  systemctl daemon-reload || true
+  systemctl enable --now psyche-web.service || true
+  log "psyche-web.service enabled"
 }
 
 maybe_setup_ros2() {
@@ -417,6 +493,8 @@ main() {
   ensure_common_packages
   install_zenoh
   install_files_and_units
+  # After venv and device-specific requirements are installed, provision web service if requested
+  setup_web_service
   maybe_setup_ros2
   # Ensure data dirs for container persistence
   install -d /opt/psyched/data/ollama /opt/psyched/data/qdrant \

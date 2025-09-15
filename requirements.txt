@@ -7,3 +7,4 @@ opencv-python
 fastapi
 uvicorn[standard]
 jinja2
+pytest
