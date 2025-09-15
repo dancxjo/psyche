@@ -36,9 +36,49 @@ jobs:
       - name: Show built wheels
         run: ls -la dist || true
 
-      - name: Create GitHub Release and upload wheels
-        uses: softprops/action-gh-release@v1
-        with:
-          files: dist/*
+      - name: Publish wheels to Releases (repo override available)
         env:
+          RELEASE_REPO: ${{ secrets.RELEASE_REPO }}
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # If RELEASE_REPO is set, use gh CLI to create a release in that repo and upload assets
+          if [ -n "${RELEASE_REPO:-}" ]; then
+            echo "Publishing to release repo: $RELEASE_REPO"
+            # Install GitHub CLI
+            sudo apt-get update -y
+            sudo apt-get install -y gh || true
+            # Authenticate gh
+            if [ -n "${RELEASE_TOKEN:-}" ]; then
+              echo "Authenticating gh with provided token"
+              echo "${RELEASE_TOKEN}" | gh auth login --with-token || true
+            else
+              echo "Using GITHUB_TOKEN for gh authentication"
+              echo "${GITHUB_TOKEN}" | gh auth login --with-token || true
+            fi
+            # Create or find release by tag (the workflow is triggered on tag push)
+            TAG=${GITHUB_REF##refs/tags/}
+            echo "Creating or updating release for tag: $TAG"
+            gh release create "$TAG" dist/* --repo "$RELEASE_REPO" --title "$TAG" --notes "Automated wheel release from workflow"
+          else
+            echo "No RELEASE_REPO set — using default release in this repo"
+            # Use softprops action for current repo
+            gh_release=false
+          fi
+          # If no RELEASE_REPO provided, fallback to softprops/action-gh-release via curl
+          if [ -z "${RELEASE_REPO:-}" ]; then
+            echo "Uploading release assets to this repo via GitHub API"
+            # Use softprops action endpoint via curl: create a release and upload assets
+            TAG=${GITHUB_REF##refs/tags/}
+            api_url="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases"
+            # Create release
+            data=$(jq -n --arg tag "$TAG" --arg name "$TAG" '{ tag_name: $tag, name: $name, draft: false, prerelease: false }')
+            resp=$(curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" -d "$data" "$api_url")
+            upload_url=$(echo "$resp" | jq -r .upload_url | sed -e 's/{?name,label}//')
+            for f in dist/*; do
+              fname=$(basename "$f")
+              echo "Uploading $fname"
+              curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/octet-stream" --data-binary @"$f" "$upload_url?name=$fname"
+            done
+          fi

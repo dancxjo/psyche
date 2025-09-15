@@ -126,9 +126,14 @@ ensure_py_zenoh() {
         fi
       fi
 
-      GITHUB_API="https://api.github.com/repos/eclipse-zenoh/zenoh-python/releases/latest"
+      # Prefer this repository's releases (so CI-built wheels published here are used)
+      MY_REPO_API="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest"
+      FALLBACK_REPO_API="https://api.github.com/repos/eclipse-zenoh/zenoh-python/releases/latest"
       set +e
-      resp=$(curl -sSfL "$GITHUB_API" 2>/dev/null || true)
+      resp=$(curl -sSfL "$MY_REPO_API" 2>/dev/null || true)
+      if [ -z "$resp" ]; then
+        resp=$(curl -sSfL "$FALLBACK_REPO_API" 2>/dev/null || true)
+      fi
       set -e
       if [ -n "$resp" ]; then
         # Use jq to find an asset matching both the python tag and arch and ending with .whl
