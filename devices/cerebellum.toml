@@ -24,4 +24,4 @@ namespace = "/robot"
 params = ["layer3/services/nav2.yaml"]
 
 [python]
-requirements = ["rclpy", "zenoh-python>=0.11.0", "opencv-python"]
+requirements = ["rclpy", "zenoh>=0.4.0", "opencv-python"]

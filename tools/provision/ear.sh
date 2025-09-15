@@ -159,8 +159,8 @@ setup_web_service() {
   fi
 
   # Install runtime requirements (fastapi, uvicorn). zenoh-python is optional.
-  log "Installing Python packages (fastapi, uvicorn, zenoh-python)"
-  pip3 install --no-cache-dir fastapi "uvicorn[standard]" zenoh-python || true
+  log "Installing Python packages (fastapi, uvicorn, zenoh)"
+  pip3 install --no-cache-dir fastapi "uvicorn[standard]" "zenoh>=0.4.0" || true
 
   # Create systemd unit to run the FastAPI app. Assumes code lives under /opt/psyched
   cat > /etc/systemd/system/psyche-web.service << UNIT

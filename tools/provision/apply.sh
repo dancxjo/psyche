@@ -62,146 +62,14 @@ ensure_py_zenoh() {
   # Use python -m pip to avoid missing pip executable in minimal venvs
   if [ -x "$VENV_DIR/bin/python" ]; then
     "$VENV_DIR/bin/python" -m pip install --upgrade pip || true
-    if ! "$VENV_DIR/bin/python" -m pip install "zenoh-python>=0.11.0"; then
-      log "pip install zenoh-python failed; probing available versions and logging to /var/log/psyched/zenoh-pip-index.log"
-      mkdir -p /var/log/psyched
-      "$VENV_DIR/bin/python" -m pip index versions zenoh-python 2>&1 | tee /var/log/psyched/zenoh-pip-index.log || true
-      log "If no versions are listed, zenoh-python may not publish wheels for this Python/arch. Trying GitHub releases for a matching wheel next."
-
-      # Prepare wheel cache dir
-      WHEEL_DIR="$REPO_DIR/wheels"
-      mkdir -p "$WHEEL_DIR" /var/log/psyched
-
-      install_rustup_if_missing() {
-        if ! command -v rustc >/dev/null 2>&1 || ! command -v cargo >/dev/null 2>&1; then
-          log "Installing rustup toolchain (for building zenoh-python)"
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y || true
-          export PATH="$HOME/.cargo/bin:$PATH"
-        fi
-      }
-
-      # Try an early proactive build using rustup to avoid the more complex fallback later
-      install_rustup_if_missing
-      log "Attempting proactive local wheel build for zenoh-python (may take several minutes)"
-      set +e
-      "$VENV_DIR/bin/python" -m pip wheel --no-binary :all: --wheel-dir "$WHEEL_DIR" zenoh-python 2>&1 | tee /var/log/psyched/zenoh-build.log
-      rc_proactive=$?
-      set -e
-      if [ $rc_proactive -eq 0 ]; then
-        log "Proactive build produced wheel(s) in $WHEEL_DIR; installing"
-        "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" zenoh-python || true
-        # If install succeeded, we can return early
-        if "$VENV_DIR/bin/python" -c "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('zenoh') else 1)"; then
-          log "zenoh-python installed from proactive build"
-          return 0
-        else
-          log "Proactive build produced wheels but import failed; continuing fallback"
-        fi
-      else
-        log "Proactive build failed; will continue with release-wheel or fallback builds"
-      fi
-
-      # Attempt to fetch a prebuilt wheel from the project's GitHub releases
-      ARCH=$(uname -m)
-      case "$ARCH" in
-        x86_64) ARCH_TAG="x86_64" ;;
-        aarch64) ARCH_TAG="aarch64" ;;
-        armv7l) ARCH_TAG="armv7l" ;;
-        *) ARCH_TAG="$ARCH" ;;
-      esac
-      PY_TAG=$("$VENV_DIR/bin/python" -c "import sys; print('cp{}{}'.format(sys.version_info[0], sys.version_info[1]))")
-      log "Looking for a wheel matching arch=$ARCH_TAG python_tag=$PY_TAG on GitHub releases"
-      # Try a custom wheel URL override first (useful for org-specific Releases)
-      if [ -n "${ZENOH_WHEEL_URL:-}" ]; then
-        log "Attempting to download wheel from ZENOH_WHEEL_URL: ${ZENOH_WHEEL_URL}"
-        if curl -fsSL "${ZENOH_WHEEL_URL}" -o "$WHEEL_DIR/$(basename ${ZENOH_WHEEL_URL})"; then
-          log "Downloaded wheel from ZENOH_WHEEL_URL; attempting install"
-          "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" "$(basename ${ZENOH_WHEEL_URL})" || true
-          if "$VENV_DIR/bin/python" -c "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('zenoh') else 1)"; then
-            log "Installed zenoh-python from custom wheel"
-            return 0
-          fi
-        else
-          log "Failed to download wheel from ZENOH_WHEEL_URL"
-        fi
-      fi
-
-      # Prefer this repository's releases (so CI-built wheels published here are used)
-      MY_REPO_API="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest"
-      FALLBACK_REPO_API="https://api.github.com/repos/eclipse-zenoh/zenoh-python/releases/latest"
-      set +e
-      resp=$(curl -sSfL "$MY_REPO_API" 2>/dev/null || true)
-      if [ -z "$resp" ]; then
-        resp=$(curl -sSfL "$FALLBACK_REPO_API" 2>/dev/null || true)
-      fi
-      set -e
-      if [ -n "$resp" ]; then
-        # Use jq to find an asset matching both the python tag and arch and ending with .whl
-        wheel_url=$(echo "$resp" | jq -r --arg py "$PY_TAG" --arg arch "$ARCH_TAG" '.assets[]? | select(.name | test($py) and test($arch) and endswith(".whl")) | .browser_download_url' | head -n1)
-        if [ -n "$wheel_url" ] && [ "$wheel_url" != "null" ]; then
-          log "Found wheel on GitHub: $wheel_url -- downloading"
-          tmpw="$WHEEL_DIR/$(basename "$wheel_url")"
-          if curl -fsSL "$wheel_url" -o "$tmpw"; then
-            log "Downloaded wheel to $tmpw; attempting install from local wheel"
-            "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" "$tmpw" || true
-            # If install succeeded, exit the function early (no build required)
-            if "$VENV_DIR/bin/python" -c "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('zenoh') else 1)"; then
-              log "Installed zenoh-python from GitHub wheel successfully"
-              return 0
-            else
-              log "Install from GitHub wheel did not make zenoh importable; will attempt building from source next"
-            fi
-          else
-            log "Failed to download wheel from $wheel_url"
-          fi
-        else
-          log "No matching wheel asset found in GitHub release for arch=$ARCH_TAG and python=$PY_TAG"
-        fi
-      else
-        log "Could not fetch GitHub releases for zenoh-python (network or API failure)"
-      fi
-
-      # Attempt to build a wheel from source into a local wheel cache and install from it
-      log "Attempting to build zenoh-python wheel from source (this may take several minutes)"
-      # Install common build dependencies (best-effort)
-      DEBIAN_FRONTEND=noninteractive apt-get update -y || true
-      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        build-essential cmake pkg-config libssl-dev libffi-dev python3-dev cargo git curl || true
-      # Try to build wheel
-      set +e
-      "$VENV_DIR/bin/python" -m pip wheel --no-binary :all: --wheel-dir "$WHEEL_DIR" zenoh-python 2>&1 | tee /var/log/psyched/zenoh-build.log
-      rc_build=$?
-      set -e
-      if [ $rc_build -ne 0 ]; then
-        log "Initial wheel build failed; attempting to install Rust toolchain via rustup and retry (this may take several minutes)"
-        # Install rustup toolchain if cargo present but build failed or cargo missing
-        if ! command -v rustc >/dev/null 2>&1 || ! command -v cargo >/dev/null 2>&1; then
-          # Install rustup (non-interactive)
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y || true
-          # Ensure cargo in PATH for the remainder of the script
-          export PATH="$HOME/.cargo/bin:$PATH"
-        fi
-
-        # Retry wheel build once
-        set +e
-        "$VENV_DIR/bin/python" -m pip wheel --no-binary :all: --wheel-dir "$WHEEL_DIR" zenoh-python 2>&1 | tee -a /var/log/psyched/zenoh-build.log
-        rc_build2=$?
-        set -e
-        if [ $rc_build2 -eq 0 ]; then
-          log "Built wheel(s) into $WHEEL_DIR after rustup retry, attempting install from local wheel cache"
-          "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" "zenoh-python>=0.11.0" || true
-          log "If install from local wheel succeeded, zenoh-python is available; check /var/log/psyched/zenoh-build.log for details."
-        else
-          log "Wheel build still failed after rustup; see /var/log/psyched/zenoh-build.log for details. Provisioning will continue but zenoh-python may be unavailable on this host."
-        fi
-      else
-        log "Built wheel(s) into $WHEEL_DIR, attempting install from local wheel cache"
-        "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" "zenoh-python>=0.11.0" || true
-        log "If install from local wheel succeeded, zenoh-python is available; check /var/log/psyched/zenoh-build.log for details."
-      fi
-    fi
+    "$VENV_DIR/bin/python" -m pip install "zenoh>=0.4.0" || {
+      log "Failed to install zenoh; zenoh services may be unavailable"
+      return 1
+    }
+    log "zenoh installed successfully"
   else
     log "venv python not found at $VENV_DIR/bin/python"
+    return 1
   fi
 }
 
@@ -447,7 +315,7 @@ print(web.get('port',8080))")
   log "Installing fastapi and uvicorn into venv"
   set +e
   "$PY_BIN" -m pip install --upgrade pip
-  "$PY_BIN" -m pip install --no-cache-dir fastapi "uvicorn[standard]" zenoh-python || true
+  "$PY_BIN" -m pip install --no-cache-dir fastapi "uvicorn[standard]" "zenoh>=0.4.0" || true
   set -e
 
   # Create systemd unit using venv python to run uvicorn
