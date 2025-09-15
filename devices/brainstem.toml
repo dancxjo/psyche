@@ -16,3 +16,6 @@ ros_distro = "none"
 [layer3]
 # No layer3 processes on the Pico W itself
 nodes = []
+
+[python]
+requirements = ["zenoh>=0.11.0", "smbus2"]

@@ -22,3 +22,6 @@ package = "nav2_bringup"
 executable = "bringup_launch.py"
 namespace = "/robot"
 params = ["layer3/services/nav2.yaml"]
+
+[python]
+requirements = ["rclpy", "zenoh>=0.11.0", "opencv-python"]

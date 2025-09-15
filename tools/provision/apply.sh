@@ -110,17 +110,27 @@ PY
 
   # Python venv setup for daemons
   VENV_DIR="$REPO_DIR/venv"
-  REQS_FILE="$REPO_DIR/requirements.txt"
   if [ ! -d "$VENV_DIR" ]; then
     log "Creating Python venv at $VENV_DIR"
     python3 -m venv "$VENV_DIR"
   fi
   log "Upgrading pip in venv"
   "$VENV_DIR/bin/pip" install --upgrade pip
-  if [ -f "$REQS_FILE" ]; then
-    log "Installing Python requirements from $REQS_FILE"
-    "$VENV_DIR/bin/pip" install -r "$REQS_FILE"
-  fi
+    # Read python requirements from device TOML
+    if [ -f "$DEVICE_TOML" ]; then
+      REQS=$(python3 - "$DEVICE_TOML" <<'PY'
+  import tomllib, sys, pathlib
+  p=pathlib.Path(sys.argv[1])
+  d=tomllib.loads(p.read_text())
+  reqs = d.get('python', {}).get('requirements', [])
+  print(" ".join(reqs))
+  PY
+  )
+      if [ -n "$REQS" ]; then
+        log "Installing Python requirements for host: $REQS"
+        "$VENV_DIR/bin/pip" install $REQS
+      fi
+    fi
 
   systemctl daemon-reload
   systemctl enable --now layer1-zenoh.service || true
