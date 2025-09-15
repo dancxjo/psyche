@@ -171,8 +171,13 @@ setup_web_service() {
   fi
 
   # Install runtime requirements (fastapi, uvicorn). zenoh-python is optional.
-  log "Installing Python packages (fastapi, uvicorn, zenoh)"
-  pip3 install --no-cache-dir fastapi "uvicorn[standard]" "zenoh>=0.4.0" || true
+  if [ "$ENABLE_ZENOH" = true ]; then
+    log "Installing Python packages (fastapi, uvicorn, zenoh)"
+    pip3 install --no-cache-dir fastapi "uvicorn[standard]" "zenoh>=0.4.0" || true
+  else
+    log "Installing Python packages (fastapi, uvicorn) -- zenoh skipped"
+    pip3 install --no-cache-dir fastapi "uvicorn[standard]" || true
+  fi
 
   # Create systemd unit to run the FastAPI app. Assumes code lives under /opt/psyched
   cat > /etc/systemd/system/psyche-web.service << UNIT
@@ -211,8 +216,10 @@ JSON
     log "Zenoh disabled: skipping bridge config"
   fi
 
-  # Layer1 autonet helper
-  cat > /usr/local/bin/zenoh_autonet.sh << 'BASH'
+  # Layer1 autonet helper and systemd units are only created when zenoh enabled
+  if [ "$ENABLE_ZENOH" = true ]; then
+    # Layer1 autonet helper
+    cat > /usr/local/bin/zenoh_autonet.sh << 'BASH'
 #!/usr/bin/env bash
 set -euo pipefail
 MODE="${1:-auto}"
@@ -235,10 +242,10 @@ case "$MODE" in
     else if grep -q '"router"' /etc/psyched/device_roles.json; then start_router; else start_peer; fi; fi ;;
 esac
 BASH
-  chmod +x /usr/local/bin/zenoh_autonet.sh
+    chmod +x /usr/local/bin/zenoh_autonet.sh
 
-  # Systemd units
-  cat > /etc/systemd/system/layer1-zenoh.service << 'UNIT'
+    # Systemd units
+    cat > /etc/systemd/system/layer1-zenoh.service << 'UNIT'
 [Unit]
 Description=Layer1 Zenoh fabric
 After=network-online.target
@@ -256,11 +263,10 @@ RestartSec=2
 WantedBy=multi-user.target
 UNIT
 
-  # layer1-bridge is intentionally not enabled for ear
-  cat > /etc/systemd/system/layer1-bridge.service << 'UNIT'
+    # layer1-bridge is intentionally not enabled for ear
+    cat > /etc/systemd/system/layer1-bridge.service << 'UNIT'
 [Unit]
 Description=Zenoh <-> ROS2 DDS bridge
-# After and Requires retained in unit file but provisioning will not enable
 
 [Service]
 Type=simple
@@ -270,19 +276,30 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 UNIT
+  else
+    log "Zenoh disabled: not creating autonet script or systemd units"
+  fi
 }
 
 enable_services() {
   log "Enabling services"
   systemctl daemon-reload
-  systemctl enable --now layer1-zenoh.service
+  if [ "$ENABLE_ZENOH" = true ]; then
+    systemctl enable --now layer1-zenoh.service
+  else
+    log "Zenoh disabled: not enabling layer1-zenoh.service"
+  fi
 }
 
 main() {
   require_root
   set_hostname
   ensure_packages
-  install_zenoh
+  if [ "$ENABLE_ZENOH" = true ]; then
+    install_zenoh
+  else
+    log "Zenoh disabled: skipping install_zenoh"
+  fi
   install_files
   enable_services
   log "Provisioning complete. Reboot recommended."

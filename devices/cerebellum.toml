@@ -6,7 +6,7 @@ hostname = "cerebellum.local"
 [layer1]
 mode = "peer"
 scouting = true
-seed_peers = ["tcp/forebrain.local:7447"]
+seed_peers = ["tcp/forebrain.local:7447", "tcp/ear.local:7447"]
 bridge_ros2dds = { enabled = true }
 
 [layer2]

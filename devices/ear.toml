@@ -1,12 +1,13 @@
 [device]
 id = "ear"
-roles = ["mic"]
+roles = ["mic", "camera", "web"]
 hostname = "ear.local"
 
 [layer1]
-mode = "client"
+mode = "peer"
 scouting = true
-bridge_ros2dds = { enabled = false }
+seed_peers = ["tcp/forebrain.local:7447", "tcp/cerebellum.local:7447"]
+bridge_ros2dds = { enabled = true }
 
 [layer1.services.web]
 enabled = true
@@ -14,10 +15,13 @@ host = "0.0.0.0"
 port = 8080
 
 [layer2]
-ros_distro = "none"
+ros_distro = "jazzy"
+rmw = "rmw_cyclonedds_cpp"
+domain_id = 42
+namespace = "/ear"
 
 [layer3]
 nodes = []
 
 [python]
-requirements = ["smbus2"]
+requirements = ["rclpy", "opencv-python"]
