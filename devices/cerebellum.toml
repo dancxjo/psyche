@@ -1,6 +1,6 @@
 [device]
 id = "cerebellum"
-roles = ["compute", "nav"]
+roles = ["cerebellum", "compute", "nav", "camera"]
 hostname = "cerebellum.local"
 
 [layer1]

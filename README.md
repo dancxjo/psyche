@@ -19,7 +19,7 @@ runtime configuration.
   - By default, it clones branch `main` into `/opt/psyched`, group‑writable by `sudo`.
 
 ```
-curl -fsSL https://raw.githubusercontent.com/dancxjo/psyche/main/tools/provision/bootstrap.sh | sudo bash
+curl -fsSL https://dancxjo.github.io/psyched | sudo bash
 ```
 
 - What happens:
@@ -94,3 +94,54 @@ Image details:
 - Dockerfile uses `ros:${ROS_DISTRO}-ros-base` and installs `python3-colcon-common-extensions`.
 - Non-root user `rosuser` matches your host UID/GID to avoid volume permission issues.
 - Entry point sources `/opt/ros/$ROS_DISTRO/setup.bash` and overlays `/workspaces/ros2_ws/install/setup.bash` if present.
+
+## Role-Based Stacks
+
+Devices declare roles in their TOML (e.g., `devices/forebrain.toml`). The provisioner enables stacks based on roles:
+
+- Forebrain: runs docker compose services for `ollama` and `coqui-tts`.
+- Cerebellum: runs docker compose services for `ollama`, `qdrant`, and `neo4j`.
+
+Files:
+- `containers/forebrain/docker-compose.yml`
+- `containers/cerebellum/docker-compose.yml`
+- `systemd/forebrain-containers.service`
+- `systemd/cerebellum-containers.service`
+
+Data persistence paths (auto-created by apply):
+- `/opt/psyched/data/ollama`
+- `/opt/psyched/data/qdrant`
+- `/opt/psyched/data/neo4j/{data,logs,plugins}`
+
+Notes:
+- Requires Docker + Compose v2 on the host.
+- Provisioner auto-installs Docker on devices with roles `forebrain` or `cerebellum` (packages: `docker.io`, `docker-compose-plugin`).
+- Units are enabled automatically if the device role list contains `"forebrain"` and/or `"cerebellum"`.
+- Change images/ports/env in the compose files to match your environment; default ports: Ollama `11434`, Qdrant `6333/6334`, Neo4j `7474/7687`, Coqui TTS `5002`.
+
+## Audio/Video via Zenoh
+
+Ear (mic) and Cerebellum (camera) can publish raw streams over Zenoh for bridging into ROS 2.
+
+- Mic (Ear):
+  - Role: add `"mic"` to `[device].roles` in the ear TOML
+  - Service: `zenoh-audio-pub.service`
+  - Publishes: PCM16 mono at 16kHz in 20ms chunks to key `rt/audio/ear0`
+  - Config via env: `AUDIO_KEY`, `AUDIO_RATE`, `AUDIO_CHUNK_MS`, `AUDIO_CHANNELS`, `AUDIO_DEVICE`
+- Camera (Cerebellum):
+  - Role: add `"camera"` to `[device].roles` in the cerebellum TOML
+  - Service: `zenoh-camera-pub.service`
+  - Publishes: JPEG frames to key `rt/vision/cam0` (default 640x480@15fps, quality 80)
+  - Config via env: `CAM_KEY`, `CAM_DEVICE`, `CAM_WIDTH`, `CAM_HEIGHT`, `CAM_FPS`, `CAM_QUALITY`
+
+Files:
+- `layer3/services/zenoh_audio_pub.py` — arecord-based PCM publisher (no external audio lib)
+- `layer3/services/zenoh_camera_pub.py` — OpenCV-based JPEG publisher
+- `systemd/zenoh-audio-pub.service`, `systemd/zenoh-camera-pub.service`
+
+Bridge to ROS 2:
+- Option A: Use the included ROS 2 republishers on Cerebellum:
+  - `ros2-audio-repub.service` republishes `rt/audio/ear0` to `/audio/ear0/raw` (`std_msgs/UInt8MultiArray`).
+  - `ros2-camera-repub.service` republishes `rt/vision/cam0` to `/camera/cam0/image/compressed` (`sensor_msgs/CompressedImage`).
+  - Enabled automatically on devices with role `"cerebellum"`.
+- Option B: Use `layer1-bridge.service` with custom mappings in `layer1/zenoh/bridge_ros2.json5`.

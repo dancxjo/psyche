@@ -14,7 +14,33 @@ ensure_common_packages() {
   log "Ensuring common packages"
   apt-get update -y
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    ca-certificates curl unzip jq python3 avahi-daemon
+    ca-certificates curl unzip jq python3 python3-pip avahi-daemon
+}
+
+ensure_docker() {
+  if command -v docker >/dev/null 2>&1; then
+    log "Docker already installed"
+    systemctl enable --now docker.service || true
+    return 0
+  fi
+  log "Installing Docker Engine and Compose plugin"
+  apt-get update -y
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    docker.io docker-compose-plugin
+  systemctl enable --now docker.service || true
+}
+
+ensure_py_zenoh() {
+  python3 -m pip -q install --upgrade pip || true
+  python3 -m pip -q install "zenoh>=0.11.0" || true
+}
+
+ensure_alsa() {
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends alsa-utils || true
+}
+
+ensure_opencv() {
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-opencv v4l-utils || true
 }
 
 install_zenoh() {
@@ -54,6 +80,21 @@ install_files_and_units() {
   install -m 0644 "$REPO_DIR/systemd/layer1-zenoh.service" /etc/systemd/system/layer1-zenoh.service
   install -m 0644 "$REPO_DIR/systemd/layer1-bridge.service" /etc/systemd/system/layer1-bridge.service
   install -m 0644 "$REPO_DIR/systemd/layer3-launcher.service" /etc/systemd/system/layer3-launcher.service
+
+  # Forebrain/Cerebellum container stacks
+  install -m 0644 "$REPO_DIR/systemd/forebrain-containers.service" /etc/systemd/system/forebrain-containers.service
+  install -m 0644 "$REPO_DIR/systemd/cerebellum-containers.service" /etc/systemd/system/cerebellum-containers.service
+
+  # Zenoh publishers (audio/video)
+  install -m 0644 "$REPO_DIR/systemd/zenoh-audio-pub.service" /etc/systemd/system/zenoh-audio-pub.service
+  install -m 0644 "$REPO_DIR/systemd/zenoh-camera-pub.service" /etc/systemd/system/zenoh-camera-pub.service
+
+  # ROS 2 republishers
+  install -m 0644 "$REPO_DIR/systemd/ros2-audio-repub.service" /etc/systemd/system/ros2-audio-repub.service
+  install -m 0644 "$REPO_DIR/systemd/ros2-camera-repub.service" /etc/systemd/system/ros2-camera-repub.service
+
+  # ROS exec helper
+  install -m 0755 "$REPO_DIR/tools/ros_exec.sh" /usr/local/bin/ros_exec
 
   # device roles for autonet: parse from TOML roles
   if [ -f "$DEVICE_TOML" ]; then
@@ -122,12 +163,63 @@ PY
   systemctl enable --now layer3-launcher.service || true
 }
 
+enable_role_stacks() {
+  # Enable container stacks based on roles in /etc/psyched/device_roles.json
+  if [ -f /etc/psyched/device_roles.json ]; then
+    if grep -q '"forebrain"' /etc/psyched/device_roles.json; then
+      ensure_docker
+      log "Enabling forebrain container stack"
+      systemctl enable --now forebrain-containers.service || true
+    else
+      systemctl disable --now forebrain-containers.service 2>/dev/null || true
+    fi
+    if grep -q '"cerebellum"' /etc/psyched/device_roles.json; then
+      ensure_docker
+      log "Enabling cerebellum container stack"
+      systemctl enable --now cerebellum-containers.service || true
+      # Republish Zenoh audio/camera into ROS 2 on cerebellum
+      ensure_py_zenoh
+      ensure_alsa
+      ensure_opencv
+      systemctl enable --now ros2-audio-repub.service || true
+      systemctl enable --now ros2-camera-repub.service || true
+    else
+      systemctl disable --now cerebellum-containers.service 2>/dev/null || true
+      systemctl disable --now ros2-audio-repub.service 2>/dev/null || true
+      systemctl disable --now ros2-camera-repub.service 2>/dev/null || true
+    fi
+    if grep -q '"mic"' /etc/psyched/device_roles.json; then
+      log "Ensuring ALSA tools and zenoh python for mic"
+      ensure_alsa
+      ensure_py_zenoh
+      log "Enabling zenoh-audio-pub"
+      systemctl enable --now zenoh-audio-pub.service || true
+    else
+      systemctl disable --now zenoh-audio-pub.service 2>/dev/null || true
+    fi
+    if grep -q '"camera"' /etc/psyched/device_roles.json; then
+      log "Ensuring OpenCV and zenoh python for camera"
+      ensure_opencv
+      ensure_py_zenoh
+      log "Enabling zenoh-camera-pub"
+      systemctl enable --now zenoh-camera-pub.service || true
+    else
+      systemctl disable --now zenoh-camera-pub.service 2>/dev/null || true
+    fi
+  fi
+}
+
 main() {
   require_root
   ensure_common_packages
   install_zenoh
   install_files_and_units
   maybe_setup_ros2
+  # Ensure data dirs for container persistence
+  install -d /opt/psyched/data/ollama /opt/psyched/data/qdrant \
+             /opt/psyched/data/neo4j/data /opt/psyched/data/neo4j/logs \
+             /opt/psyched/data/neo4j/plugins
+  enable_role_stacks
   setup_profile_env
   log "Apply complete for host: $HOST_SHORT"
 }

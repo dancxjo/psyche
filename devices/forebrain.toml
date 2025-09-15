@@ -1,6 +1,6 @@
 [device]
 id = "forebrain"
-roles = ["router", "vision"]
+roles = ["forebrain", "router", "vision"]
 hostname = "forebrain.local"
 
 [layer1]

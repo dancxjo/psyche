@@ -1,0 +1,16 @@
+[Unit]
+Description=Forebrain containers (ollama, coqui-tts)
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/psyched/containers/forebrain
+Environment=COMPOSE_PROJECT_NAME=forebrain
+ExecStart=/usr/bin/docker compose -f /opt/psyched/containers/forebrain/docker-compose.yml up -d
+ExecStop=/usr/bin/docker compose -f /opt/psyched/containers/forebrain/docker-compose.yml down
+
+[Install]
+WantedBy=multi-user.target
+
