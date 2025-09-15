@@ -2,7 +2,7 @@
 # Idempotent provisioner: installs services/configs based on hostname + device TOML
 set -euo pipefail
 
-REPO_DIR="/opt/psycheos"
+REPO_DIR="/opt/psyched"
 HOST_SHORT=$(hostname -s)
 DEVICE_TOML="$REPO_DIR/devices/${HOST_SHORT}.toml"
 
@@ -43,13 +43,13 @@ install_zenoh() {
 
 install_files_and_units() {
   log "Installing configs and systemd units"
-  install -d /etc/zenoh /etc/psycheos /run/zenoh
+  install -d /etc/zenoh /etc/psyched /run/zenoh
   install -m 0644 "$REPO_DIR/layer1/zenoh/router.json5" /etc/zenoh/router.json5
   install -m 0644 "$REPO_DIR/layer1/zenoh/bridge_ros2.json5" /etc/zenoh/bridge_ros2.json5
   install -m 0755 "$REPO_DIR/layer1/scripts/zenoh_autonet.sh" /usr/local/bin/zenoh_autonet.sh
   # Ensure update CLI is available on every apply
-  install -m 0755 "$REPO_DIR/tools/provision/update_repo.sh" /usr/local/bin/psycheos-update
-  ln -sf /usr/local/bin/psycheos-update /usr/bin/update-psyche
+  install -m 0755 "$REPO_DIR/tools/provision/update_repo.sh" /usr/local/bin/psyched-update
+  ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyched
 
   install -m 0644 "$REPO_DIR/systemd/layer1-zenoh.service" /etc/systemd/system/layer1-zenoh.service
   install -m 0644 "$REPO_DIR/systemd/layer1-bridge.service" /etc/systemd/system/layer1-bridge.service
@@ -57,7 +57,7 @@ install_files_and_units() {
 
   # device roles for autonet: parse from TOML roles
   if [ -f "$DEVICE_TOML" ]; then
-    python3 - "$DEVICE_TOML" >/etc/psycheos/device_roles.json <<'PY'
+    python3 - "$DEVICE_TOML" >/etc/psyched/device_roles.json <<'PY'
 import json, pathlib, sys, tomllib
 path = pathlib.Path(sys.argv[1])
 data = tomllib.loads(path.read_text())
@@ -87,11 +87,11 @@ PY
 
 setup_profile_env() {
   log "Setting global shell environment"
-  cat > /etc/profile.d/psycheos.sh <<'SH'
-# PsycheOS environment setup for all users
-export PSYCHEOS_DIR=/opt/psycheos
-if [ -f "$PSYCHEOS_DIR/layer2/rmw.env" ]; then
-  set -a; . "$PSYCHEOS_DIR/layer2/rmw.env"; set +a
+  cat > /etc/profile.d/psyched.sh <<'SH'
+# psyched environment setup for all users
+export PSYCHED_DIR=/opt/psyched
+if [ -f "$PSYCHED_DIR/layer2/rmw.env" ]; then
+  set -a; . "$PSYCHED_DIR/layer2/rmw.env"; set +a
 fi
 if [ -n "${ROS_DISTRO:-}" ] && [ -d "/opt/ros/${ROS_DISTRO}" ]; then
   . "/opt/ros/${ROS_DISTRO}/setup.sh"

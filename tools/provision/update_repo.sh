@@ -2,7 +2,7 @@
 # Update the repo and re-apply provisioning. Intended for systemd service.
 set -euo pipefail
 
-REPO_DIR="/opt/psycheos"
+REPO_DIR="/opt/psyched"
 BRANCH="main"
 
 log() { echo "[update] $*"; }
@@ -29,4 +29,3 @@ if [ -x tools/provision/apply.sh ]; then
 else
   log "apply.sh not found or not executable"
 fi
-

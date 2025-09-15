@@ -41,7 +41,7 @@ case "$MODE" in
       zenohd --scout | awk '/ROUTER/ {print $NF}' >/run/zenoh/peer.txt || true
       start_peer
     else
-      if grep -q '"router"' /etc/psycheos/device_roles.json; then
+      if grep -q '"router"' /etc/psyched/device_roles.json; then
         start_router
       else
         start_peer

@@ -34,7 +34,7 @@ ensure_basics() {
 }
 
 clone_repo() {
-  local dest="/opt/psycheos"
+  local dest="/opt/psyched"
   if [ -d "$dest/.git" ]; then
     log "Repo already present at $dest"
   else
@@ -51,17 +51,17 @@ clone_repo() {
 
 install_updater() {
   log "Installing updater service and timer"
-  install -m 0755 /opt/psycheos/tools/provision/update_repo.sh /usr/local/bin/psycheos-update
-  ln -sf /usr/local/bin/psycheos-update /usr/bin/update-psyche
-  install -m 0644 /opt/psycheos/systemd/psycheos-updater.service /etc/systemd/system/psycheos-updater.service
-  install -m 0644 /opt/psycheos/systemd/psycheos-updater.timer /etc/systemd/system/psycheos-updater.timer
+  install -m 0755 /opt/psyched/tools/provision/update_repo.sh /usr/local/bin/psyched-update
+  ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyched
+  install -m 0644 /opt/psyched/systemd/psyched-updater.service /etc/systemd/system/psyched-updater.service
+  install -m 0644 /opt/psyched/systemd/psyched-updater.timer /etc/systemd/system/psyched-updater.timer
   systemctl daemon-reload
-  systemctl enable --now psycheos-updater.timer
+  systemctl enable --now psyched-updater.timer
 }
 
 apply_config() {
   log "Applying provisioning configuration"
-  /opt/psycheos/tools/provision/apply.sh || true
+  /opt/psyched/tools/provision/apply.sh || true
 }
 
 main() {

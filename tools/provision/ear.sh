@@ -88,18 +88,18 @@ install_zenoh() {
 }
 
 install_files() {
-  log "Installing PsycheOS files"
-  install -d /opt/psycheos/devices /opt/psycheos/layer1/zenoh \
-             /opt/psycheos/layer1/scripts /opt/psycheos/layer3/launcher \
-             /opt/psycheos/layer3/services /etc/zenoh /etc/psycheos
+  log "Installing psyched files"
+  install -d /opt/psyched/devices /opt/psyched/layer1/zenoh \
+             /opt/psyched/layer1/scripts /opt/psyched/layer3/launcher \
+             /opt/psyched/layer3/services /etc/zenoh /etc/psyched
 
   # Device roles for zenoh_autonet.sh
-  cat > /etc/psycheos/device_roles.json << 'JSON'
+  cat > /etc/psyched/device_roles.json << 'JSON'
 {"roles": ["imu", "mic"]}
 JSON
 
   # Device TOML for ear
-  cat > /opt/psycheos/devices/ear.toml << 'TOML'
+  cat > /opt/psyched/devices/ear.toml << 'TOML'
 [device]
 id = "ear"
 roles = ["imu", "mic"]
@@ -155,7 +155,7 @@ case "$MODE" in
     if found_router; then zenohd --scout | awk '/ROUTER/ {print $NF}' >/run/zenoh/peer.txt || true; start_peer; else start_peer; fi ;;
   auto|*)
     if found_router; then zenohd --scout | awk '/ROUTER/ {print $NF}' >/run/zenoh/peer.txt || true; start_peer;
-    else if grep -q '"router"' /etc/psycheos/device_roles.json; then start_router; else start_peer; fi; fi ;;
+    else if grep -q '"router"' /etc/psyched/device_roles.json; then start_router; else start_peer; fi; fi ;;
 esac
 BASH
   chmod +x /usr/local/bin/zenoh_autonet.sh

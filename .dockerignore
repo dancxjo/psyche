@@ -1,0 +1,20 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+
+# Node / misc
+node_modules
+
+# Docker
+.env
+*.log
+
+# ROS 2 build artifacts if present
+ros2_ws/build
+ros2_ws/install
+ros2_ws/log
+
