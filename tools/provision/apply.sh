@@ -10,6 +10,39 @@ log() { echo "[apply] $*"; }
 
 require_root() { [ "${EUID:-$(id -u)}" -eq 0 ] || { echo "Run as root" >&2; exit 1; }; }
 
+# Helper: install a unit file from the repo if it exists
+install_unit() {
+  src="$REPO_DIR/systemd/$1"
+  dst="/etc/systemd/system/$1"
+  mode="${2:-0644}"
+  if [ -f "$src" ]; then
+    install -m "$mode" "$src" "$dst"
+  else
+    log "Unit $1 not present in repo; skipping install"
+  fi
+}
+
+# Helper: enable a unit if it exists either in repo or already installed
+enable_unit() {
+  unit="$1"
+  if [ -f "$REPO_DIR/systemd/$unit" ] || [ -f "/etc/systemd/system/$unit" ]; then
+    systemctl daemon-reload || true
+    systemctl enable --now "$unit" || true
+  else
+    log "Unit $unit not found; skipping enable"
+  fi
+}
+
+# Helper: disable a unit if present
+disable_unit() {
+  unit="$1"
+  if [ -f "$REPO_DIR/systemd/$unit" ] || [ -f "/etc/systemd/system/$unit" ]; then
+    systemctl disable --now "$unit" 2>/dev/null || true
+  else
+    log "Unit $unit not found; skipping disable"
+  fi
+}
+
 ensure_common_packages() {
   log "Ensuring common packages"
   # If a Docker apt source exists but the keyring is missing, temporarily disable the
@@ -152,23 +185,17 @@ install_files_and_units() {
     git config --global --add safe.directory "$REPO_DIR" || true
   fi
 
-  install -m 0644 "$REPO_DIR/systemd/layer1-zenoh.service" /etc/systemd/system/layer1-zenoh.service
-  install -m 0644 "$REPO_DIR/systemd/layer1-bridge.service" /etc/systemd/system/layer1-bridge.service
-  install -m 0644 "$REPO_DIR/systemd/layer3-launcher.service" /etc/systemd/system/layer3-launcher.service
+  install_unit layer1-zenoh.service
+  install_unit layer1-bridge.service
+  install_unit layer3-launcher.service
 
   # Forebrain/Cerebellum container stacks
-  install -m 0644 "$REPO_DIR/systemd/forebrain-containers.service" /etc/systemd/system/forebrain-containers.service
-  install -m 0644 "$REPO_DIR/systemd/cerebellum-containers.service" /etc/systemd/system/cerebellum-containers.service
+  install_unit forebrain-containers.service
+  install_unit cerebellum-containers.service
 
-  # Zenoh publishers (audio/video)
-  install -m 0644 "$REPO_DIR/systemd/zenoh-audio-pub.service" /etc/systemd/system/zenoh-audio-pub.service
-  install -m 0644 "$REPO_DIR/systemd/zenoh-camera-pub.service" /etc/systemd/system/zenoh-camera-pub.service
-  install -m 0644 "$REPO_DIR/systemd/zenoh-gnss-pub.service" /etc/systemd/system/zenoh-gnss-pub.service
-  install -m 0644 "$REPO_DIR/systemd/ros2-gps-repub.service" /etc/systemd/system/ros2-gps-repub.service
-
-  # ROS 2 republishers
-  install -m 0644 "$REPO_DIR/systemd/ros2-audio-repub.service" /etc/systemd/system/ros2-audio-repub.service
-  install -m 0644 "$REPO_DIR/systemd/ros2-camera-repub.service" /etc/systemd/system/ros2-camera-repub.service
+  # Zenoh publishers (audio/video) - install if present
+  # Note: several zenoh/ros2 republisher units were removed from the repo.
+  # Only install units that are still present in `systemd/` via install_unit.
 
   # ROS exec helper
   install -m 0755 "$REPO_DIR/tools/ros_exec.sh" /usr/local/bin/ros_exec
@@ -278,7 +305,7 @@ print(" ".join(reqs))' "$DEVICE_TOML")
   fi
 
   systemctl daemon-reload
-  systemctl enable --now layer1-zenoh.service || true
+  enable_unit layer1-zenoh.service
   # Enable bridge if requested in device TOML
   if [ -f "$DEVICE_TOML" ]; then
     br=$(python3 -c 'import tomllib, sys, pathlib
@@ -286,9 +313,9 @@ p=pathlib.Path(sys.argv[1])
 d=tomllib.loads(p.read_text())
 print(str(d.get("layer1",{}).get("bridge_ros2dds",{}).get("enabled", False)).lower())' "$DEVICE_TOML")
     if [ "$br" = "true" ]; then
-      systemctl enable --now layer1-bridge.service || true
+      enable_unit layer1-bridge.service
     else
-      systemctl disable --now layer1-bridge.service 2>/dev/null || true
+      disable_unit layer1-bridge.service
     fi
   fi
 }
@@ -370,7 +397,7 @@ UNIT
 
   chmod 644 /etc/systemd/system/psyche-web.service || true
   systemctl daemon-reload || true
-  systemctl enable --now psyche-web.service || true
+  enable_unit psyche-web.service
   log "psyche-web.service enabled"
 }
 
@@ -399,7 +426,7 @@ print(d)' "$DEVICE_TOML")
   fi
 
   "$REPO_DIR/tools/provision/ros2_setup.sh" "$distro"
-  systemctl enable --now layer3-launcher.service || true
+    enable_unit layer3-launcher.service
 }
 
 enable_role_stacks() {
@@ -408,33 +435,30 @@ enable_role_stacks() {
     if grep -q '"forebrain"' /etc/psyched/device_roles.json; then
       ensure_docker
       log "Enabling forebrain container stack"
-      systemctl enable --now forebrain-containers.service || true
+      enable_unit forebrain-containers.service
     else
-      systemctl disable --now forebrain-containers.service 2>/dev/null || true
+      disable_unit forebrain-containers.service
     fi
     if grep -q '"cerebellum"' /etc/psyched/device_roles.json; then
       ensure_docker
       log "Enabling cerebellum container stack"
-      systemctl enable --now cerebellum-containers.service || true
-      # Republish Zenoh audio/camera into ROS 2 on cerebellum
-      ensure_py_zenoh
-      ensure_alsa
-      ensure_opencv
-      systemctl enable --now ros2-audio-repub.service || true
-      systemctl enable --now ros2-camera-repub.service || true
+      enable_unit cerebellum-containers.service
+  # Republish Zenoh audio/camera into ROS 2 on cerebellum
+  ensure_py_zenoh
+  ensure_alsa
+  ensure_opencv
     else
-      systemctl disable --now cerebellum-containers.service 2>/dev/null || true
-      systemctl disable --now ros2-audio-repub.service 2>/dev/null || true
-      systemctl disable --now ros2-camera-repub.service 2>/dev/null || true
+      disable_unit cerebellum-containers.service
+      log "ros2 republisher units removed from repo; skipping disable"
+    fi
     fi
     if grep -q '"mic"' /etc/psyched/device_roles.json; then
       log "Ensuring ALSA tools and zenoh python for mic"
       ensure_alsa
       ensure_py_zenoh
-      log "Enabling zenoh-audio-pub"
-      systemctl enable --now zenoh-audio-pub.service || true
+  log "Enabling zenoh audio publisher (unit removed from repo)"
     else
-      systemctl disable --now zenoh-audio-pub.service 2>/dev/null || true
+      log "zenoh audio publisher unit removed from repo; skipping disable"
     fi
     # GNSS / GPS: enable if the device has 'ear' or 'gps' roles
     if grep -q '"ear"' /etc/psyched/device_roles.json || grep -q '"gps"' /etc/psyched/device_roles.json; then
@@ -445,20 +469,17 @@ enable_role_stacks() {
       else
         log "dialout group not present; ensure /dev/serial0 is accessible by service user"
       fi
-      systemctl enable --now zenoh-gnss-pub.service || true
-      systemctl enable --now ros2-gps-repub.service || true
+    log "GNSS republishers removed from repo; ensure serial tooling only"
     else
-      systemctl disable --now zenoh-gnss-pub.service 2>/dev/null || true
-      systemctl disable --now ros2-gps-repub.service 2>/dev/null || true
+      log "GNSS/ros2 republisher units removed from repo; skipping disable"
     fi
     if grep -q '"camera"' /etc/psyched/device_roles.json; then
       log "Ensuring OpenCV and zenoh python for camera"
       ensure_opencv
       ensure_py_zenoh
-      log "Enabling zenoh-camera-pub"
-      systemctl enable --now zenoh-camera-pub.service || true
+  log "Enabling zenoh camera publisher (unit removed from repo)"
     else
-      systemctl disable --now zenoh-camera-pub.service 2>/dev/null || true
+      log "zenoh camera publisher unit removed from repo; skipping disable"
     fi
   fi
 }
