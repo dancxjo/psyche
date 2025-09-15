@@ -2,3 +2,8 @@
 zenoh>=0.11.0
 smbus2
 opencv-python
+
+# Web UI for live topics
+fastapi
+uvicorn[standard]
+jinja2
