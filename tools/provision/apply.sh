@@ -111,6 +111,21 @@ ensure_py_zenoh() {
       esac
       PY_TAG=$("$VENV_DIR/bin/python" -c "import sys; print('cp{}{}'.format(sys.version_info[0], sys.version_info[1]))")
       log "Looking for a wheel matching arch=$ARCH_TAG python_tag=$PY_TAG on GitHub releases"
+      # Try a custom wheel URL override first (useful for org-specific Releases)
+      if [ -n "${ZENOH_WHEEL_URL:-}" ]; then
+        log "Attempting to download wheel from ZENOH_WHEEL_URL: ${ZENOH_WHEEL_URL}"
+        if curl -fsSL "${ZENOH_WHEEL_URL}" -o "$WHEEL_DIR/$(basename ${ZENOH_WHEEL_URL})"; then
+          log "Downloaded wheel from ZENOH_WHEEL_URL; attempting install"
+          "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" "$(basename ${ZENOH_WHEEL_URL})" || true
+          if "$VENV_DIR/bin/python" -c "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('zenoh') else 1)"; then
+            log "Installed zenoh-python from custom wheel"
+            return 0
+          fi
+        else
+          log "Failed to download wheel from ZENOH_WHEEL_URL"
+        fi
+      fi
+
       GITHUB_API="https://api.github.com/repos/eclipse-zenoh/zenoh-python/releases/latest"
       set +e
       resp=$(curl -sSfL "$GITHUB_API" 2>/dev/null || true)

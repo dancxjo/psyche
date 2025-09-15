@@ -1,0 +1,44 @@
+name: Build zenoh-python wheels
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Checkout zenoh-python
+        uses: actions/checkout@v4
+        with:
+          repository: eclipse-zenoh/zenoh-python
+          path: zenoh-python
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Build wheels with cibuildwheel
+        uses: cibuildwheel/action@v2
+        with:
+          project_dir: ./zenoh-python
+          output_dir: dist
+          platforms: linux
+          manylinux-x86_64-image: quay.io/pypa/manylinux2014_x86_64
+          manylinux-aarch64-image: quay.io/pypa/manylinux2014_aarch64
+
+      - name: Show built wheels
+        run: ls -la dist || true
+
+      - name: Create GitHub Release and upload wheels
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
