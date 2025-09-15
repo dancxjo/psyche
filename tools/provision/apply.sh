@@ -158,11 +158,6 @@ setup_profile_env() {
 export PSYCHED_DIR=/opt/psyched
 if [ -f "$PSYCHED_DIR/layer2/rmw.env" ]; then
   set -a; . "$PSYCHED_DIR/layer2/rmw.env"; set +a
-fi
-if [ -n "${ROS_DISTRO:-}" ] && [ -d "/opt/ros/${ROS_DISTRO}" ]; then
-  . "/opt/ros/${ROS_DISTRO}/setup.sh"
-fi
-if [ -d "/opt/ros_ws/install" ]; then
   . "/opt/ros_ws/install/setup.sh"
 fi
 SH
