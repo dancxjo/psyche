@@ -10,8 +10,13 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Form
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from typing import List
+from typing import List, Optional
 import asyncio
+import os
+import logging
+
+logger = logging.getLogger("psyche.web")
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Psyche Topics Live")
 
@@ -44,6 +49,84 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 important_topics: List[str] = []
+
+# Attempt to import zenoh-python and, if present, subscribe to configured keys
+try:
+    import zenoh
+    ZENOH_AVAILABLE = True
+    logger.info("zenoh-python available: automatic subscription enabled")
+except Exception:
+    zenoh = None
+    ZENOH_AVAILABLE = False
+    logger.info("zenoh-python not available: skipping automatic zenoh subscriptions")
+
+
+async def zenoh_subscriber_loop():
+    """If zenoh is available, open a session and subscribe to keys configured
+    via environment variables. This runs as a background task started at app startup.
+    Environment variables scanned (in order): `GNSS_IN_KEY`, `ZENOH_GNSS_KEY`, `ZENOH_KEYS`.
+    `ZENOH_KEYS` may be a comma-separated list of keys.
+    """
+    if not ZENOH_AVAILABLE:
+        return
+
+    # collect keys from environment
+    keys = []
+    if os.getenv('GNSS_IN_KEY'):
+        keys.append(os.getenv('GNSS_IN_KEY'))
+    if os.getenv('ZENOH_GNSS_KEY'):
+        keys.append(os.getenv('ZENOH_GNSS_KEY'))
+    if os.getenv('ZENOH_KEYS'):
+        keys += [k.strip() for k in os.getenv('ZENOH_KEYS').split(',') if k.strip()]
+    if not keys:
+        logger.info('No zenoh keys configured in environment; skipping subscription')
+        return
+
+    try:
+        z = zenoh.open()  # defaults; tweak via ZENOH_CONFIG env if needed
+        logger.info('zenoh session opened')
+    except Exception as e:
+        logger.exception('Failed to open zenoh session: %s', e)
+        return
+
+    # callback for incoming samples
+    def sample_cb(sample):
+        try:
+            # sample.payload is bytes-like; decode if possible
+            payload = None
+            try:
+                payload = sample.payload.decode('utf-8')
+            except Exception:
+                payload = str(sample.payload)
+            msg = f"ZENOH:{sample.key} {payload}"
+            # schedule broadcast in the event loop
+            asyncio.get_event_loop().create_task(manager.broadcast(msg))
+        except Exception:
+            logger.exception('error handling zenoh sample')
+
+    # subscribe to keys
+    subs = []
+    for key in keys:
+        try:
+            subs.append(z.declare_subscriber(key, sample_cb))
+            logger.info('Subscribed to zenoh key: %s', key)
+        except Exception:
+            logger.exception('Failed to subscribe to zenoh key: %s', key)
+
+    # keep alive until the application is shutdown
+    try:
+        while True:
+            await asyncio.sleep(60)
+    finally:
+        for s in subs:
+            try:
+                s.undeclare()
+            except Exception:
+                pass
+        try:
+            z.close()
+        except Exception:
+            pass
 
 
 @app.get("/", response_class=HTMLResponse)
