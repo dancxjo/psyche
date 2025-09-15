@@ -31,8 +31,9 @@ ensure_docker() {
 }
 
 ensure_py_zenoh() {
-  python3 -m pip -q install --upgrade pip || true
-  python3 -m pip -q install "zenoh>=0.11.0" || true
+  VENV_DIR="${REPO_DIR}/venv"
+  "$VENV_DIR/bin/pip" install --upgrade pip || true
+  "$VENV_DIR/bin/pip" install "zenoh>=0.11.0" || true
 }
 
 ensure_alsa() {
