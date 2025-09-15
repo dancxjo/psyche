@@ -1,0 +1,15 @@
+[Unit]
+Description=Psyche Foot (iRobot Create) service
+After=network.target
+
+[Service]
+Type=simple
+User=pete
+Group=dialout
+WorkingDirectory=/opt/psyched
+ExecStart=/usr/local/bin/psyche-ros2-wrapper.sh ros2 launch create_robot create_robot.launch.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

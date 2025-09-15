@@ -216,6 +216,10 @@ install_files_and_units() {
   install_unit layer1-bridge.service
   install_unit layer3-launcher.service
 
+  # Install level3 hardware service units (foot, imu)
+  install_unit psyche-foot.service
+  install_unit psyche-imu.service
+
   # Forebrain/Cerebellum container stacks
   install_unit forebrain-containers.service
   install_unit cerebellum-containers.service
@@ -226,6 +230,10 @@ install_files_and_units() {
 
   # ROS exec helper
   install -m 0755 "$REPO_DIR/tools/ros_exec.sh" /usr/local/bin/ros_exec
+  # Install our ros2 wrapper so systemd units can keep ros2 nodes alive
+  if [ -f "$REPO_DIR/tools/provision/psyche-ros2-wrapper.sh" ]; then
+    install -m 0755 "$REPO_DIR/tools/provision/psyche-ros2-wrapper.sh" /usr/local/bin/psyche-ros2-wrapper.sh
+  fi
 
   # device roles for autonet: parse from TOML roles
   if [ -f "$DEVICE_TOML" ]; then
@@ -331,6 +339,19 @@ print(" ".join(reqs))' "$DEVICE_TOML")
     "$PY_BIN" -m pip install --no-cache-dir -r "$REPO_DIR/requirements.txt" || true
   fi
 
+  # If ROS is requested by the device TOML, ensure colcon build tooling is present
+  if [ -f "$DEVICE_TOML" ]; then
+    rosreq=$(python3 -c 'import tomllib,sys,pathlib
+p=pathlib.Path(sys.argv[1])
+d=tomllib.loads(p.read_text())
+print(d.get("layer2",{}).get("ros_distro","none"))' "$DEVICE_TOML") || true
+    if [ "$rosreq" != "none" ]; then
+      log "Ensuring colcon build tooling for ROS"
+      DEBIAN_FRONTEND=noninteractive apt-get update -y || true
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-colcon-common-extensions || true
+    fi
+  fi
+
   systemctl daemon-reload
   enable_unit layer1-zenoh.service
   # Enable bridge if requested in device TOML
@@ -343,6 +364,26 @@ print(str(d.get("layer1",{}).get("bridge_ros2dds",{}).get("enabled", False)).low
       enable_unit layer1-bridge.service
     else
       disable_unit layer1-bridge.service
+    fi
+    # Enable/disable level3 services declared in device TOML
+    foot_en=$(python3 -c 'import tomllib,sys,pathlib
+p=pathlib.Path(sys.argv[1])
+d=tomllib.loads(p.read_text())
+print(str(d.get("layer3",{}).get("services",{}).get("foot",{}).get("enabled", False)).lower())' "$DEVICE_TOML") || foot_en="false"
+    if [ "$foot_en" = "true" ]; then
+      enable_unit psyche-foot.service
+    else
+      disable_unit psyche-foot.service
+    fi
+
+    imu_en=$(python3 -c 'import tomllib,sys,pathlib
+p=pathlib.Path(sys.argv[1])
+d=tomllib.loads(p.read_text())
+print(str(d.get("layer3",{}).get("services",{}).get("imu",{}).get("enabled", False)).lower())' "$DEVICE_TOML") || imu_en="false"
+    if [ "$imu_en" = "true" ]; then
+      enable_unit psyche-imu.service
+    else
+      disable_unit psyche-imu.service
     fi
   fi
 }
@@ -454,6 +495,50 @@ print(d)' "$DEVICE_TOML")
 
   "$REPO_DIR/tools/provision/ros2_setup.sh" "$distro"
     enable_unit layer3-launcher.service
+  # Provision ROS workspace packages for common hardware services (foot, imu)
+  # Create workspace and src dir
+  mkdir -p /opt/ros_ws/src
+  chown -R root:root /opt/ros_ws || true
+
+  # Helper to clone if missing
+  clone_if_missing() {
+    repo_url="$1"
+    dest_dir="$2"
+    branch_opt="${3:-}"
+    if [ -d "$dest_dir/.git" ]; then
+      log "Repo already present: $dest_dir"
+      return 0
+    fi
+    tmp=$(mktemp -d)
+    log "Cloning $repo_url into $dest_dir"
+    if git clone $branch_opt "$repo_url" "$tmp"; then
+      rm -rf "$dest_dir" || true
+      mv "$tmp" "$dest_dir" || true
+      chown -R root:root "$dest_dir" || true
+    else
+      log "Failed to clone $repo_url"
+      rm -rf "$tmp" || true
+    fi
+  }
+
+  # Clone autonomylab/create_robot and libcreate (branch specified)
+  clone_if_missing https://github.com/autonomylab/create_robot.git /opt/ros_ws/src/create_robot
+  clone_if_missing https://github.com/revyos-ros/libcreate.git /opt/ros_ws/src/libcreate "--branch fix-std-string"
+
+  # Clone IMU driver
+  clone_if_missing https://github.com/hiwad-aziz/ros2_mpu6050_driver.git /opt/ros_ws/src/ros2_mpu6050_driver
+
+  # If colcon exists, build workspace (best-effort)
+  if command -v colcon >/dev/null 2>&1; then
+    log "Building ROS workspace at /opt/ros_ws"
+    # Run build as root but allow packages to set permissions; use --packages-select none to test? run normal build
+    set +e
+    cd /opt/ros_ws || true
+    colcon build --merge-install || log "colcon build failed; packages may still be usable"
+    set -e
+  else
+    log "colcon not installed; skipping workspace build"
+  fi
 }
 
 enable_role_stacks() {

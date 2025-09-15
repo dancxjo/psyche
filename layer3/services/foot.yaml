@@ -1,0 +1,7 @@
+# Parameters for foot (iRobot Create 1) service
+enabled: true
+package: create_robot
+driver_repo: https://github.com/autonomylab/create_robot.git
+libcreate_repo: https://github.com/revyos-ros/libcreate.git
+libcreate_branch: fix-std-string
+node_launch: create_robot launch create_robot.launch.py
