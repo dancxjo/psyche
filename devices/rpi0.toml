@@ -1,0 +1,14 @@
+[device]
+id = "rpi0"
+roles = ["telemetry"]
+hostname = "rpi0.local"
+
+[layer1]
+mode = "client"
+scouting = true
+bridge_ros2dds = { enabled = false }
+
+[layer2]
+ros_distro = "none"
+
+layer3.nodes = []

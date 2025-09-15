@@ -1,0 +1,14 @@
+[Unit]
+Description=Layer3 ROS2 launcher from device TOML
+After=layer2-ros.env layer1-zenoh.service
+Wants=layer1-bridge.service
+
+[Service]
+Type=simple
+EnvironmentFile=/opt/psycheos/layer2/rmw.env
+ExecStart=/usr/bin/python3 /opt/psycheos/layer3/launcher/launch_from_toml.py --device /opt/psycheos/devices/$(hostname -s).toml
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
