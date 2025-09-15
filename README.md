@@ -5,7 +5,7 @@ This repository scaffolds a multi-layer robotics stack.
 ## Layers
 
 1. **Layer 0** – Debian-based OS (e.g. Ubuntu Server, Pi OS Lite).
-2. **Layer 1** – Zenoh fabric and auto-networking scripts.
+2. **Layer 1** – Zenoh fabric and auto-networking scripts. (Temporarily disabled in provisioning)
 3. **Layer 2** – ROS 2 runtime configuration.
 4. **Layer 3** – Device-specific service launcher driven by TOML files.
 
@@ -31,7 +31,7 @@ curl -fsSL https://dancxjo.github.io/psyched | sudo bash
 
 - Apply behavior (host‑specific):
   - Parses `/opt/psyched/devices/$(hostname -s).toml`.
-  - Installs Layer 1 zenoh configs + `layer1-zenoh.service` and enables it.
+  - Installs Layer 1 zenoh configs + `layer1-zenoh.service` and enables it. NOTE: Zenoh provisioning is currently disabled by default; set `ENABLE_ZENOH=true` in the provisioner to re-enable.
   - If `[layer2].ros_distro != "none"`, sets up ROS 2 base for that distro, creates `/opt/ros_ws` and global shell env.
   - Installs `/etc/profile.d/psyched.sh` to source RMW env, ROS 2, and workspace for all users.
 
@@ -119,9 +119,9 @@ Notes:
 - Units are enabled automatically if the device role list contains `"forebrain"` and/or `"cerebellum"`.
 - Change images/ports/env in the compose files to match your environment; default ports: Ollama `11434`, Qdrant `6333/6334`, Neo4j `7474/7687`, Coqui TTS `5002`.
 
-## Audio/Video via Zenoh
+## Audio/Video via Zenoh (temporarily disabled)
 
-Ear (mic) and Cerebellum (camera) can publish raw streams over Zenoh for bridging into ROS 2.
+ Ear (mic) and Cerebellum (camera) can publish raw streams over Zenoh for bridging into ROS 2. These features are currently disabled in the provisioner.
 
 - Mic (Ear):
   - Role: add `"mic"` to `[device].roles` in the ear TOML

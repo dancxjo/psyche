@@ -1,6 +1,6 @@
 [Unit]
 Description=Layer3 ROS2 launcher from device TOML
-After=layer2-ros.env layer1-zenoh.service
+After=layer2-ros.env
 Wants=layer1-bridge.service
 
 [Service]

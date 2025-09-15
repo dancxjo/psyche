@@ -14,6 +14,9 @@ require_root() {
 
 log() { echo "[ear] $*"; }
 
+# Temporarily disable zenoh pieces; set to true to re-enable
+ENABLE_ZENOH=false
+
 detect_arch() {
   local u
   u=$(uname -m)
@@ -45,6 +48,10 @@ install_zenoh() {
   arch=$(detect_arch)
   dir=/usr/local/bin
   mkdir -p "$dir"
+  if [ "$ENABLE_ZENOH" != true ]; then
+    log "Zenoh disabled: skipping zenohd installation"
+    return 0
+  fi
 
   if command -v zenohd >/dev/null 2>&1; then
     log "zenohd already installed"
@@ -122,13 +129,18 @@ ros_distro = "none"
 nodes = []
 TOML
 
-  # Zenoh configs
-  cat > /etc/zenoh/router.json5 << 'JSON'
+  # Zenoh configs (skipped when zenoh disabled)
+  if [ "$ENABLE_ZENOH" = true ]; then
+    cat > /etc/zenoh/router.json5 << 'JSON'
 {
   "mode": "router",
   "listen": ["tcp/0.0.0.0:7447"],
   "scouting": { "enabled": true }
 }
+JSON
+  else
+    log "Zenoh disabled: skipping zenoh config files"
+  fi
 
 setup_web_service() {
   local toml=/opt/psyched/devices/ear.toml
@@ -187,13 +199,17 @@ UNIT
 }
 JSON
 
-  cat > /etc/zenoh/bridge_ros2.json5 << 'JSON'
+  if [ "$ENABLE_ZENOH" = true ]; then
+    cat > /etc/zenoh/bridge_ros2.json5 << 'JSON'
 {
   "ros2_to_zenoh": { "mode": "complete" },
   "zenoh_to_ros2": { "mode": "complete" },
   "scouting": { "enabled": true }
 }
 JSON
+  else
+    log "Zenoh disabled: skipping bridge config"
+  fi
 
   # Layer1 autonet helper
   cat > /usr/local/bin/zenoh_autonet.sh << 'BASH'
@@ -244,8 +260,7 @@ UNIT
   cat > /etc/systemd/system/layer1-bridge.service << 'UNIT'
 [Unit]
 Description=Zenoh <-> ROS2 DDS bridge
-After=layer1-zenoh.service
-Requires=layer1-zenoh.service
+# After and Requires retained in unit file but provisioning will not enable
 
 [Service]
 Type=simple

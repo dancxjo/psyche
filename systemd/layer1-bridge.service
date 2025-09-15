@@ -1,7 +1,7 @@
 [Unit]
 Description=Zenoh <-> ROS2 DDS bridge
-After=layer1-zenoh.service
-Requires=layer1-zenoh.service
+# layer1-zenoh is optional; do not require the zenoh fabric at boot
+# After and Requires removed to allow the bridge to start independently
 
 [Service]
 Type=simple

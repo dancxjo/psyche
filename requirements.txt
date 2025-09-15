@@ -1,5 +1,4 @@
 # Python requirements for psyched daemons/services
-zenoh>=0.4.0
 smbus2
 opencv-python
 

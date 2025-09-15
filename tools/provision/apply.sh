@@ -8,6 +8,9 @@ DEVICE_TOML="$REPO_DIR/devices/${HOST_SHORT}.toml"
 
 log() { echo "[apply] $*"; }
 
+# Temporarily disable zenoh pieces; set to true to re-enable
+ENABLE_ZENOH=false
+
 require_root() { [ "${EUID:-$(id -u)}" -eq 0 ] || { echo "Run as root" >&2; exit 1; }; }
 
 # Helper: install a unit file from the repo if it exists
@@ -123,6 +126,10 @@ ensure_docker() {
 }
 
 ensure_py_zenoh() {
+  if [ "$ENABLE_ZENOH" != true ]; then
+    log "Zenoh disabled: skipping python zenoh install"
+    return 0
+  fi
   VENV_DIR="${REPO_DIR}/venv"
   # Use python -m pip to avoid missing pip executable in minimal venvs
   if [ -x "$VENV_DIR/bin/python" ]; then
@@ -147,6 +154,11 @@ ensure_opencv() {
 }
 
 install_zenoh() {
+  if [ "$ENABLE_ZENOH" != true ]; then
+    log "Zenoh disabled: skipping zenohd install"
+    return 0
+  fi
+
   if command -v zenohd >/dev/null 2>&1; then
     log "zenohd present"
     return 0
@@ -172,10 +184,16 @@ install_zenoh() {
 
 install_files_and_units() {
   log "Installing configs and systemd units"
-  install -d /etc/zenoh /etc/psyched /run/zenoh
-  install -m 0644 "$REPO_DIR/layer1/zenoh/router.json5" /etc/zenoh/router.json5
-  install -m 0644 "$REPO_DIR/layer1/zenoh/bridge_ros2.json5" /etc/zenoh/bridge_ros2.json5
-  install -m 0755 "$REPO_DIR/layer1/scripts/zenoh_autonet.sh" /usr/local/bin/zenoh_autonet.sh
+  # Always ensure psyched dir; zenoh dirs/configs are optional and gated
+  install -d /etc/psyched
+  if [ "$ENABLE_ZENOH" = true ]; then
+    install -d /etc/zenoh /run/zenoh
+    install -m 0644 "$REPO_DIR/layer1/zenoh/router.json5" /etc/zenoh/router.json5
+    install -m 0644 "$REPO_DIR/layer1/zenoh/bridge_ros2.json5" /etc/zenoh/bridge_ros2.json5
+    install -m 0755 "$REPO_DIR/layer1/scripts/zenoh_autonet.sh" /usr/local/bin/zenoh_autonet.sh
+  else
+    log "Zenoh disabled: skipping zenoh config and autonet script install"
+  fi
   # Ensure update CLI is available on every apply
   install -m 0755 "$REPO_DIR/tools/provision/update_repo.sh" /usr/local/bin/psyched-update
   ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyche
@@ -211,8 +229,11 @@ install_files_and_units() {
     rm -f "$tmp" || true
   }
   mark_git_safe "$REPO_DIR"
-
-  install_unit layer1-zenoh.service
+  if [ "$ENABLE_ZENOH" = true ]; then
+    install_unit layer1-zenoh.service
+  else
+    log "Zenoh disabled: not installing layer1-zenoh.service"
+  fi
   install_unit layer1-bridge.service
   install_unit layer3-launcher.service
 
@@ -353,7 +374,11 @@ print(d.get("layer2",{}).get("ros_distro","none"))' "$DEVICE_TOML") || true
   fi
 
   systemctl daemon-reload
-  enable_unit layer1-zenoh.service
+  if [ "$ENABLE_ZENOH" = true ]; then
+    enable_unit layer1-zenoh.service
+  else
+    log "Zenoh disabled: not enabling layer1-zenoh.service"
+  fi
   # Enable bridge if requested in device TOML
   if [ -f "$DEVICE_TOML" ]; then
     br=$(python3 -c 'import tomllib, sys, pathlib
@@ -438,11 +463,15 @@ print(web.get('port',8080))")
     return 0
   fi
 
-  # Install fastapi, uvicorn, zenoh-python into venv (best-effort)
+  # Install fastapi and uvicorn into venv (zenoh optional)
   log "Installing fastapi and uvicorn into venv"
   set +e
   "$PY_BIN" -m pip install --upgrade pip
-  "$PY_BIN" -m pip install --no-cache-dir fastapi "uvicorn[standard]" "zenoh>=0.4.0" || true
+  if [ "$ENABLE_ZENOH" = true ]; then
+    "$PY_BIN" -m pip install --no-cache-dir fastapi "uvicorn[standard]" "zenoh>=0.4.0" || true
+  else
+    "$PY_BIN" -m pip install --no-cache-dir fastapi "uvicorn[standard]" || true
+  fi
   set -e
 
   # Create systemd unit using venv python to run uvicorn
