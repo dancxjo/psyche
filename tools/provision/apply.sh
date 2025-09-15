@@ -72,6 +72,35 @@ ensure_py_zenoh() {
       WHEEL_DIR="$REPO_DIR/wheels"
       mkdir -p "$WHEEL_DIR" /var/log/psyched
 
+      install_rustup_if_missing() {
+        if ! command -v rustc >/dev/null 2>&1 || ! command -v cargo >/dev/null 2>&1; then
+          log "Installing rustup toolchain (for building zenoh-python)"
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y || true
+          export PATH="$HOME/.cargo/bin:$PATH"
+        fi
+      }
+
+      # Try an early proactive build using rustup to avoid the more complex fallback later
+      install_rustup_if_missing
+      log "Attempting proactive local wheel build for zenoh-python (may take several minutes)"
+      set +e
+      "$VENV_DIR/bin/python" -m pip wheel --no-binary :all: --wheel-dir "$WHEEL_DIR" zenoh-python 2>&1 | tee /var/log/psyched/zenoh-build.log
+      rc_proactive=$?
+      set -e
+      if [ $rc_proactive -eq 0 ]; then
+        log "Proactive build produced wheel(s) in $WHEEL_DIR; installing"
+        "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" zenoh-python || true
+        # If install succeeded, we can return early
+        if "$VENV_DIR/bin/python" -c "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('zenoh') else 1)"; then
+          log "zenoh-python installed from proactive build"
+          return 0
+        else
+          log "Proactive build produced wheels but import failed; continuing fallback"
+        fi
+      else
+        log "Proactive build failed; will continue with release-wheel or fallback builds"
+      fi
+
       # Attempt to fetch a prebuilt wheel from the project's GitHub releases
       ARCH=$(uname -m)
       case "$ARCH" in
@@ -196,7 +225,7 @@ install_files_and_units() {
   install -m 0755 "$REPO_DIR/layer1/scripts/zenoh_autonet.sh" /usr/local/bin/zenoh_autonet.sh
   # Ensure update CLI is available on every apply
   install -m 0755 "$REPO_DIR/tools/provision/update_repo.sh" /usr/local/bin/psyched-update
-  ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyched
+  ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyche
 
   # Mark the repo safe for global git operations (avoid unsafe repo errors)
   if command -v git >/dev/null 2>&1; then

@@ -52,7 +52,7 @@ clone_repo() {
 install_updater() {
   log "Installing updater service and timer"
   install -m 0755 /opt/psyched/tools/provision/update_repo.sh /usr/local/bin/psyched-update
-  ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyched
+  ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyche
   install -m 0644 /opt/psyched/systemd/psyched-updater.service /etc/systemd/system/psyched-updater.service
   install -m 0644 /opt/psyched/systemd/psyched-updater.timer /etc/systemd/system/psyched-updater.timer
   systemctl daemon-reload

@@ -47,7 +47,7 @@ curl -fsSL https://dancxjo.github.io/psyched | sudo bash
 
 - Systemd timer: `psyched-updater.timer` runs every 5 minutes.
 - Service: `psyched-updater.service` runs `/usr/local/bin/psyched-update` which pulls the repo and re-applies provisioning.
- - Manual update at any time: run `/usr/bin/update-psyched` as root.
+ - Manual update at any time: run `/usr/bin/update-psyche` as root.
 
 ## ROS 2 Auditor (Docker)
 
