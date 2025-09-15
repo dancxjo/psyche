@@ -31,7 +31,10 @@ jobs:
 
       - name: Build wheels with cibuildwheel
         run: |
-          python -m cibuildwheel --output-dir dist --platform linux --project-dir ./zenoh-python
+          # Ensure build helper is available
+          python -m pip install --upgrade build
+          # cibuildwheel expects the package directory as a positional argument
+          python -m cibuildwheel ./zenoh-python --output-dir dist
         env:
           CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2014_x86_64
           CIBW_MANYLINUX_AARCH64_IMAGE: quay.io/pypa/manylinux2014_aarch64
