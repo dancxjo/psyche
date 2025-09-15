@@ -107,6 +107,20 @@ print(json.dumps({'roles': roles}))
 PY
   fi
 
+  # Python venv setup for daemons
+  VENV_DIR="$REPO_DIR/venv"
+  REQS_FILE="$REPO_DIR/requirements.txt"
+  if [ ! -d "$VENV_DIR" ]; then
+    log "Creating Python venv at $VENV_DIR"
+    python3 -m venv "$VENV_DIR"
+  fi
+  log "Upgrading pip in venv"
+  "$VENV_DIR/bin/pip" install --upgrade pip
+  if [ -f "$REQS_FILE" ]; then
+    log "Installing Python requirements from $REQS_FILE"
+    "$VENV_DIR/bin/pip" install -r "$REQS_FILE"
+  fi
+
   systemctl daemon-reload
   systemctl enable --now layer1-zenoh.service || true
   # Enable bridge if requested in device TOML

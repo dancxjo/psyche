@@ -28,7 +28,13 @@ main() {
     # shellcheck disable=SC1091
     . "/opt/ros_ws/install/setup.sh"
   fi
-  exec "$@"
+  # If first arg is 'python3', replace with venv python
+  if [ "$1" = "python3" ]; then
+    shift
+    exec /opt/psyched/venv/bin/python "$@"
+  else
+    exec "$@"
+  fi
 }
 
 main "$@"

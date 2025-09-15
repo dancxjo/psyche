@@ -6,7 +6,7 @@ Wants=layer1-bridge.service
 [Service]
 Type=simple
 EnvironmentFile=/opt/psyched/layer2/rmw.env
-ExecStart=/usr/bin/python3 /opt/psyched/layer3/launcher/launch_from_toml.py --device /opt/psyched/devices/$(hostname -s).toml
+ExecStart=/opt/psyched/venv/bin/python /opt/psyched/layer3/launcher/launch_from_toml.py --device /opt/psyched/devices/$(hostname -s).toml
 Restart=on-failure
 RestartSec=3
 

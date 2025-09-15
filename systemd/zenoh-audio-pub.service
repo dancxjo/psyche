@@ -11,7 +11,7 @@ Environment=AUDIO_RATE=16000
 Environment=AUDIO_CHUNK_MS=20
 Environment=AUDIO_CHANNELS=1
 Environment=AUDIO_DEVICE=default
-ExecStart=/usr/bin/python3 /opt/psyched/layer3/services/zenoh_audio_pub.py
+ExecStart=/opt/psyched/venv/bin/python /opt/psyched/layer3/services/zenoh_audio_pub.py
 
 [Install]
 WantedBy=multi-user.target
