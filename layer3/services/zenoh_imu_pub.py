@@ -4,7 +4,7 @@ Zenoh IMU Publisher for Ear Device (MPU-6050)
 - Reads IMU data from MPU-6050 via I2C
 - Publishes data to zenoh topic 'imu/data'
 
-Requires: smbus2, zenoh-python
+Requires: smbus2, zenoh
 
 Example:
     python zenoh_imu_pub.py

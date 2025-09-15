@@ -4,7 +4,7 @@ Zenoh to ROS2 IMU Bridge
 - Subscribes to zenoh topic 'imu/data'
 - Publishes to ROS2 topic '/imu/data' (sensor_msgs/msg/Imu)
 
-Requires: zenoh-python, rclpy
+Requires: zenoh, rclpy
 
 Example:
     python zenoh_ros2_imu_bridge.py

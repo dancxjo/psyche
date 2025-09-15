@@ -20,4 +20,4 @@ ros_distro = "none"
 nodes = []
 
 [python]
-requirements = ["zenoh-python>=0.11.0", "smbus2"]
+requirements = ["zenoh>=0.4.0", "smbus2"]

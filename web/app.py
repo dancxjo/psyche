@@ -56,15 +56,15 @@ important_topics: List[str] = []
 zenoh_status: dict = {}
 
 
-# Attempt to import zenoh-python and, if present, subscribe to configured keys
+# Attempt to import zenoh and, if present, subscribe to configured keys
 try:
     import zenoh
     ZENOH_AVAILABLE = True
-    logger.info("zenoh-python available: automatic subscription enabled")
+    logger.info("zenoh available: automatic subscription enabled")
 except Exception:
     zenoh = None
     ZENOH_AVAILABLE = False
-    logger.info("zenoh-python not available: skipping automatic zenoh subscriptions")
+    logger.info("zenoh not available: skipping automatic zenoh subscriptions")
 
 
 async def zenoh_subscriber_loop():
