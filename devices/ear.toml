@@ -1,7 +1,7 @@
 [device]
-id = "rpi0"
-roles = ["telemetry"]
-hostname = "rpi0.local"
+id = "ear"
+roles = ["imu", "mic"]
+hostname = "ear.local"
 
 [layer1]
 mode = "client"
