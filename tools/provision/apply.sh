@@ -32,8 +32,13 @@ ensure_docker() {
 
 ensure_py_zenoh() {
   VENV_DIR="${REPO_DIR}/venv"
-  "$VENV_DIR/bin/pip" install --upgrade pip || true
-  "$VENV_DIR/bin/pip" install "zenoh-python>=0.11.0" || true
+  # Use python -m pip to avoid missing pip executable in minimal venvs
+  if [ -x "$VENV_DIR/bin/python" ]; then
+    "$VENV_DIR/bin/python" -m pip install --upgrade pip || true
+    "$VENV_DIR/bin/python" -m pip install "zenoh-python>=0.11.0" || true
+  else
+    log "venv python not found at $VENV_DIR/bin/python"
+  fi
 }
 
 ensure_alsa() {
@@ -123,8 +128,36 @@ print(json.dumps({"roles": roles}))' "$DEVICE_TOML" >/etc/psyched/device_roles.j
       python3 -m venv "$VENV_DIR"
     fi
   fi
-  log "Upgrading pip in venv"
-  "$VENV_DIR/bin/pip" install --upgrade pip
+  log "Ensuring pip is available in venv"
+  PY_BIN="$VENV_DIR/bin/python"
+  if [ ! -x "$PY_BIN" ]; then
+    log "Expected python binary missing in venv: $PY_BIN"
+    return 0
+  fi
+  # Check whether pip is present
+  set +e
+  "$PY_BIN" -m pip --version >/dev/null 2>&1
+  rc=$?
+  set -e
+  if [ $rc -ne 0 ]; then
+    log "pip not found in venv, attempting to bootstrap via ensurepip"
+    set +e
+    "$PY_BIN" -m ensurepip --upgrade >/dev/null 2>&1
+    rc2=$?
+    set -e
+    if [ $rc2 -ne 0 ]; then
+      log "ensurepip failed; attempting to download get-pip.py and install pip"
+      tmpdir=$(mktemp -d)
+      if curl -fsSL "https://bootstrap.pypa.io/get-pip.py" -o "$tmpdir/get-pip.py"; then
+        "$PY_BIN" "$tmpdir/get-pip.py" || log "get-pip.py install failed"
+      else
+        log "Failed to download get-pip.py"
+      fi
+      rm -rf "$tmpdir"
+    fi
+  fi
+  # Use python -m pip for upgrades/installs (pip binary may still be absent)
+  "$PY_BIN" -m pip install --upgrade pip || true
   # Read python requirements from device TOML and install into venv
   if [ -f "$DEVICE_TOML" ]; then
     REQS=$(python3 -c 'import tomllib, sys, pathlib
@@ -134,7 +167,7 @@ reqs = d.get("python", {}).get("requirements", [])
 print(" ".join(reqs))' "$DEVICE_TOML")
     if [ -n "$REQS" ]; then
       log "Installing Python requirements for host: $REQS"
-      "$VENV_DIR/bin/pip" install $REQS
+      "$PY_BIN" -m pip install $REQS || true
     fi
   fi
 
