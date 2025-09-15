@@ -117,18 +117,38 @@ ensure_py_zenoh() {
       # Install common build dependencies (best-effort)
       DEBIAN_FRONTEND=noninteractive apt-get update -y || true
       DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        build-essential cmake pkg-config libssl-dev libffi-dev python3-dev cargo git || true
+        build-essential cmake pkg-config libssl-dev libffi-dev python3-dev cargo git curl || true
       # Try to build wheel
       set +e
       "$VENV_DIR/bin/python" -m pip wheel --no-binary :all: --wheel-dir "$WHEEL_DIR" zenoh-python 2>&1 | tee /var/log/psyched/zenoh-build.log
       rc_build=$?
       set -e
-      if [ $rc_build -eq 0 ]; then
+      if [ $rc_build -ne 0 ]; then
+        log "Initial wheel build failed; attempting to install Rust toolchain via rustup and retry (this may take several minutes)"
+        # Install rustup toolchain if cargo present but build failed or cargo missing
+        if ! command -v rustc >/dev/null 2>&1 || ! command -v cargo >/dev/null 2>&1; then
+          # Install rustup (non-interactive)
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y || true
+          # Ensure cargo in PATH for the remainder of the script
+          export PATH="$HOME/.cargo/bin:$PATH"
+        fi
+
+        # Retry wheel build once
+        set +e
+        "$VENV_DIR/bin/python" -m pip wheel --no-binary :all: --wheel-dir "$WHEEL_DIR" zenoh-python 2>&1 | tee -a /var/log/psyched/zenoh-build.log
+        rc_build2=$?
+        set -e
+        if [ $rc_build2 -eq 0 ]; then
+          log "Built wheel(s) into $WHEEL_DIR after rustup retry, attempting install from local wheel cache"
+          "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" "zenoh-python>=0.11.0" || true
+          log "If install from local wheel succeeded, zenoh-python is available; check /var/log/psyched/zenoh-build.log for details."
+        else
+          log "Wheel build still failed after rustup; see /var/log/psyched/zenoh-build.log for details. Provisioning will continue but zenoh-python may be unavailable on this host."
+        fi
+      else
         log "Built wheel(s) into $WHEEL_DIR, attempting install from local wheel cache"
         "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" "zenoh-python>=0.11.0" || true
         log "If install from local wheel succeeded, zenoh-python is available; check /var/log/psyched/zenoh-build.log for details."
-      else
-        log "Wheel build failed; see /var/log/psyched/zenoh-build.log for details. Provisioning will continue but zenoh-python may be unavailable on this host."
       fi
     fi
   else
