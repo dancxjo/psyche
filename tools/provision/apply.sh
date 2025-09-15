@@ -33,7 +33,7 @@ ensure_docker() {
 ensure_py_zenoh() {
   VENV_DIR="${REPO_DIR}/venv"
   "$VENV_DIR/bin/pip" install --upgrade pip || true
-  "$VENV_DIR/bin/pip" install "zenoh>=0.11.0" || true
+  "$VENV_DIR/bin/pip" install "zenoh-python>=0.11.0" || true
 }
 
 ensure_alsa() {
@@ -99,13 +99,12 @@ install_files_and_units() {
 
   # device roles for autonet: parse from TOML roles
   if [ -f "$DEVICE_TOML" ]; then
-    python3 - "$DEVICE_TOML" >/etc/psyched/device_roles.json <<'PY'
-import json, pathlib, sys, tomllib
+    python3 -c 'import json, pathlib, sys, tomllib
 path = pathlib.Path(sys.argv[1])
 data = tomllib.loads(path.read_text())
-roles = data.get('device', {}).get('roles', [])
-print(json.dumps({'roles': roles}))
-PY
+roles = data.get("device", {}).get("roles", [])
+print(json.dumps({"roles": roles}))' "$DEVICE_TOML" >/etc/psyched/device_roles.json
+  fi
   fi
 
   # Python venv setup for daemons
@@ -116,33 +115,27 @@ PY
   fi
   log "Upgrading pip in venv"
   "$VENV_DIR/bin/pip" install --upgrade pip
-    # Read python requirements from device TOML
-    if [ -f "$DEVICE_TOML" ]; then
-      REQS=$(python3 - "$DEVICE_TOML" <<'PY'
-  import tomllib, sys, pathlib
-  p=pathlib.Path(sys.argv[1])
-  d=tomllib.loads(p.read_text())
-  reqs = d.get('python', {}).get('requirements', [])
-  print(" ".join(reqs))
-  PY
-  )
-      if [ -n "$REQS" ]; then
-        log "Installing Python requirements for host: $REQS"
-        "$VENV_DIR/bin/pip" install $REQS
-      fi
+  # Read python requirements from device TOML and install into venv
+  if [ -f "$DEVICE_TOML" ]; then
+    REQS=$(python3 -c 'import tomllib, sys, pathlib
+p=pathlib.Path(sys.argv[1])
+d=tomllib.loads(p.read_text())
+reqs = d.get("python", {}).get("requirements", [])
+print(" ".join(reqs))' "$DEVICE_TOML")
+    if [ -n "$REQS" ]; then
+      log "Installing Python requirements for host: $REQS"
+      "$VENV_DIR/bin/pip" install $REQS
     fi
+  fi
 
   systemctl daemon-reload
   systemctl enable --now layer1-zenoh.service || true
   # Enable bridge if requested in device TOML
   if [ -f "$DEVICE_TOML" ]; then
-    br=$(python3 - "$DEVICE_TOML" <<'PY'
-import tomllib, sys, pathlib
+    br=$(python3 -c 'import tomllib, sys, pathlib
 p=pathlib.Path(sys.argv[1])
 d=tomllib.loads(p.read_text())
-print(str(d.get('layer1',{}).get('bridge_ros2dds',{}).get('enabled', False)).lower())
-PY
-)
+print(str(d.get("layer1",{}).get("bridge_ros2dds",{}).get("enabled", False)).lower())' "$DEVICE_TOML")
     if [ "$br" = "true" ]; then
       systemctl enable --now layer1-bridge.service || true
     else
@@ -168,13 +161,10 @@ maybe_setup_ros2() {
     log "Device TOML not found: $DEVICE_TOML"
     return 0
   fi
-  distro=$(python3 - "$DEVICE_TOML" <<'PY'
-import tomllib, sys, pathlib
+  distro=$(python3 -c 'import tomllib, sys, pathlib
 p=pathlib.Path(sys.argv[1])
-d=tomllib.loads(p.read_text()).get('layer2',{}).get('ros_distro','none')
-print(d)
-PY
-)
+d=tomllib.loads(p.read_text()).get("layer2",{}).get("ros_distro","none")
+print(d)' "$DEVICE_TOML")
   if [ "$distro" = "none" ]; then
     log "ROS 2 not requested"
     return 0
