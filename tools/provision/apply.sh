@@ -301,6 +301,12 @@ RULE
 
   # If device exists now, ensure ACL so pete can access it immediately
   if [ -e /dev/ttyACM0 ]; then
+    # Ensure setfacl is available; install 'acl' package on Debian/Ubuntu if missing
+    if ! command -v setfacl >/dev/null 2>&1; then
+      log "setfacl not found; attempting to install 'acl' package"
+      DEBIAN_FRONTEND=noninteractive apt-get update -y || true
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends acl || true
+    fi
     setfacl -m u:pete:rw /dev/ttyACM0 || true
   fi
 
