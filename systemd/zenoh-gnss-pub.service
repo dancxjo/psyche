@@ -1,0 +1,15 @@
+[Unit]
+Description=Zenoh GNSS NMEA publisher (ear)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+Environment=GNSS_DEVICE=/dev/ttyACM0
+Environment=GNSS_BAUD=9600
+Environment=GNSS_KEY=rt/gnss/ear0
+ExecStart=/opt/psyched/venv/bin/python /opt/psyched/layer3/services/zenoh_gnss_pub.py
+
+[Install]
+WantedBy=multi-user.target

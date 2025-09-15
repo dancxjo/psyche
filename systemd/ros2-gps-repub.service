@@ -1,0 +1,14 @@
+[Unit]
+Description=ROS2 republisher for Zenoh GNSS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+Environment=GNSS_IN_KEY=rt/gnss/ear0
+Environment=GNSS_OUT_TOPIC=/gps/fix
+ExecStart=/usr/local/bin/ros_exec /opt/psyched/venv/bin/python /opt/psyched/layer3/services/ros2_republish_gnss.py
+
+[Install]
+WantedBy=multi-user.target

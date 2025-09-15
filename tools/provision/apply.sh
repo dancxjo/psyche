@@ -14,7 +14,8 @@ ensure_common_packages() {
   log "Ensuring common packages"
   apt-get update -y
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    ca-certificates curl unzip jq python3 python3-pip python3-venv avahi-daemon
+    ca-certificates curl unzip jq python3 python3-pip python3-venv avahi-daemon git \
+    python3-serial gpsd-clients
 }
 
 ensure_docker() {
@@ -61,7 +62,75 @@ ensure_py_zenoh() {
   # Use python -m pip to avoid missing pip executable in minimal venvs
   if [ -x "$VENV_DIR/bin/python" ]; then
     "$VENV_DIR/bin/python" -m pip install --upgrade pip || true
-    "$VENV_DIR/bin/python" -m pip install "zenoh-python>=0.11.0" || true
+    if ! "$VENV_DIR/bin/python" -m pip install "zenoh-python>=0.11.0"; then
+      log "pip install zenoh-python failed; probing available versions and logging to /var/log/psyched/zenoh-pip-index.log"
+      mkdir -p /var/log/psyched
+      "$VENV_DIR/bin/python" -m pip index versions zenoh-python 2>&1 | tee /var/log/psyched/zenoh-pip-index.log || true
+      log "If no versions are listed, zenoh-python may not publish wheels for this Python/arch. Trying GitHub releases for a matching wheel next."
+
+      # Prepare wheel cache dir
+      WHEEL_DIR="$REPO_DIR/wheels"
+      mkdir -p "$WHEEL_DIR" /var/log/psyched
+
+      # Attempt to fetch a prebuilt wheel from the project's GitHub releases
+      ARCH=$(uname -m)
+      case "$ARCH" in
+        x86_64) ARCH_TAG="x86_64" ;;
+        aarch64) ARCH_TAG="aarch64" ;;
+        armv7l) ARCH_TAG="armv7l" ;;
+        *) ARCH_TAG="$ARCH" ;;
+      esac
+      PY_TAG=$("$VENV_DIR/bin/python" -c "import sys; print('cp{}{}'.format(sys.version_info[0], sys.version_info[1]))")
+      log "Looking for a wheel matching arch=$ARCH_TAG python_tag=$PY_TAG on GitHub releases"
+      GITHUB_API="https://api.github.com/repos/eclipse-zenoh/zenoh-python/releases/latest"
+      set +e
+      resp=$(curl -sSfL "$GITHUB_API" 2>/dev/null || true)
+      set -e
+      if [ -n "$resp" ]; then
+        # Use jq to find an asset matching both the python tag and arch and ending with .whl
+        wheel_url=$(echo "$resp" | jq -r --arg py "$PY_TAG" --arg arch "$ARCH_TAG" '.assets[]? | select(.name | test($py) and test($arch) and endswith(".whl")) | .browser_download_url' | head -n1)
+        if [ -n "$wheel_url" ] && [ "$wheel_url" != "null" ]; then
+          log "Found wheel on GitHub: $wheel_url -- downloading"
+          tmpw="$WHEEL_DIR/$(basename "$wheel_url")"
+          if curl -fsSL "$wheel_url" -o "$tmpw"; then
+            log "Downloaded wheel to $tmpw; attempting install from local wheel"
+            "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" "$tmpw" || true
+            # If install succeeded, exit the function early (no build required)
+            if "$VENV_DIR/bin/python" -c "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('zenoh') else 1)"; then
+              log "Installed zenoh-python from GitHub wheel successfully"
+              return 0
+            else
+              log "Install from GitHub wheel did not make zenoh importable; will attempt building from source next"
+            fi
+          else
+            log "Failed to download wheel from $wheel_url"
+          fi
+        else
+          log "No matching wheel asset found in GitHub release for arch=$ARCH_TAG and python=$PY_TAG"
+        fi
+      else
+        log "Could not fetch GitHub releases for zenoh-python (network or API failure)"
+      fi
+
+      # Attempt to build a wheel from source into a local wheel cache and install from it
+      log "Attempting to build zenoh-python wheel from source (this may take several minutes)"
+      # Install common build dependencies (best-effort)
+      DEBIAN_FRONTEND=noninteractive apt-get update -y || true
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        build-essential cmake pkg-config libssl-dev libffi-dev python3-dev cargo git || true
+      # Try to build wheel
+      set +e
+      "$VENV_DIR/bin/python" -m pip wheel --no-binary :all: --wheel-dir "$WHEEL_DIR" zenoh-python 2>&1 | tee /var/log/psyched/zenoh-build.log
+      rc_build=$?
+      set -e
+      if [ $rc_build -eq 0 ]; then
+        log "Built wheel(s) into $WHEEL_DIR, attempting install from local wheel cache"
+        "$VENV_DIR/bin/python" -m pip install --no-index --find-links "$WHEEL_DIR" "zenoh-python>=0.11.0" || true
+        log "If install from local wheel succeeded, zenoh-python is available; check /var/log/psyched/zenoh-build.log for details."
+      else
+        log "Wheel build failed; see /var/log/psyched/zenoh-build.log for details. Provisioning will continue but zenoh-python may be unavailable on this host."
+      fi
+    fi
   else
     log "venv python not found at $VENV_DIR/bin/python"
   fi
@@ -109,6 +178,11 @@ install_files_and_units() {
   install -m 0755 "$REPO_DIR/tools/provision/update_repo.sh" /usr/local/bin/psyched-update
   ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyched
 
+  # Mark the repo safe for global git operations (avoid unsafe repo errors)
+  if command -v git >/dev/null 2>&1; then
+    git config --global --add safe.directory "$REPO_DIR" || true
+  fi
+
   install -m 0644 "$REPO_DIR/systemd/layer1-zenoh.service" /etc/systemd/system/layer1-zenoh.service
   install -m 0644 "$REPO_DIR/systemd/layer1-bridge.service" /etc/systemd/system/layer1-bridge.service
   install -m 0644 "$REPO_DIR/systemd/layer3-launcher.service" /etc/systemd/system/layer3-launcher.service
@@ -120,6 +194,8 @@ install_files_and_units() {
   # Zenoh publishers (audio/video)
   install -m 0644 "$REPO_DIR/systemd/zenoh-audio-pub.service" /etc/systemd/system/zenoh-audio-pub.service
   install -m 0644 "$REPO_DIR/systemd/zenoh-camera-pub.service" /etc/systemd/system/zenoh-camera-pub.service
+  install -m 0644 "$REPO_DIR/systemd/zenoh-gnss-pub.service" /etc/systemd/system/zenoh-gnss-pub.service
+  install -m 0644 "$REPO_DIR/systemd/ros2-gps-repub.service" /etc/systemd/system/ros2-gps-repub.service
 
   # ROS 2 republishers
   install -m 0644 "$REPO_DIR/systemd/ros2-audio-repub.service" /etc/systemd/system/ros2-audio-repub.service
@@ -286,6 +362,21 @@ enable_role_stacks() {
       systemctl enable --now zenoh-audio-pub.service || true
     else
       systemctl disable --now zenoh-audio-pub.service 2>/dev/null || true
+    fi
+    # GNSS / GPS: enable if the device has 'ear' or 'gps' roles
+    if grep -q '"ear"' /etc/psyched/device_roles.json || grep -q '"gps"' /etc/psyched/device_roles.json; then
+      log "Ensuring GNSS serial tooling and enabling GNSS services"
+      # Ensure serial device permissions are usable; add dialout or fallback to setfacl
+      if getent group dialout >/dev/null 2>&1; then
+        usermod -a -G dialout $(logname 2>/dev/null || echo root) || true
+      else
+        log "dialout group not present; ensure /dev/serial0 is accessible by service user"
+      fi
+      systemctl enable --now zenoh-gnss-pub.service || true
+      systemctl enable --now ros2-gps-repub.service || true
+    else
+      systemctl disable --now zenoh-gnss-pub.service 2>/dev/null || true
+      systemctl disable --now ros2-gps-repub.service 2>/dev/null || true
     fi
     if grep -q '"camera"' /etc/psyched/device_roles.json; then
       log "Ensuring OpenCV and zenoh python for camera"
