@@ -36,6 +36,8 @@ jobs:
           # cibuildwheel expects the package directory as a positional argument
           python -m cibuildwheel ./zenoh-python --output-dir dist
         env:
+          CIBW_BUILD: cp311-manylinux_x86_64 cp311-manylinux_aarch64
+          CIBW_ARCHS_LINUX: x86_64 aarch64
           CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2014_x86_64
           CIBW_MANYLINUX_AARCH64_IMAGE: quay.io/pypa/manylinux2014_aarch64
 
