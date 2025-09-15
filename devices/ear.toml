@@ -11,4 +11,5 @@ bridge_ros2dds = { enabled = false }
 [layer2]
 ros_distro = "none"
 
-layer3.nodes = []
+[layer3]
+nodes = []

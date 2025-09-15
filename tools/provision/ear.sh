@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+# Provision a Raspberry Pi Zero 2 W as the "ear" device.
+#
+# Idempotent; safe to re-run. Designed to be piped via curl:
+#   curl -fsSL <URL>/tools/provision/ear.sh | sudo bash
+set -euo pipefail
+
+require_root() {
+  if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    echo "Please run as root (use sudo)" >&2
+    exit 1
+  fi
+}
+
+log() { echo "[ear] $*"; }
+
+detect_arch() {
+  local u
+  u=$(uname -m)
+  case "$u" in
+    aarch64) echo "aarch64" ;;
+    armv7l|armv6l) echo "armv7l" ;;
+    *) echo "$u" ;;
+  esac
+}
+
+set_hostname() {
+  local name="ear"
+  if [ "$(hostname -s)" != "$name" ]; then
+    log "Setting hostname to $name"
+    hostnamectl set-hostname "$name" || true
+    sed -i "s/^127.0.1.1.*/127.0.1.1\t${name}/" /etc/hosts || true
+  fi
+}
+
+ensure_packages() {
+  log "Updating apt and installing dependencies"
+  apt-get update -y
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    ca-certificates curl unzip jq python3 avahi-daemon
+}
+
+install_zenoh() {
+  local arch url tmp dir bin
+  arch=$(detect_arch)
+  dir=/usr/local/bin
+  mkdir -p "$dir"
+
+  if command -v zenohd >/dev/null 2>&1; then
+    log "zenohd already installed"
+  else
+    case "$arch" in
+      aarch64)
+        url="https://github.com/eclipse-zenoh/zenoh/releases/latest/download/zenoh-plugins-bin-aarch64-unknown-linux-musl.zip" ;;
+      armv7l)
+        # No official ARMv7 binary published upstream at this time.
+        # Skip automated install and leave a note.
+        url="" ;;
+      *)
+        url="" ;;
+    esac
+    if [ -n "$url" ]; then
+      tmp=$(mktemp -d)
+      log "Downloading zenoh bundle ($arch)"
+      curl -fsSL "$url" -o "$tmp/zenoh.zip" || {
+        log "Failed to download zenoh bundle. Please install zenohd manually."; rm -rf "$tmp"; return 0; }
+      unzip -q "$tmp/zenoh.zip" -d "$tmp/z"
+      # Try to locate zenohd in unpacked content
+      bin=$(find "$tmp/z" -type f -name zenohd | head -n1 || true)
+      if [ -n "$bin" ]; then
+        install -m 0755 "$bin" "$dir/zenohd"
+        log "Installed zenohd to $dir"
+      else
+        log "zenohd not found in archive; skipping install"
+      fi
+      rm -rf "$tmp"
+    else
+      log "No prebuilt zenohd for $arch; please install manually."
+    fi
+  fi
+
+  if command -v zenoh-bridge-ros2dds >/dev/null 2>&1; then
+    log "zenoh-bridge-ros2dds already installed"
+  else
+    # Optional for ear (disabled in config); skip if not available
+    true
+  fi
+}
+
+install_files() {
+  log "Installing PsycheOS files"
+  install -d /opt/psycheos/devices /opt/psycheos/layer1/zenoh \
+             /opt/psycheos/layer1/scripts /opt/psycheos/layer3/launcher \
+             /opt/psycheos/layer3/services /etc/zenoh /etc/psycheos
+
+  # Device roles for zenoh_autonet.sh
+  cat > /etc/psycheos/device_roles.json << 'JSON'
+{"roles": ["imu", "mic"]}
+JSON
+
+  # Device TOML for ear
+  cat > /opt/psycheos/devices/ear.toml << 'TOML'
+[device]
+id = "ear"
+roles = ["imu", "mic"]
+hostname = "ear.local"
+
+[layer1]
+mode = "client"
+scouting = true
+bridge_ros2dds = { enabled = false }
+
+[layer2]
+ros_distro = "none"
+
+[layer3]
+nodes = []
+TOML
+
+  # Zenoh configs
+  cat > /etc/zenoh/router.json5 << 'JSON'
+{
+  "mode": "router",
+  "listen": ["tcp/0.0.0.0:7447"],
+  "scouting": { "enabled": true }
+}
+JSON
+
+  cat > /etc/zenoh/bridge_ros2.json5 << 'JSON'
+{
+  "ros2_to_zenoh": { "mode": "complete" },
+  "zenoh_to_ros2": { "mode": "complete" },
+  "scouting": { "enabled": true }
+}
+JSON
+
+  # Layer1 autonet helper
+  cat > /usr/local/bin/zenoh_autonet.sh << 'BASH'
+#!/usr/bin/env bash
+set -euo pipefail
+MODE="${1:-auto}"
+SCOUT_SECS="${SCOUT_SECS:-4}"
+SEED="${ZENOH_PEERS:-}"
+found_router() { timeout "${SCOUT_SECS}" zenohd --scout 2>/dev/null | grep -q "ROUTER"; }
+start_router() { exec zenohd -c /etc/zenoh/router.json5; }
+start_peer() {
+  if [ -n "$SEED" ]; then exec zenohd --peer "$SEED"; fi
+  if [ -f /run/zenoh/peer.txt ]; then exec zenohd --peer "$(cat /run/zenoh/peer.txt)"; fi
+  exec zenohd
+}
+case "$MODE" in
+  router) start_router ;;
+  peer|client)
+    if [ -n "$SEED" ]; then start_peer; fi
+    if found_router; then zenohd --scout | awk '/ROUTER/ {print $NF}' >/run/zenoh/peer.txt || true; start_peer; else start_peer; fi ;;
+  auto|*)
+    if found_router; then zenohd --scout | awk '/ROUTER/ {print $NF}' >/run/zenoh/peer.txt || true; start_peer;
+    else if grep -q '"router"' /etc/psycheos/device_roles.json; then start_router; else start_peer; fi; fi ;;
+esac
+BASH
+  chmod +x /usr/local/bin/zenoh_autonet.sh
+
+  # Systemd units
+  cat > /etc/systemd/system/layer1-zenoh.service << 'UNIT'
+[Unit]
+Description=Layer1 Zenoh fabric
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=SCOUT_SECS=4
+ExecStartPre=/usr/bin/mkdir -p /run/zenoh
+ExecStart=/usr/local/bin/zenoh_autonet.sh auto
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+  # layer1-bridge is intentionally not enabled for ear
+  cat > /etc/systemd/system/layer1-bridge.service << 'UNIT'
+[Unit]
+Description=Zenoh <-> ROS2 DDS bridge
+After=layer1-zenoh.service
+Requires=layer1-zenoh.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/zenoh-bridge-ros2dds -c /etc/zenoh/bridge_ros2.json5
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+}
+
+enable_services() {
+  log "Enabling services"
+  systemctl daemon-reload
+  systemctl enable --now layer1-zenoh.service
+}
+
+main() {
+  require_root
+  set_hostname
+  ensure_packages
+  install_zenoh
+  install_files
+  enable_services
+  log "Provisioning complete. Reboot recommended."
+}
+
+main "$@"

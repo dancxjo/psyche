@@ -1,0 +1,12 @@
+[Unit]
+Description=Periodically update PsycheOS repo and re-apply provisioning
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+

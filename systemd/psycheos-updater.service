@@ -1,0 +1,9 @@
+[Unit]
+Description=Update PsycheOS repo and re-apply provisioning
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/psycheos-update
+
