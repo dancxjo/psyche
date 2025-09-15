@@ -19,7 +19,7 @@ runtime configuration.
   - By default, it clones branch `main` into `/opt/psycheos`, group‑writable by `sudo`.
 
 ```
-curl -fsSL https://your.repo.example/tools/provision/bootstrap.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/dancxjo/psyche/main/tools/provision/bootstrap.sh | sudo bash
 ```
 
 - What happens:

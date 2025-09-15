@@ -2,15 +2,14 @@
 # Bootstrap installer: clones repo, installs auto-updater, applies config.
 #
 # Usage (no args):
-#   curl -fsSL https://your.repo.example/tools/provision/bootstrap.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/dancxjo/psyche/refs/heads/main/tools/provision/bootstrap.sh?token=GHSAT0AAAAAADK7LS54HA6T4RJVUFOKL5TO2GHMPNA | sudo bash
 #
 # Optional flags:
 #   -r|--repo URL   Git URL to clone (default from script variable)
 #   -b|--branch BR  Branch to checkout (default: main)
 set -euo pipefail
 
-# TODO: set to your canonical git URL (e.g., https://github.com/<org>/<repo>.git)
-DEFAULT_REPO_URL="https://example.com/your/psycheos.git"  # CHANGEME
+DEFAULT_REPO_URL="https://github.com/dancxjo/psyche.git"
 DEFAULT_BRANCH="main"
 
 log() { echo "[bootstrap] $*"; }
