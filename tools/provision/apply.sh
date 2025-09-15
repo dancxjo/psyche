@@ -12,10 +12,42 @@ require_root() { [ "${EUID:-$(id -u)}" -eq 0 ] || { echo "Run as root" >&2; exit
 
 ensure_common_packages() {
   log "Ensuring common packages"
-  apt-get update -y
+  # If a Docker apt source exists but the keyring is missing, temporarily disable the
+  # docker source so `apt-get update` can run to install tools (curl/gnupg) that we
+  # then use to fetch the Docker GPG key. This avoids the NO_PUBKEY failure during
+  # provisioning when the system has an existing docker.list but no key file.
+  DOCKER_LIST=/etc/apt/sources.list.d/docker.list
+  DOCKER_DISABLED=/etc/apt/sources.list.d/docker.list.disabled
+  DISABLED_DOCKER=0
+  if [ -f "$DOCKER_LIST" ] && [ ! -f /etc/apt/keyrings/docker.gpg ]; then
+    log "Docker apt source present but key missing; temporarily disabling docker source for initial update"
+    mv -f "$DOCKER_LIST" "$DOCKER_DISABLED" || true
+    DISABLED_DOCKER=1
+  fi
+
+  apt-get update -y || true
+  # Install common packages plus gnupg so we can dearmor keys
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates curl unzip jq python3 python3-pip python3-venv avahi-daemon git \
-    python3-serial gpsd-clients
+    python3-serial gpsd-clients gnupg || true
+
+  # If we disabled the docker source above, attempt to fetch Docker's GPG key now,
+  # write it to /etc/apt/keyrings/docker.gpg, and then re-enable the source and
+  # perform another update so subsequent installs can use the Docker repo.
+  if [ "$DISABLED_DOCKER" -eq 1 ]; then
+    mkdir -p /etc/apt/keyrings
+    if command -v curl >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1; then
+      log "Fetching Docker GPG key to /etc/apt/keyrings/docker.gpg"
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg || true
+      chmod a+r /etc/apt/keyrings/docker.gpg || true
+    else
+      log "curl or gpg missing; will attempt to fetch Docker key later"
+    fi
+    if [ -f "$DOCKER_DISABLED" ]; then
+      mv -f "$DOCKER_DISABLED" "$DOCKER_LIST" || true
+    fi
+    apt-get update -y || true
+  fi
 }
 
 ensure_docker() {
