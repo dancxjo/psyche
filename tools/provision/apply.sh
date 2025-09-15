@@ -213,6 +213,28 @@ roles = data.get("device", {}).get("roles", [])
 print(json.dumps({"roles": roles}))' "$DEVICE_TOML" >/etc/psyched/device_roles.json
   fi
 
+  # Create dedicated 'pete' system user for psyched services (no home)
+  if ! id -u pete >/dev/null 2>&1; then
+    log "Creating system user 'pete'"
+    useradd --system --no-create-home --shell /usr/sbin/nologin pete || true
+  fi
+  # Ensure pete is in dialout for serial access
+  if getent group dialout >/dev/null 2>&1; then
+    usermod -a -G dialout pete || true
+  fi
+
+  # Udev rule: set owner to pete and group to dialout for ttyACM devices
+  cat > /etc/udev/rules.d/99-psyched-ttyacm.rules <<'RULE'
+SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTR{devname}=="/dev/ttyACM*", OWNER=="pete", GROUP=="dialout", MODE=="0660"
+RULE
+  udevadm control --reload-rules || true
+  udevadm trigger --action=add || true
+
+  # If device exists now, ensure ACL so pete can access it immediately
+  if [ -e /dev/ttyACM0 ]; then
+    setfacl -m u:pete:rw /dev/ttyACM0 || true
+  fi
+
   # Python venv setup for daemons
   VENV_DIR="$REPO_DIR/venv"
   if [ ! -d "$VENV_DIR" ]; then
