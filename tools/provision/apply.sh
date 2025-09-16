@@ -475,7 +475,7 @@ setup_web_service() {
     log "No device TOML ($DEVICE_TOML); skipping web service setup"
     return 0
   fi
-
+  # Prefer layer3.services.web (for ROS-enabled hosts); fall back to layer1.services.web
   enabled=$(python3 - "$DEVICE_TOML" <<'PY'
 import sys, pathlib
 try:
@@ -484,7 +484,9 @@ except Exception:
     import tomli as toml
 p=pathlib.Path(sys.argv[1])
 d=toml.loads(p.read_text())
-web=d.get('layer1',{}).get('services',{}).get('web',{})
+web = d.get('layer3',{}).get('services',{}).get('web', None)
+if web is None:
+    web = d.get('layer1',{}).get('services',{}).get('web', {})
 print(str(web.get('enabled',False)).lower())
 PY
 )
@@ -500,7 +502,9 @@ except Exception:
     import tomli as toml
 p=pathlib.Path(sys.argv[1])
 d=toml.loads(p.read_text())
-web=d.get('layer1',{}).get('services',{}).get('web',{})
+web = d.get('layer3',{}).get('services',{}).get('web', None)
+if web is None:
+    web = d.get('layer1',{}).get('services',{}).get('web', {})
 print(web.get('host','0.0.0.0'))
 PY
 )
@@ -512,7 +516,9 @@ except Exception:
     import tomli as toml
 p=pathlib.Path(sys.argv[1])
 d=toml.loads(p.read_text())
-web=d.get('layer1',{}).get('services',{}).get('web',{})
+web = d.get('layer3',{}).get('services',{}).get('web', None)
+if web is None:
+    web = d.get('layer1',{}).get('services',{}).get('web', {})
 print(web.get('port',8080))
 PY
 )
@@ -525,18 +531,14 @@ PY
     return 0
   fi
 
-  # Install fastapi and uvicorn into venv (zenoh optional)
+  # Install fastapi, uvicorn into venv
   log "Installing fastapi and uvicorn into venv"
   set +e
   "$PY_BIN" -m pip install --upgrade pip
-  if [ "$ENABLE_ZENOH" = true ]; then
-    "$PY_BIN" -m pip install --no-cache-dir fastapi "uvicorn[standard]" "zenoh>=0.4.0" || true
-  else
-    "$PY_BIN" -m pip install --no-cache-dir fastapi "uvicorn[standard]" || true
-  fi
+  "$PY_BIN" -m pip install --no-cache-dir fastapi "uvicorn[standard]" || true
   set -e
 
-  # Create systemd unit using venv python to run uvicorn
+  # Create systemd unit using venv python to run uvicorn. Source ROS workspace setup if present
   cat > /etc/systemd/system/psyche-web.service <<'UNIT'
 [Unit]
 Description=Psyche Web UI (uvicorn)
@@ -546,7 +548,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=$REPO_DIR
-ExecStart=$PY_BIN -m uvicorn web.app:app --host $host --port $port
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/bin/bash -lc 'if [ -f "/opt/ros_ws/install/setup.sh" ]; then . /opt/ros_ws/install/setup.sh; fi; exec $PY_BIN -m uvicorn layer3.web.app:app --host $host --port $port'
 Restart=always
 RestartSec=2
 
