@@ -18,6 +18,7 @@ import shlex
 import subprocess
 import sys
 import pwd
+import shutil
 from pathlib import Path
 
 # Determine the target non-root user to run workspace operations as.
@@ -404,14 +405,30 @@ def build_workspace(repo_root: Path, workspace_dir: Path, ros_distro: str = "kil
     marker = workspace_dir / ".built"
 
     print("Setting up workspace build dependencies and environment")
-    # install rosdep and colcon tooling
+    # Try to install rosdep and colcon tooling via apt, but be resilient across distros.
     run_sudo(["apt", "update"])
-    run_sudo(["apt", "install", "-y", "python3-rosdep", "python3-colcon-common-extensions"])
+    try:
+        run_sudo(["apt", "install", "-y", "python3-rosdep", "python3-colcon-common-extensions"])
+    except Exception as e:
+        print(f"Could not install ROS packages via apt: {e} (continuing)")
+        # Attempt pip-based fallbacks for tools commonly available via pip
+        try:
+            # install python rosdep and colcon via pip if apt packages are missing
+            run_sudo(["pip3", "install", "rosdep", "colcon-common-extensions"])
+        except Exception as e2:
+            print(f"Pip fallback for rosdep/colcon also failed: {e2} (continuing)")
 
-    # init rosdep if necessary
-    if not Path("/etc/ros/rosdep/sources.list.d/20-default.list").exists():
-        run_sudo(["rosdep", "init"])  # may already be present
-    run(["rosdep", "update"], check=False)
+    # init rosdep if available
+    rosdep_cmd = shutil.which("rosdep")
+    if rosdep_cmd:
+        try:
+            if not Path("/etc/ros/rosdep/sources.list.d/20-default.list").exists():
+                run_sudo(["rosdep", "init"])  # may already be present
+            run(["rosdep", "update"], check=False)
+        except Exception as e:
+            print(f"rosdep update/init failed (continuing): {e}")
+    else:
+        print("rosdep not available on this host; skipping rosdep init/update")
 
     # If no sources, nothing to do
     if not any(src_dir.iterdir()):
