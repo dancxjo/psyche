@@ -479,14 +479,12 @@ setup_web_service() {
   enabled=$(python3 - "$DEVICE_TOML" <<'PY'
 import sys, pathlib
 try:
-    import tomllib as toml
+  import tomllib as toml
 except Exception:
-    import tomli as toml
+  import tomli as toml
 p=pathlib.Path(sys.argv[1])
 d=toml.loads(p.read_text())
-web = d.get('layer3',{}).get('services',{}).get('web', None)
-if web is None:
-    web = d.get('layer1',{}).get('services',{}).get('web', {})
+web = d.get('layer3',{}).get('services',{}).get('web', {})
 print(str(web.get('enabled',False)).lower())
 PY
 )
@@ -497,28 +495,24 @@ PY
   host=$(python3 - "$DEVICE_TOML" <<'PY'
 import sys, pathlib
 try:
-    import tomllib as toml
+  import tomllib as toml
 except Exception:
-    import tomli as toml
+  import tomli as toml
 p=pathlib.Path(sys.argv[1])
 d=toml.loads(p.read_text())
-web = d.get('layer3',{}).get('services',{}).get('web', None)
-if web is None:
-    web = d.get('layer1',{}).get('services',{}).get('web', {})
+web = d.get('layer3',{}).get('services',{}).get('web', {})
 print(web.get('host','0.0.0.0'))
 PY
 )
   port=$(python3 - "$DEVICE_TOML" <<'PY'
 import sys, pathlib
 try:
-    import tomllib as toml
+  import tomllib as toml
 except Exception:
-    import tomli as toml
+  import tomli as toml
 p=pathlib.Path(sys.argv[1])
 d=toml.loads(p.read_text())
-web = d.get('layer3',{}).get('services',{}).get('web', None)
-if web is None:
-    web = d.get('layer1',{}).get('services',{}).get('web', {})
+web = d.get('layer3',{}).get('services',{}).get('web', {})
 print(web.get('port',8080))
 PY
 )
