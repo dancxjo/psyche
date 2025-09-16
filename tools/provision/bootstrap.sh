@@ -46,67 +46,71 @@ if [ ! -f "$PROJECT_ROOT/tools/provision/setup_ros2.sh" ]; then
   echo "Repository files not found next to bootstrap script; cloning repo to temporary dir"
   TMP_CLONE_DIR=$(mktemp -d /tmp/psyched-bootstrap.XXXX)
   echo "Cloning repository to $TMP_CLONE_DIR"
-  if command -v git >/dev/null 2>&1; then
-    # Determine the user we should clone as. When this script is invoked via
-    # `sudo bash` the original user is available in SUDO_USER. Prefer
-    # cloning as that user so their SSH keys are used for private repo access.
-    CLONE_AS_USER="${SUDO_USER-}"
+  # Try to download a ZIP of the repository (preferred for piped/root installs).
+  ZIP_URL="https://github.com/dancxjo/psyched/archive/refs/heads/main.zip"
+  REPO_ZIP="$TMP_CLONE_DIR/psyched-main.zip"
+  DL_OK=1
 
-    # Build a clone URL. Prefer SSH if we're cloning as a non-root user (so
-    # their SSH keys are used). If a GITHUB_TOKEN is provided, use an
-    # HTTPS token-based URL for non-interactive clones.
+  if command -v curl >/dev/null 2>&1; then
+    echo "Downloading repository ZIP via curl"
     if [ -n "${GITHUB_TOKEN-}" ]; then
-      echo "Using GITHUB_TOKEN for non-interactive HTTPS clone"
-      CLONE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/dancxjo/psyched.git"
+      curl -sS -H "Authorization: token ${GITHUB_TOKEN}" -L "$ZIP_URL" -o "$REPO_ZIP" || DL_OK=0
     else
-      # If we have a invoking user, prefer SSH which will use their
-      # ~/.ssh keys. Otherwise fall back to HTTPS (public repo case).
-      if [ -n "$CLONE_AS_USER" ]; then
-        CLONE_URL="git@github.com:dancxjo/psyched.git"
+      curl -sS -L "$ZIP_URL" -o "$REPO_ZIP" || DL_OK=0
+    fi
+  elif command -v wget >/dev/null 2>&1; then
+    echo "Downloading repository ZIP via wget"
+    if [ -n "${GITHUB_TOKEN-}" ]; then
+      wget -q --header="Authorization: token ${GITHUB_TOKEN}" -O "$REPO_ZIP" "$ZIP_URL" || DL_OK=0
+    else
+      wget -q -O "$REPO_ZIP" "$ZIP_URL" || DL_OK=0
+    fi
+  else
+    DL_OK=0
+  fi
+
+  if [ "$DL_OK" -eq 1 ] && [ -s "$REPO_ZIP" ]; then
+    echo "Extracting repository ZIP to $TMP_CLONE_DIR"
+    # Prefer unzip, fall back to python's zipfile module
+    if command -v unzip >/dev/null 2>&1; then
+      unzip -q "$REPO_ZIP" -d "$TMP_CLONE_DIR" || { echo "unzip failed" >&2; exit 1; }
+    else
+      # Use Python to extract if unzip isn't available
+      python3 - <<'PY'
+import sys, zipfile
+z='''"$REPO_ZIP"'''
+out='''"$TMP_CLONE_DIR"'''
+with zipfile.ZipFile(z) as zf:
+    zf.extractall(out)
+PY
+      if [ $? -ne 0 ]; then echo "python unzip failed" >&2; exit 1; fi
+    fi
+    # The zip extracts into psyched-main/ or similar; detect the first subdir
+    EXTRACTED_DIR=$(find "$TMP_CLONE_DIR" -maxdepth 1 -type d -name "psyched-*" | head -n 1)
+    if [ -n "$EXTRACTED_DIR" ]; then
+      PROJECT_ROOT="$EXTRACTED_DIR"
+      echo "Using downloaded project at $PROJECT_ROOT"
+    else
+      echo "Could not find extracted project directory" >&2; exit 1
+    fi
+  else
+    # ZIP download failed — fall back to git clone if available.
+    if command -v git >/dev/null 2>&1; then
+      echo "ZIP download failed; falling back to git clone (no user switch)."
+      if [ -n "${GITHUB_TOKEN-}" ]; then
+        CLONE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/dancxjo/psyched.git"
       else
         CLONE_URL="https://github.com/dancxjo/psyched.git"
       fi
-    fi
-
-    if [ -n "$CLONE_AS_USER" ]; then
-      echo "Cloning as user: $CLONE_AS_USER"
-      # Quick heuristic: check whether the invoker likely has SSH keys or an
-      # agent available. This is a best-effort check — it does not guarantee
-      # success but provides a helpful early message to the user.
-      SSH_OK=0
-      # Check for at least one public key file in the invoker's .ssh dir
-      if sudo -u "$CLONE_AS_USER" bash -lc 'shopt -s nullglob; files=(~/.ssh/id_*.pub ~/.ssh/*.pub); ((${#files[@]} > 0))' >/dev/null 2>&1; then
-        SSH_OK=1
-      fi
-
-      # Also attempt a non-invasive ssh-agent test by checking for SSH_AUTH_SOCK
-      if sudo -u "$CLONE_AS_USER" bash -lc 'test -n "${SSH_AUTH_SOCK-}"' >/dev/null 2>&1; then
-        SSH_OK=1
-      fi
-
-      if [ "$SSH_OK" -ne 1 ]; then
-        echo "Warning: no SSH public keys or ssh-agent detected for $CLONE_AS_USER." >&2
-        echo "If the repository is private, the non-interactive clone may fail." >&2
-        echo "Options: (A) Use the SSH-capable invocation shown in the help, (B) set GITHUB_TOKEN, or (C) manually clone and run the bootstrap from a checkout." >&2
-      fi
-      sudo -u "$CLONE_AS_USER" git clone --depth 1 "$CLONE_URL" "$TMP_CLONE_DIR" || {
-        echo "git clone failed" >&2; exit 1
-      }
+      git clone --depth 1 "$CLONE_URL" "$TMP_CLONE_DIR" || { echo "git clone failed" >&2; exit 1; }
+      git config --global --add safe.directory "$TMP_CLONE_DIR" 2>/dev/null || true
+      PROJECT_ROOT="$TMP_CLONE_DIR"
+      echo "Using cloned project at $PROJECT_ROOT"
     else
-      git clone --depth 1 "$CLONE_URL" "$TMP_CLONE_DIR" || {
-        echo "git clone failed" >&2; exit 1
-      }
+      echo "Neither ZIP download tools nor git are available; cannot acquire repository." >&2
+      echo "Please run this script from a local checkout or install curl/wget/unzip or git." >&2
+      exit 1
     fi
-
-    # Mark the cloned directory as a safe git directory for the root user so
-    # later root-run git operations won't be blocked by Git's ownership checks.
-    git config --global --add safe.directory "$TMP_CLONE_DIR" 2>/dev/null || true
-
-    PROJECT_ROOT="$TMP_CLONE_DIR"
-    echo "Using cloned project at $PROJECT_ROOT"
-  else
-    echo "git not available; cannot clone repository. Please run from a checkout or install git." >&2
-    exit 1
   fi
 fi
 HOSTNAME_FULL="$(hostname --fqdn 2>/dev/null || hostname)"
