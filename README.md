@@ -8,6 +8,10 @@ To install, from a system running Ubuntu Server 22.04, run:
 curl -fsSL https://dancxjo.github.io/psyched | sudo bash
 ```
 
+Notes:
+- The installer now downloads a branch snapshot and installs it atomically into `/opt/psyched`.
+- During provisioning the GitHub CLI (`gh`) and `unzip` are installed if available via the distribution's apt repositories to support credentialed updates.
+
 
 High-level goals
 - Provide an idempotent, host-aware provisioning entrypoint that sets up a global ROS2 workspace and canonical clones.
@@ -23,6 +27,9 @@ Repository layout (important files)
 - `tools/provision/services/*_code/*` — local ament packages used as local service sources (e.g., `mic_node`, `voice_node`, `debug_log_node`).
 - `tools/provision/tools/*_tool.py` — per-tool best-effort installers with `setup()` and optional `teardown()` hooks (e.g., `piper_tool.py`, `espeak_tool.py`, `mbrola_tool.py`).
 - `tools/provision/psyched_cli.py` — CLI helper (installed at `/usr/bin/psyched` during provisioning) with commands `psyched reprovision`, `psyched update`, and `psyched deprovision`.
+
+CLI update opt-in:
+- `psyched update hosts/ear.json --git [--git-method ssh|https]` — opt-in to enable a git-managed workflow where the repo root will be turned into a proper git repository (if not already) and updated via `git pull`. Use `--git-method https` with `GITHUB_TOKEN` set in the environment for token-based pulls, or `--git-method ssh` for SSH-based pulls.
 
 Key behaviors
 - Canonical clones: `/opt/psyched/<relpath>` — canonical copies of repos. The provisioner copies local code there and clones remotes.

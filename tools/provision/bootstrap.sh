@@ -48,79 +48,80 @@ parse_args() {
 ensure_basics() {
   log "Installing git, curl, and Python"
   apt-get update -y
-  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl python3
+  # Ensure basic tools: git, curl, python3, unzip
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl python3 unzip
+  # Try to install GitHub CLI if available via apt
+  if ! command -v gh >/dev/null 2>&1; then
+    # Install GitHub CLI via official repository if not present
+    if command -v curl >/dev/null 2>&1; then
+      curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg >/dev/null 2>&1 || true
+      chmod 644 /usr/share/keyrings/githubcli-archive-keyring.gpg || true
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+      apt-get update -y
+      DEBIAN_FRONTEND=noninteractive apt-get install -y gh || true
+    fi
+  fi
 }
 
 clone_repo() {
   local dest="/opt/psyched"
-  # Determine clone strategy: prefer SSH clone as the invoking user (SUDO_USER)
-  # if they have SSH keys or an agent available. Otherwise use HTTPS with
-  # optional GITHUB_TOKEN, or public HTTPS.
-  CLONE_AS_USER="${SUDO_USER-}"
-  USE_SSH=0
-  # If user explicitly requested git-as-user, require SUDO_USER to be set
-  if [ "${GIT_AS_USER-0}" -eq 1 ]; then
-    if [ -z "$CLONE_AS_USER" ]; then
-      echo "--git-as-user requires invoking the installer via sudo from your user (SUDO_USER not set)." >&2
-      echo "Recommended: ssh -A you@host 'curl -fsSL https://dancxjo.github.io/psyched | sudo bash -s -- --git-as-user'" >&2
-      exit 2
-    fi
-    # Force SSH usage, but verify keys or agent exist
-    if sudo -u "$CLONE_AS_USER" bash -lc 'shopt -s nullglob; keys=(~/.ssh/id_*); ((${#keys[@]}>0))' >/dev/null 2>&1 || sudo -u "$CLONE_AS_USER" bash -lc 'test -n "${SSH_AUTH_SOCK-}"' >/dev/null 2>&1; then
-      USE_SSH=1
-    else
-      echo "Requested --git-as-user but no SSH keys or agent detected for $CLONE_AS_USER." >&2
-      echo "Start an SSH session with agent forwarding and re-run:" >&2
-      echo "  ssh -A $CLONE_AS_USER@host 'curl -fsSL https://dancxjo.github.io/psyched | sudo bash -s -- --git-as-user'" >&2
-      exit 2
-    fi
+  local zip_url="https://github.com/dancxjo/psyche/archive/refs/heads/${BRANCH}.zip"
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  local zippath="${tmpdir}/psyche.zip"
+
+  log "Downloading repository zip from ${zip_url}"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fSL -o "${zippath}" "${zip_url}"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "${zippath}" "${zip_url}"
   else
-    if [ -n "$CLONE_AS_USER" ]; then
-      # Check for public key files or SSH_AUTH_SOCK for agent
-      if sudo -u "$CLONE_AS_USER" bash -lc 'shopt -s nullglob; keys=(~/.ssh/id_*); ((${#keys[@]}>0))' >/dev/null 2>&1; then
-        USE_SSH=1
-      elif sudo -u "$CLONE_AS_USER" bash -lc 'test -n "${SSH_AUTH_SOCK-}"' >/dev/null 2>&1; then
-        USE_SSH=1
-      fi
-    fi
+    echo "Error: need curl or wget to download repository zip" >&2
+    rm -rf "${tmpdir}"
+    exit 1
   fi
 
-  if [ -d "$dest/.git" ]; then
-    log "Repo already present at $dest"
-    log "Repo already present at $dest; attempting to update"
-    # Try a best-effort update: fetch and fast-forward merge, falling back to reset
-    set +e
-    cd "$dest" || return 0
-    git fetch --prune origin "$BRANCH" 2>/dev/null
-    if git rev-parse --verify "origin/${BRANCH}" >/dev/null 2>&1; then
-      if git merge --ff-only "origin/${BRANCH}" >/dev/null 2>&1; then
-        log "Fast-forwarded $dest to origin/$BRANCH"
-      else
-        log "Fast-forward not possible; performing hard reset to origin/$BRANCH"
-        git reset --hard "origin/${BRANCH}" >/dev/null 2>&1 || log "git reset failed; repository may be in detached state"
-      fi
-    else
-      log "Remote branch origin/$BRANCH not found; skipping update"
-    fi
-    set -e
+  # Extract into staging dir for atomic swap
+  local staged="${dest}.new"
+  rm -rf "${staged}"
+  mkdir -p "${staged}"
+
+  if command -v unzip >/dev/null 2>&1; then
+    unzip -q "${zippath}" -d "${tmpdir}"
+  elif command -v bsdtar >/dev/null 2>&1; then
+    bsdtar -xf "${zippath}" -C "${tmpdir}"
   else
-    debug_env
-    log "Decision: USE_SSH=$USE_SSH; CLONE_AS_USER='$CLONE_AS_USER'"
-    if [ "$USE_SSH" -eq 1 ]; then
-      CLONE_URL="git@github.com:dancxjo/psyched.git"
-      log "Cloning via SSH as $CLONE_AS_USER: $CLONE_URL@$BRANCH to $dest"
-      sudo -u "$CLONE_AS_USER" git clone --depth 1 --branch "$BRANCH" "$CLONE_URL" "$dest"
-    else
-      log "Cloning $REPO_URL@$BRANCH to $dest"
-      git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$dest"
-    fi
+    echo "Error: no suitable extractor (unzip or bsdtar) available" >&2
+    rm -rf "${tmpdir}"
+    exit 1
   fi
-  # Make group-writable by sudo group and setgid on dirs
-  log "Setting group write permissions for sudo group"
+
+  TOPDIR=$(find "${tmpdir}" -maxdepth 1 -mindepth 1 -type d | head -n1)
+  if [ -z "${TOPDIR}" ]; then
+    echo "Error: extracted archive did not produce expected directory" >&2
+    rm -rf "${tmpdir}"
+    exit 1
+  fi
+
+  log "Copying extracted tree to staging dir ${staged}"
+  cp -a "${TOPDIR}/." "${staged}/"
+
+  # Set permissions on staged tree
   groupadd -f sudo || true
-  chgrp -R sudo "$dest"
-  chmod -R g+rwX "$dest"
-  find "$dest" -type d -exec chmod g+s {} +
+  chgrp -R sudo "${staged}" || true
+  chmod -R g+rwX "${staged}" || true
+  find "${staged}" -type d -exec chmod g+s {} + || true
+
+  # Swap into place atomically: back up existing dest then move staged
+  if [ -d "${dest}" ]; then
+    log "Backing up existing ${dest} to ${dest}.bak"
+    rm -rf "${dest}.bak"
+    mv "${dest}" "${dest}.bak"
+  fi
+  mv "${staged}" "${dest}"
+
+  # Clean up
+  rm -rf "${tmpdir}"
 }
 
 install_updater() {

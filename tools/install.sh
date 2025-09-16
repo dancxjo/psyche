@@ -37,8 +37,10 @@ download() {
 }
 
 extract() {
-    # Ensure destination exists
-    mkdir -p "${DEST_DIR}"
+    # Extract into staging dir for atomic swap
+    staged="${DEST_DIR}.new"
+    rm -rf "${staged}"
+    mkdir -p "${staged}"
 
     # Extract safely: prefer unzip, then bsdtar/tar
     if command -v unzip >/dev/null 2>&1; then
@@ -46,7 +48,6 @@ extract() {
     elif command -v bsdtar >/dev/null 2>&1; then
         bsdtar -xf "${ZIPPATH}" -C "${TMPDIR}"
     elif command -v tar >/dev/null 2>&1; then
-        # GNU tar can handle zip with --use-compress-program but to be safer try busybox unzip
         if tar --version >/dev/null 2>&1 && tar --help | grep -q unzip; then
             tar -xf "${ZIPPATH}" -C "${TMPDIR}"
         else
@@ -58,15 +59,20 @@ extract() {
         exit 1
     fi
 
-    # The zip contains a top-level directory like psyche-main; move its contents into DEST_DIR
     TOPDIR=$(find "${TMPDIR}" -maxdepth 1 -mindepth 1 -type d | head -n1)
     if [ -z "${TOPDIR}" ]; then
         echo "Error: extracted archive does not contain expected contents." >&2
         exit 1
     fi
 
-    # Copy contents into DEST_DIR (overwrite but preserve ownership as root)
-    cp -a "${TOPDIR}/." "${DEST_DIR}/"
+    cp -a "${TOPDIR}/." "${staged}/"
+
+    # Swap into place atomically
+    if [ -d "${DEST_DIR}" ]; then
+        rm -rf "${DEST_DIR}.bak"
+        mv "${DEST_DIR}" "${DEST_DIR}.bak"
+    fi
+    mv "${staged}" "${DEST_DIR}"
 }
 
 run_bootstrap() {
