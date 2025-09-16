@@ -126,12 +126,29 @@ clone_repo() {
 
 install_updater() {
   log "Installing updater service and timer"
-  install -m 0755 /opt/psyched/tools/provision/update_repo.sh /usr/local/bin/psyched-update
-  ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyche
-  install -m 0644 /opt/psyched/systemd/psyched-updater.service /etc/systemd/system/psyched-updater.service
-  install -m 0644 /opt/psyched/systemd/psyched-updater.timer /etc/systemd/system/psyched-updater.timer
-  systemctl daemon-reload
-  systemctl enable --now psyched-updater.timer
+  local updater_src="/opt/psyched/tools/provision/update_repo.sh"
+  local updater_dst="/usr/local/bin/psyched-update"
+  if [ -f "${updater_src}" ]; then
+    install -m 0755 "${updater_src}" "${updater_dst}"
+    ln -sf "${updater_dst}" /usr/bin/update-psyche
+  else
+    log "Updater script not found at ${updater_src}; skipping installation of updater binary"
+  fi
+
+  local svc_src="/opt/psyched/systemd/psyched-updater.service"
+  local timer_src="/opt/psyched/systemd/psyched-updater.timer"
+  if [ -f "${svc_src}" ] || [ -f "${timer_src}" ]; then
+    [ -f "${svc_src}" ] && install -m 0644 "${svc_src}" /etc/systemd/system/psyched-updater.service || log "Service unit not found; skipping"
+    [ -f "${timer_src}" ] && install -m 0644 "${timer_src}" /etc/systemd/system/psyched-updater.timer || log "Timer unit not found; skipping"
+    systemctl daemon-reload || log "systemctl daemon-reload failed or systemctl not available"
+    if systemctl list-unit-files | grep -q psyched-updater.timer 2>/dev/null; then
+      systemctl enable --now psyched-updater.timer || log "Failed to enable/start psyched-updater.timer"
+    else
+      log "psyched-updater.timer unit not installed; skipping enable/start"
+    fi
+  else
+    log "No systemd units found for updater; skipping systemd installation"
+  fi
 }
 
 apply_config() {
