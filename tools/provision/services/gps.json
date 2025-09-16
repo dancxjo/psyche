@@ -3,7 +3,7 @@
     "description": "GPS sensor and driver stack (stub). Add specific GPS provider repos here.",
     "repos": [
         {
-            "url": "https://github.com/ros-drivers/ublox.git",
+            "url": "https://github.com/KumarRobotics/ublox.git",
             "relpath": "ublox"
         }
     ],
