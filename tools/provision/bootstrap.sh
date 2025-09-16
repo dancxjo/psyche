@@ -1,269 +1,93 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Bootstrap installer: clones repo, installs auto-updater, applies config.
+#
+# Usage (no args):
+#   curl -fsSL https://raw.githubusercontent.com/dancxjo/psyche/refs/heads/main/tools/provision/bootstrap.sh?token=GHSAT0AAAAAADK7LS54HA6T4RJVUFOKL5TO2GHMPNA | sudo bash
+#
+# Optional flags:
+#   -r|--repo URL   Git URL to clone (default from script variable)
+#   -b|--branch BR  Branch to checkout (default: main)
 set -euo pipefail
 
-# Idempotent bootstrap script for provisioning hosts in this repo.
-# Usage: bootstrap.sh [--force] [--install-ros2]
-# - --force: force rerun of actions even if already applied
-# - --install-ros2: run tools/provision/setup_ros2.sh install-ros2
+DEFAULT_REPO_URL="https://github.com/dancxjo/psyched.git"
+DEFAULT_BRANCH="main"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 || pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+log() { echo "[bootstrap] $*"; }
+require_root() { [ "${EUID:-$(id -u)}" -eq 0 ] || { echo "Run as root" >&2; exit 1; }; }
 
-# Help/usage block (also printed when running with -h/--help)
-print_help() {
-  cat <<'EOF'
-Usage: bootstrap.sh [--force] [--install-ros2]
-
-This bootstrap script prepares a host to run the Psyched workspace. It is
-safe to run from a checkout or via a piped installer (e.g. curl ... | sudo bash).
-
-Non-interactive cloning options (recommended):
-  1) Preferred (private repo): run on the host as your normal user and let
-     the script clone using your SSH keys. Example:
-       ssh you@host 'curl -fsSL https://dancxjo.github.io/psyched | sudo bash'
-
-  2) Token-based (CI or automation): export a short-lived GITHUB_TOKEN that
-     has at least read access and run the script. The token is used only for
-     the one-time clone URL and is not stored by the script:
-       sudo GITHUB_TOKEN=ghp_xxx bash bootstrap.sh
-
-  3) Manual (fallback): clone the repository yourself as your user, then run
-     the bootstrap from the checked-out copy as root:
-       git clone git@github.com:dancxjo/psyched.git ~/psyched
-       sudo bash ~/psyched/tools/provision/bootstrap.sh
-
-If cloning-as-invoker (SSH) is selected but fails because the agent or
-keys are not available, the script prints clear fallback steps.
-
-EOF
+parse_args() {
+  REPO_URL="$DEFAULT_REPO_URL"
+  BRANCH="$DEFAULT_BRANCH"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -r|--repo) REPO_URL="$2"; shift 2 ;;
+      -b|--branch) BRANCH="$2"; shift 2 ;;
+      *) echo "Unknown arg: $1" >&2; exit 2 ;;
+    esac
+  done
 }
 
-# If the script isn't running from inside a checked-out repository (for example
-# when run via `curl ... | sudo bash`), clone the repo into a temporary
-# directory and run provisioning from that clone. This makes the bootstrap
-# launcher safe to run directly on a host.
-if [ ! -f "$PROJECT_ROOT/tools/provision/setup_ros2.sh" ]; then
-  echo "Repository files not found next to bootstrap script; cloning repo to temporary dir"
-  # Destination for canonical clones — place the repo under /opt/psyched so
-  # subsequent provisioning operates from a stable path. If /opt/psyched
-  # already exists and is non-empty, we will not overwrite it unless --force
-  # is provided.
-  CANONICAL_DIR="/opt/psyched"
+ensure_basics() {
+  log "Installing git, curl, and Python"
+  apt-get update -y
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl python3
+}
 
-  # Use a temporary working dir for downloads/extraction and then move into
-  # place to keep the operation atomic.
-  TMP_CLONE_DIR=$(mktemp -d /tmp/psyched-bootstrap.XXXX)
-  echo "Preparing to acquire repository into $CANONICAL_DIR (tmp: $TMP_CLONE_DIR)"
-  # Try to download a ZIP of the repository (preferred for piped/root installs).
-  ZIP_URL="https://github.com/dancxjo/psyched/archive/refs/heads/main.zip"
-  REPO_ZIP="$TMP_CLONE_DIR/psyched-main.zip"
-  DL_OK=1
-
-  if command -v curl >/dev/null 2>&1; then
-    echo "Downloading repository ZIP via curl"
-    if [ -n "${GITHUB_TOKEN-}" ]; then
-      curl -sS -H "Authorization: token ${GITHUB_TOKEN}" -L "$ZIP_URL" -o "$REPO_ZIP" || DL_OK=0
-    else
-      curl -sS -L "$ZIP_URL" -o "$REPO_ZIP" || DL_OK=0
-    fi
-  elif command -v wget >/dev/null 2>&1; then
-    echo "Downloading repository ZIP via wget"
-    if [ -n "${GITHUB_TOKEN-}" ]; then
-      wget -q --header="Authorization: token ${GITHUB_TOKEN}" -O "$REPO_ZIP" "$ZIP_URL" || DL_OK=0
-    else
-      wget -q -O "$REPO_ZIP" "$ZIP_URL" || DL_OK=0
-    fi
-  else
-    DL_OK=0
-  fi
-
-  if [ "$DL_OK" -eq 1 ] && [ -s "$REPO_ZIP" ]; then
-  echo "Extracting repository ZIP to $TMP_CLONE_DIR"
-    # Prefer unzip, fall back to python's zipfile module
-    if command -v unzip >/dev/null 2>&1; then
-      unzip -q "$REPO_ZIP" -d "$TMP_CLONE_DIR" || { echo "unzip failed" >&2; exit 1; }
-    else
-      # Use Python to extract if unzip isn't available. The heredoc is
-      # unquoted so shell variables expand into the Python snippet.
-      python3 - <<PY
-import zipfile
-zipfile.ZipFile("$REPO_ZIP").extractall("$TMP_CLONE_DIR")
-PY
-      if [ $? -ne 0 ]; then echo "python unzip failed" >&2; exit 1; fi
-    fi
-    # The zip extracts into psyched-main/ or similar; detect the first subdir
-    EXTRACTED_DIR=$(find "$TMP_CLONE_DIR" -maxdepth 1 -type d -name "psyched-*" | head -n 1)
-    if [ -n "$EXTRACTED_DIR" ]; then
-      # Move extracted tree into the canonical dir (/opt/psyched)
-      if [ -d "$CANONICAL_DIR" ] && [ -n "$(find "$CANONICAL_DIR" -mindepth 1 -print -quit 2>/dev/null)" ] && [ "$FORCE" -ne 1 ]; then
-        echo "$CANONICAL_DIR already exists and is non-empty. Use --force to overwrite or remove it manually." >&2
-        exit 1
-      fi
-      $SUDO mkdir -p "$CANONICAL_DIR"
-      $SUDO rm -rf "$CANONICAL_DIR"/* || true
-      $SUDO mv "$EXTRACTED_DIR"/* "$CANONICAL_DIR" || { echo "Move failed" >&2; exit 1; }
-      PROJECT_ROOT="$CANONICAL_DIR"
-      echo "Using downloaded project at $PROJECT_ROOT"
-    else
-      echo "Could not find extracted project directory" >&2; exit 1
-    fi
-  else
-    # ZIP download failed — fall back to git clone if available.
-    if command -v git >/dev/null 2>&1; then
-      echo "ZIP download failed; falling back to git clone (no user switch)."
-      if [ -n "${GITHUB_TOKEN-}" ]; then
-        CLONE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/dancxjo/psyched.git"
+clone_repo() {
+  local dest="/opt/psyched"
+  if [ -d "$dest/.git" ]; then
+    log "Repo already present at $dest"
+    log "Repo already present at $dest; attempting to update"
+    # Try a best-effort update: fetch and fast-forward merge, falling back to reset
+    set +e
+    cd "$dest" || return 0
+    git fetch --prune origin "$BRANCH" 2>/dev/null
+    if git rev-parse --verify "origin/${BRANCH}" >/dev/null 2>&1; then
+      if git merge --ff-only "origin/${BRANCH}" >/dev/null 2>&1; then
+        log "Fast-forwarded $dest to origin/$BRANCH"
       else
-        CLONE_URL="https://github.com/dancxjo/psyched.git"
+        log "Fast-forward not possible; performing hard reset to origin/$BRANCH"
+        git reset --hard "origin/${BRANCH}" >/dev/null 2>&1 || log "git reset failed; repository may be in detached state"
       fi
-      # Clone into the temp dir then move into place
-      git clone --depth 1 "$CLONE_URL" "$TMP_CLONE_DIR" || { echo "git clone failed" >&2; exit 1; }
-      # Move clone into canonical dir
-      if [ -d "$CANONICAL_DIR" ] && [ -n "$(find "$CANONICAL_DIR" -mindepth 1 -print -quit 2>/dev/null)" ] && [ "$FORCE" -ne 1 ]; then
-        echo "$CANONICAL_DIR already exists and is non-empty. Use --force to overwrite or remove it manually." >&2
-        exit 1
-      fi
-      $SUDO mkdir -p "$CANONICAL_DIR"
-      $SUDO rm -rf "$CANONICAL_DIR"/* || true
-      $SUDO mv "$TMP_CLONE_DIR"/* "$CANONICAL_DIR" || { echo "Move failed" >&2; exit 1; }
-      git config --global --add safe.directory "$CANONICAL_DIR" 2>/dev/null || true
-      PROJECT_ROOT="$CANONICAL_DIR"
-      echo "Using cloned project at $PROJECT_ROOT"
     else
-      echo "Neither ZIP download tools nor git are available; cannot acquire repository." >&2
-      echo "Please run this script from a local checkout or install curl/wget/unzip or git." >&2
-      exit 1
+      log "Remote branch origin/$BRANCH not found; skipping update"
     fi
+    set -e
+  else
+    log "Cloning $REPO_URL@$BRANCH to $dest"
+    git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$dest"
   fi
-fi
-HOSTNAME_FULL="$(hostname --fqdn 2>/dev/null || hostname)"
-STATE_DIR="/var/lib/psyched_bootstrap"
-STATE_FILE="$STATE_DIR/$HOSTNAME_FULL.state"
-
-FORCE=0
-DO_INSTALL_ROS2=0
-
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --force)
-      FORCE=1
-      shift
-      ;;
-    --install-ros2)
-      DO_INSTALL_ROS2=1
-      shift
-      ;;
-    -h|--help)
-      print_help
-      exit 0
-      ;;
-    *)
-      echo "Unknown arg: $1"
-      echo "Usage: $(basename "$0") [--force] [--install-ros2]"
-      exit 2
-      ;;
-  esac
-done
-
-if [ "$EUID" -ne 0 ]; then
-  SUDO=sudo
-else
-  SUDO=
-fi
-
-echo "Bootstrap starting for host: $HOSTNAME_FULL"
-
-# Ensure state dir exists
-$SUDO mkdir -p "$STATE_DIR"
-$SUDO chown $(id -u):$(id -g) "$STATE_DIR"
-
-# Ensure system user 'pete' exists (system account, no home)
-if ! id -u pete >/dev/null 2>&1; then
-  echo "Creating system user 'pete'"
-  # Create pete with a normal shell and home so we can run git and maintenance
-  # operations as that user. We intentionally create a constrained account but
-  # with a usable shell to allow non-interactive maintenance via sudo -u pete.
-  $SUDO useradd --system --create-home --shell /bin/bash --home-dir /home/pete pete || true
-fi
-
-# If an invoking user exists (SUDO_USER) try to import their public SSH
-# keys into a managed location and into pete's authorized_keys so pete can
-# perform git operations using SSH when appropriate. We ONLY copy public
-# keys (files ending in .pub) — we do not copy private keys.
-if [ -n "${SUDO_USER-}" ]; then
-  INVOKER="$SUDO_USER"
-  INV_SSH_DIR="/home/${INVOKER}/.ssh"
-  DEST_KEYS_DIR="/opt/psyched/ssh_keys"
-  $SUDO mkdir -p "$DEST_KEYS_DIR"
-  $SUDO chown root:root "$DEST_KEYS_DIR"
-  $SUDO chmod 0755 "$DEST_KEYS_DIR"
-
-  if [ -d "$INV_SSH_DIR" ]; then
-    # Collect public keys from invoker's .ssh (id_*.pub, *.pub)
-    PUB_FILES=$(sudo -u "$INVOKER" bash -lc 'ls -1 ~/.ssh/*.pub 2>/dev/null || true') || PUB_FILES=""
-    if [ -n "$PUB_FILES" ]; then
-      echo "Importing public SSH keys from $INVOKER"
-      for f in $PUB_FILES; do
-        base=$(basename "$f")
-        # Copy the public key into a managed dir (overwriting existing)
-        $SUDO cp "$f" "$DEST_KEYS_DIR/${INVOKER}_${base}"
-        $SUDO chown root:root "$DEST_KEYS_DIR/${INVOKER}_${base}"
-        $SUDO chmod 0644 "$DEST_KEYS_DIR/${INVOKER}_${base}"
-      done
-
-      # Ensure pete has an .ssh and an authorized_keys file and append keys
-      PETE_SSH_DIR="/home/pete/.ssh"
-      $SUDO mkdir -p "$PETE_SSH_DIR"
-      $SUDO chown pete:root "$PETE_SSH_DIR"
-      $SUDO chmod 0700 "$PETE_SSH_DIR"
-
-      AUTH_FILE="$PETE_SSH_DIR/authorized_keys"
-      touch /tmp/psyched_pub_concat || true
-      > /tmp/psyched_pub_concat
-      for f in $PUB_FILES; do
-        sudo -u "$INVOKER" bash -lc "cat '$f' >> /tmp/psyched_pub_concat" || true
-      done
-      # Append unique keys into pete's authorized_keys
-      if [ -s /tmp/psyched_pub_concat ]; then
-        # Use awk to only add keys not already present
-        $SUDO touch "$AUTH_FILE"
-        $SUDO chown pete:root "$AUTH_FILE"
-        $SUDO chmod 0600 "$AUTH_FILE"
-        # Append any keys that are not already in authorized_keys
-        sudo awk 'FNR==NR{a[$0];next}!($0 in a){print $0}' "$AUTH_FILE" /tmp/psyched_pub_concat | $SUDO tee -a "$AUTH_FILE" >/dev/null || true
-        $SUDO chown pete:root "$AUTH_FILE"
-        $SUDO chmod 0600 "$AUTH_FILE"
-      fi
-      rm -f /tmp/psyched_pub_concat || true
-    fi
-  fi
-fi
-
-state_current=""
-if [ -f "$STATE_FILE" ]; then
-  state_current=$(cat "$STATE_FILE") || true
-fi
-
-echo "Current state: ${state_current:-<none>}"
-
-mark_state() {
-  local newstate="$1"
-  echo "$newstate" > "$STATE_FILE"
-  $SUDO chown root:root "$STATE_FILE" || true
-  $SUDO chmod 0644 "$STATE_FILE" || true
+  # Make group-writable by sudo group and setgid on dirs
+  log "Setting group write permissions for sudo group"
+  groupadd -f sudo || true
+  chgrp -R sudo "$dest"
+  chmod -R g+rwX "$dest"
+  find "$dest" -type d -exec chmod g+s {} +
 }
 
-# If requested, run ros2 install via the project-level installer
-if [ "$DO_INSTALL_ROS2" -eq 1 ]; then
-  echo "--install-ros2 requested"
-  if [ "$FORCE" -eq 0 ] && [ "$state_current" = "ros2-installed" ]; then
-    echo "ros2 already installed (state file), skipping. Use --force to reinstall."
-  else
-    echo "Running install-ros2 via tools/provision/setup_ros2.sh"
-    /bin/bash "$PROJECT_ROOT/tools/provision/setup_ros2.sh" install-ros2
-    mark_state "ros2-installed"
-  fi
-fi
+install_updater() {
+  log "Installing updater service and timer"
+  install -m 0755 /opt/psyched/tools/provision/update_repo.sh /usr/local/bin/psyched-update
+  ln -sf /usr/local/bin/psyched-update /usr/bin/update-psyche
+  install -m 0644 /opt/psyched/systemd/psyched-updater.service /etc/systemd/system/psyched-updater.service
+  install -m 0644 /opt/psyched/systemd/psyched-updater.timer /etc/systemd/system/psyched-updater.timer
+  systemctl daemon-reload
+  systemctl enable --now psyched-updater.timer
+}
 
-echo "Bootstrap finished"
-exit 0
+apply_config() {
+  log "Applying provisioning configuration"
+  /opt/psyched/tools/provision/apply.sh || true
+}
+
+main() {
+  require_root
+  parse_args "$@"
+  ensure_basics
+  clone_repo
+  install_updater
+  apply_config
+  log "Bootstrap complete. Provisioner will keep repo up to date."
+}
+
+main "$@"
