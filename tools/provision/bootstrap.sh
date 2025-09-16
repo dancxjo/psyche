@@ -44,8 +44,16 @@ EOF
 # launcher safe to run directly on a host.
 if [ ! -f "$PROJECT_ROOT/tools/provision/setup_ros2.sh" ]; then
   echo "Repository files not found next to bootstrap script; cloning repo to temporary dir"
+  # Destination for canonical clones — place the repo under /opt/psyched so
+  # subsequent provisioning operates from a stable path. If /opt/psyched
+  # already exists and is non-empty, we will not overwrite it unless --force
+  # is provided.
+  CANONICAL_DIR="/opt/psyched"
+
+  # Use a temporary working dir for downloads/extraction and then move into
+  # place to keep the operation atomic.
   TMP_CLONE_DIR=$(mktemp -d /tmp/psyched-bootstrap.XXXX)
-  echo "Cloning repository to $TMP_CLONE_DIR"
+  echo "Preparing to acquire repository into $CANONICAL_DIR (tmp: $TMP_CLONE_DIR)"
   # Try to download a ZIP of the repository (preferred for piped/root installs).
   ZIP_URL="https://github.com/dancxjo/psyched/archive/refs/heads/main.zip"
   REPO_ZIP="$TMP_CLONE_DIR/psyched-main.zip"
@@ -70,7 +78,7 @@ if [ ! -f "$PROJECT_ROOT/tools/provision/setup_ros2.sh" ]; then
   fi
 
   if [ "$DL_OK" -eq 1 ] && [ -s "$REPO_ZIP" ]; then
-    echo "Extracting repository ZIP to $TMP_CLONE_DIR"
+  echo "Extracting repository ZIP to $TMP_CLONE_DIR"
     # Prefer unzip, fall back to python's zipfile module
     if command -v unzip >/dev/null 2>&1; then
       unzip -q "$REPO_ZIP" -d "$TMP_CLONE_DIR" || { echo "unzip failed" >&2; exit 1; }
@@ -88,7 +96,15 @@ PY
     # The zip extracts into psyched-main/ or similar; detect the first subdir
     EXTRACTED_DIR=$(find "$TMP_CLONE_DIR" -maxdepth 1 -type d -name "psyched-*" | head -n 1)
     if [ -n "$EXTRACTED_DIR" ]; then
-      PROJECT_ROOT="$EXTRACTED_DIR"
+      # Move extracted tree into the canonical dir (/opt/psyched)
+      if [ -d "$CANONICAL_DIR" ] && [ -n "$(find "$CANONICAL_DIR" -mindepth 1 -print -quit 2>/dev/null)" ] && [ "$FORCE" -ne 1 ]; then
+        echo "$CANONICAL_DIR already exists and is non-empty. Use --force to overwrite or remove it manually." >&2
+        exit 1
+      fi
+      $SUDO mkdir -p "$CANONICAL_DIR"
+      $SUDO rm -rf "$CANONICAL_DIR"/* || true
+      $SUDO mv "$EXTRACTED_DIR"/* "$CANONICAL_DIR" || { echo "Move failed" >&2; exit 1; }
+      PROJECT_ROOT="$CANONICAL_DIR"
       echo "Using downloaded project at $PROJECT_ROOT"
     else
       echo "Could not find extracted project directory" >&2; exit 1
@@ -102,9 +118,18 @@ PY
       else
         CLONE_URL="https://github.com/dancxjo/psyched.git"
       fi
+      # Clone into the temp dir then move into place
       git clone --depth 1 "$CLONE_URL" "$TMP_CLONE_DIR" || { echo "git clone failed" >&2; exit 1; }
-      git config --global --add safe.directory "$TMP_CLONE_DIR" 2>/dev/null || true
-      PROJECT_ROOT="$TMP_CLONE_DIR"
+      # Move clone into canonical dir
+      if [ -d "$CANONICAL_DIR" ] && [ -n "$(find "$CANONICAL_DIR" -mindepth 1 -print -quit 2>/dev/null)" ] && [ "$FORCE" -ne 1 ]; then
+        echo "$CANONICAL_DIR already exists and is non-empty. Use --force to overwrite or remove it manually." >&2
+        exit 1
+      fi
+      $SUDO mkdir -p "$CANONICAL_DIR"
+      $SUDO rm -rf "$CANONICAL_DIR"/* || true
+      $SUDO mv "$TMP_CLONE_DIR"/* "$CANONICAL_DIR" || { echo "Move failed" >&2; exit 1; }
+      git config --global --add safe.directory "$CANONICAL_DIR" 2>/dev/null || true
+      PROJECT_ROOT="$CANONICAL_DIR"
       echo "Using cloned project at $PROJECT_ROOT"
     else
       echo "Neither ZIP download tools nor git are available; cannot acquire repository." >&2
