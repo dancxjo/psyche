@@ -12,6 +12,50 @@ SETUP_ROS2_SCRIPT="${SCRIPT_DIR}/setup_ros2.sh"
 # Default host config path: allow override via PSYCHED_HOST_CONFIG env var
 HOST_CONFIG="${PSYCHED_HOST_CONFIG:-"${SCRIPT_DIR}/../../hosts/$(hostname -s).json"}"
 
+# Ensure Python tooling is available and create a shared venv for safe installs
+ensure_python_env() {
+	VENV_DIR="${PSYCHED_VENV:-/opt/psyched_venv}"
+	export PSYCHED_VENV="${VENV_DIR}"
+
+	if ! command -v python3 >/dev/null 2>&1; then
+		echo "[bootstrap] ERROR: python3 is not installed. Please install python3." >&2
+		return 1
+	fi
+
+	if ! command -v pip3 >/dev/null 2>&1; then
+		if [ "$(id -u)" -eq 0 ]; then
+			echo "[bootstrap] pip3 not found — installing python3-pip, python3-venv and build deps via apt"
+			apt-get update -y
+			apt-get install -y python3-pip python3-venv python3-distutils python3-setuptools build-essential || true
+		else
+			echo "[bootstrap] Warning: pip3 not found and not running as root; please install pip3 or run under sudo" >&2
+		fi
+	fi
+
+	if [ ! -d "${PSYCHED_VENV}" ]; then
+		echo "[bootstrap] Creating shared venv at ${PSYCHED_VENV}"
+		if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then
+			# create venv as the non-root sudo user so files are owned correctly
+			sudo -E -u "${SUDO_USER}" -H python3 -m venv "${PSYCHED_VENV}"
+		else
+			python3 -m venv "${PSYCHED_VENV}"
+		fi
+	fi
+
+	if [ -x "${PSYCHED_VENV}/bin/pip" ]; then
+		echo "[bootstrap] Upgrading pip, setuptools and wheel inside ${PSYCHED_VENV}"
+		"${PSYCHED_VENV}/bin/pip" install --upgrade pip setuptools wheel || true
+	else
+		echo "[bootstrap] Warning: ${PSYCHED_VENV}/bin/pip not found; venv may be broken" >&2
+	fi
+
+	# Export venv so child scripts can use it
+	export PSYCHED_VENV
+	export PATH="${PSYCHED_VENV}/bin:${PATH}"
+}
+
+ensure_python_env || true
+
 echo "[bootstrap] Running provisioning bootstrap"
 
 if [ ! -f "${SETUP_ROS2_SCRIPT}" ]; then

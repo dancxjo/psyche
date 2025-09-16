@@ -31,6 +31,11 @@ A service's `setup.sh` should:
 - Run `colcon build` and optionally install the workspace.
 - Create and enable a systemd unit that launches any required ROS 2 launch wrappers.
 
+Python and virtualenv
+
+- `bootstrap.sh` will create a shared virtualenv at `/opt/psyched_venv` (or `PSYCHED_VENV`) and upgrade `pip`, `setuptools`, and `wheel` inside it. Service scripts should prefer installing Python-only dependencies into this venv to avoid contaminating the system Python.
+- If `pip3` or `python3-venv` is missing, `bootstrap.sh` will attempt to install them via `apt` when run as root.
+
 A service's `teardown.sh` should:
 - Remove workspace symlinks and optionally purge canonical repos.
 - Stop and disable the systemd unit installed by the service.
