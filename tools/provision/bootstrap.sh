@@ -83,13 +83,11 @@ if [ ! -f "$PROJECT_ROOT/tools/provision/setup_ros2.sh" ]; then
     if command -v unzip >/dev/null 2>&1; then
       unzip -q "$REPO_ZIP" -d "$TMP_CLONE_DIR" || { echo "unzip failed" >&2; exit 1; }
     else
-      # Use Python to extract if unzip isn't available
-      python3 - <<'PY'
-import sys, zipfile
-z='''"$REPO_ZIP"'''
-out='''"$TMP_CLONE_DIR"'''
-with zipfile.ZipFile(z) as zf:
-    zf.extractall(out)
+      # Use Python to extract if unzip isn't available. The heredoc is
+      # unquoted so shell variables expand into the Python snippet.
+      python3 - <<PY
+import zipfile
+zipfile.ZipFile("$REPO_ZIP").extractall("$TMP_CLONE_DIR")
 PY
       if [ $? -ne 0 ]; then echo "python unzip failed" >&2; exit 1; fi
     fi
