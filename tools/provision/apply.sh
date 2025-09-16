@@ -357,20 +357,79 @@ except Exception:
 p=pathlib.Path(sys.argv[1])
 d=toml.loads(p.read_text())
 reqs = d.get("python", {}).get("requirements", [])
-print(" ".join(reqs))
+print("\n".join(reqs))
 PY
 )
     if [ -n "$REQS" ]; then
-      log "Installing Python requirements for host: $REQS"
-      "$PY_BIN" -m pip install $REQS || true
+      log "Installing Python requirements for host (preferring apt when available):"
+      # Process each requirement line separately so we can prefer apt packages
+      echo "$REQS" | while IFS= read -r pkg; do
+        pkg_trim=$(echo "$pkg" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        [ -z "$pkg_trim" ] && continue
+        # Strip extras and version specifiers for apt lookup
+        base=$(echo "$pkg_trim" | sed -E 's/\[.*\]//; s/([<>=!~].*)$//')
+        base_lc=$(echo "$base" | tr '[:upper:]' '[:lower:]')
+        # Known pip->apt mappings
+        case "$base_lc" in
+          opencv-python) aptpkg="python3-opencv" ;;
+          pyserial) aptpkg="python3-serial" ;;
+          pynmea2) aptpkg="" ;;
+          rclpy) aptpkg="" ;;
+          fastapi) aptpkg="" ;;
+          uvicorn) aptpkg="" ;;
+          numpy) aptpkg="python3-numpy" ;;
+          scipy) aptpkg="python3-scipy" ;;
+          matplotlib) aptpkg="python3-matplotlib" ;;
+          pillow) aptpkg="python3-pil" ;;
+          pytest) aptpkg="python3-pytest" ;;
+          *) aptpkg="python3-${base_lc//_/-}" ;;
+        esac
+
+        if [ -n "$aptpkg" ]; then
+          if apt-cache show "$aptpkg" >/dev/null 2>&1; then
+            log "Installing apt package $aptpkg for $pkg_trim"
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$aptpkg" || log "apt install of $aptpkg failed; will pip install $pkg_trim"
+            # If apt install succeeded (or at least package exists), skip pip install
+            if dpkg -s "$aptpkg" >/dev/null 2>&1; then
+              continue
+            fi
+          fi
+        fi
+
+        log "Installing via pip into venv: $pkg_trim"
+        "$PY_BIN" -m pip install --no-cache-dir "$pkg_trim" || log "pip install failed for $pkg_trim"
+      done
     fi
   fi
 
   # Also install repository-wide requirements if present
   if [ -f "$REPO_DIR/requirements.txt" ]; then
-    log "Installing repository requirements into venv"
-    # Use --no-cache-dir to avoid excessive disk use on small devices
-    "$PY_BIN" -m pip install --no-cache-dir -r "$REPO_DIR/requirements.txt" || true
+    log "Installing repository requirements (preferring apt when available)"
+    # Read requirements.txt line-by-line and prefer apt packages when they exist
+    while IFS= read -r line || [ -n "$line" ]; do
+      req=$(echo "$line" | sed 's/#.*$//; s/^[[:space:]]*//; s/[[:space:]]*$//')
+      [ -z "$req" ] && continue
+      base=$(echo "$req" | sed -E 's/\[.*\]//; s/([<>=!~].*)$//')
+      base_lc=$(echo "$base" | tr '[:upper:]' '[:lower:]')
+      case "$base_lc" in
+        opencv-python) aptpkg="python3-opencv" ;;
+        pyserial) aptpkg="python3-serial" ;;
+        numpy) aptpkg="python3-numpy" ;;
+        scipy) aptpkg="python3-scipy" ;;
+        matplotlib) aptpkg="python3-matplotlib" ;;
+        pillow) aptpkg="python3-pil" ;;
+        *) aptpkg="python3-${base_lc//_/-}" ;;
+      esac
+      if [ -n "$aptpkg" ] && apt-cache show "$aptpkg" >/dev/null 2>&1; then
+        log "Installing apt package $aptpkg for $req"
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$aptpkg" || log "apt install failed for $aptpkg; will pip install $req"
+        if dpkg -s "$aptpkg" >/dev/null 2>&1; then
+          continue
+        fi
+      fi
+      log "Installing via pip into venv: $req"
+      "$PY_BIN" -m pip install --no-cache-dir "$req" || log "pip install failed for $req"
+    done < "$REPO_DIR/requirements.txt"
   fi
 
   # If ROS is requested by the device TOML, ensure colcon build tooling is present
