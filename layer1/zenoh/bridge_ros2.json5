@@ -1,5 +1,0 @@
-{
-  "ros2_to_zenoh": { "mode": "complete" },
-  "zenoh_to_ros2": { "mode": "complete" },
-  "scouting": { "enabled": true }
-}

@@ -1,5 +1,0 @@
-# Parameters for IMU service (MPU6050)
-enabled: true
-package: ros2_mpu6050_driver
-driver_repo: https://github.com/hiwad-aziz/ros2_mpu6050_driver.git
-node_launch: ros2_mpu6050_driver launch mpu6050.launch.py
