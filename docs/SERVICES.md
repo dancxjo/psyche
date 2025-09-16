@@ -20,7 +20,7 @@ Bootstrap behavior
 The top-level `tools/provision/bootstrap.sh` will:
 - Read the host config (e.g. `hosts/cerebellum.json`) and determine the `services` list.
 - For each known service (files in `services/*.json`), it calls either the service `setup.sh` or `teardown.sh` depending on whether the service is enabled on the host.
-- By default `bootstrap.sh` invokes service scripts in dry-run mode; pass `--apply` to the bootstrap script to forward `--apply` to each service script (TODO).
+-- By default `bootstrap.sh` invokes service scripts in dry-run mode; pass `--apply` to the bootstrap script to forward `--apply` to each service script (e.g. `bootstrap.sh --apply`).
 
 Service responsibilities
 
@@ -33,7 +33,7 @@ A service's `setup.sh` should:
 
 Python and virtualenv
 
-- `bootstrap.sh` will create a shared virtualenv at `/opt/psyched_venv` (or `PSYCHED_VENV`) and upgrade `pip`, `setuptools`, and `wheel` inside it. Service scripts should prefer installing Python-only dependencies into this venv to avoid contaminating the system Python.
+- `bootstrap.sh` will create a shared virtualenv at `/opt/psyched_venv` (or `PSYCHED_VENV`) and upgrade `pip`, `setuptools`, and `wheel` inside it. Service scripts should prefer installing Python-only dependencies into this venv to avoid contaminating the system Python. When present, systemd units created by services will source `PSYCHED_VENV` before launching so services run with the same Python environment.
 - If `pip3` or `python3-venv` is missing, `bootstrap.sh` will attempt to install them via `apt` when run as root.
 
 A service's `teardown.sh` should:

@@ -56,7 +56,20 @@ ensure_python_env() {
 
 ensure_python_env || true
 
-echo "[bootstrap] Running provisioning bootstrap"
+# Parse flags: support --apply to make bootstrap perform actions
+APPLY=false
+for a in "$@"; do
+	if [ "${a}" = "--apply" ]; then
+		APPLY=true
+	fi
+done
+if [ "${APPLY}" = true ]; then
+	export APPLY_FLAG="--apply"
+else
+	export APPLY_FLAG=""
+fi
+
+echo "[bootstrap] Running provisioning bootstrap (apply=${APPLY})"
 
 if [ ! -f "${SETUP_ROS2_SCRIPT}" ]; then
 	echo "[bootstrap] ERROR: setup script not found: ${SETUP_ROS2_SCRIPT}" >&2
@@ -154,12 +167,12 @@ run_service_action() {
 	if [ -d "${svc_dir}" ]; then
 		local script="${svc_dir}/${action}.sh"
 		if [ -x "${script}" ]; then
-			echo "[bootstrap] Running ${action} via ${script}"
-			"${script}" || echo "[bootstrap] Script ${script} returned non-zero"
+			echo "[bootstrap] Running ${action} via ${script} ${APPLY_FLAG}"
+			"${script}" ${APPLY_FLAG} || echo "[bootstrap] Script ${script} returned non-zero"
 			return
 		elif [ -f "${script}" ]; then
-			echo "[bootstrap] Running ${action} via ${script} (sh)"
-			sh "${script}" || echo "[bootstrap] Script ${script} returned non-zero"
+			echo "[bootstrap] Running ${action} via ${script} (sh) ${APPLY_FLAG}"
+			sh "${script}" ${APPLY_FLAG} || echo "[bootstrap] Script ${script} returned non-zero"
 			return
 		fi
 	fi

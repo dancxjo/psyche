@@ -76,10 +76,14 @@ else
     echo "DRY-RUN: colcon build --symlink-install --install-base install"
 fi
 
-# Create systemd unit for foot launch (template)
+# Create systemd unit for foot launch (template). Ensure the venv is sourced.
 UNIT_NAME="psyched-foot.service"
 UNIT_PATH="/etc/systemd/system/${UNIT_NAME}"
-UNIT_CONTENT="[Unit]\nDescription=Psyched foot launch wrapper\nAfter=network.target\n\n[Service]\nUser=${SUDO_USER:-$USER}\nEnvironment=RMW_IMPLEMENTATION=rmw_cyclonedds_cpp\nExecStart=/bin/bash -lc 'source /opt/psyched_workspace/install/setup.bash && ros2 launch psyched_create_launch foot_launch.py'\nRestart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n"
+VENV_SOURCE_LINE=""
+if [ -n "${PSYCHED_VENV:-}" ]; then
+    VENV_SOURCE_LINE="source ${PSYCHED_VENV}/bin/activate && "
+fi
+UNIT_CONTENT="[Unit]\nDescription=Psyched foot launch wrapper\nAfter=network.target\n\n[Service]\nUser=${SUDO_USER:-$USER}\nEnvironment=RMW_IMPLEMENTATION=rmw_cyclonedds_cpp\nExecStart=/bin/bash -lc '${VENV_SOURCE_LINE}source /opt/psyched_workspace/install/setup.bash && ros2 launch psyched_create_launch foot_launch.py'\nRestart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n"
 
 if [ "$DRY_RUN" = false ]; then
     echo "$UNIT_CONTENT" | sudo tee "$UNIT_PATH" >/dev/null
