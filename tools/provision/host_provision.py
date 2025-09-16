@@ -14,8 +14,10 @@ Usage: host_provision.py /path/to/host.json
 """
 import json
 import os
+import shlex
 import subprocess
 import sys
+import pwd
 from pathlib import Path
 
 # Tool hooks for optional TTS provisioning
@@ -59,6 +61,94 @@ def ensure_dirs(workspace_dir: Path, clone_dir: Path):
     run_sudo(["chown", "-R", "pete:root", str(workspace_dir)])
     run_sudo(["chmod", "0755", str(clone_dir)])
     run_sudo(["chmod", "0775", str(workspace_dir)])
+
+
+def copy_current_user_ssh_to_pete():
+    """Copy the invoking user's public SSH key(s) into /home/pete/.ssh/authorized_keys.
+
+    Uses SUDO_USER if available, else falls back to $USER or getpass.getuser(). This is
+    best-effort and will not error out provisioning if a key cannot be found or written.
+    """
+    try:
+        src_user = os.environ.get("SUDO_USER") or os.environ.get("USER")
+        if not src_user:
+            try:
+                import getpass
+
+                src_user = getpass.getuser()
+            except Exception:
+                src_user = None
+
+        if not src_user:
+            print("No invoking user detected for SSH key copy; skipping")
+            return
+
+        if src_user == "pete":
+            print("Invoking user is 'pete'; no key copy needed")
+            return
+
+        try:
+            user_info = pwd.getpwnam(src_user)
+            user_home = Path(user_info.pw_dir)
+        except KeyError:
+            print(f"Could not determine home directory for user {src_user}; skipping SSH key copy")
+            return
+
+        ssh_dir = user_home / ".ssh"
+        pub_candidates = [
+            ssh_dir / "id_ed25519.pub",
+            ssh_dir / "id_rsa.pub",
+            ssh_dir / "id_ecdsa.pub",
+            ssh_dir / "id_dsa.pub",
+            ssh_dir / "authorized_keys",
+        ]
+
+        found_keys = []
+        for p in pub_candidates:
+            try:
+                if p.exists():
+                    text = p.read_text().strip()
+                    for line in text.splitlines():
+                        line = line.strip()
+                        if line:
+                            found_keys.append(line)
+            except Exception:
+                # ignore unreadable files
+                continue
+
+        if not found_keys:
+            print(f"No public SSH keys found in {ssh_dir} for user {src_user}; skipping")
+            return
+
+        # Ensure pete home and .ssh exist
+        pete_home = Path("/home/pete")
+        run_sudo(["mkdir", "-p", str(pete_home)])
+        run_sudo(["chown", "-R", "pete:root", str(pete_home)])
+        run_sudo(["chmod", "0755", str(pete_home)])
+
+        pete_ssh = pete_home / ".ssh"
+        run_sudo(["mkdir", "-p", str(pete_ssh)])
+        run_sudo(["chown", "-R", "pete:root", str(pete_ssh)])
+        run_sudo(["chmod", "0700", str(pete_ssh)])
+
+        auth_keys = pete_ssh / "authorized_keys"
+        for key in found_keys:
+            # append if not already present
+            q = shlex.quote(key)
+            cmd = (
+                f"bash -lc 'grep -F {q} {shlex.quote(str(auth_keys))} >/dev/null 2>&1 || echo {q} | tee -a {shlex.quote(str(auth_keys))}'"
+            )
+            try:
+                run_sudo(["bash", "-lc", cmd])
+            except Exception as e:
+                print(f"Failed to add key for {src_user} to {auth_keys}: {e}")
+
+        # Ensure ownership and permissions
+        run_sudo(["chown", "-R", "pete:root", str(pete_ssh)])
+        run_sudo(["chmod", "0600", str(auth_keys)])
+        print(f"Copied SSH keys from {src_user} to /home/pete/.ssh/authorized_keys")
+    except Exception as e:
+        print(f"Unexpected error while copying SSH keys to pete: {e}")
 
 
 def ensure_cyclone_dds_if_needed(services, ros_distro: str = ""):
@@ -419,6 +509,11 @@ def main():
 
     ensure_pete()
     ensure_dirs(WORKSPACE_DIR, CLONE_DIR)
+    # Try to copy the invoking user's SSH public key(s) into pete's authorized_keys so SSH access works
+    try:
+        copy_current_user_ssh_to_pete()
+    except Exception as e:
+        print(f"Failed to copy SSH keys to pete: {e}")
 
     # Expand services into repo lists by loading service definitions
     repos = []
