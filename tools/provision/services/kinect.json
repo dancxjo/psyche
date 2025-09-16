@@ -2,12 +2,12 @@
     "name": "kinect",
     "repos": [
         {
-            "url": "git@github.com:bribribriambriguy/kinect_ros2.git",
+            "url": "https://github.com/bribribriambriguy/kinect_ros2.git",
             "relpath": "kinect_ros2",
             "branch": "frame_correction"
         },
         {
-            "url": "git@github.com:OpenKinect/libfreenect.git",
+            "url": "https://github.com/OpenKinect/libfreenect.git",
             "relpath": "libfreenect"
         }
     ]

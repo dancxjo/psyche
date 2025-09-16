@@ -46,7 +46,8 @@ def update_and_reprovision(host_json: str, enable_git: bool = False, git_method:
                     "git", "-C", str(repo_root), "-c", "user.name=psyched", "-c", "user.email=psyched@example.com",
                     "commit", "-m", "Initial import from zip"
                 ], check=False)
-                    run_cmd(["git", "-C", str(repo_root), "remote", "add", "origin", "git@github.com:dancxjo/psyche.git"], check=False)
+                # Use HTTPS origin by default to avoid SSH key requirement
+                run_cmd(["git", "-C", str(repo_root), "remote", "add", "origin", "https://github.com/dancxjo/psyche.git"], check=False)
 
             # Now attempt to pull from origin
             if git_method == "ssh":

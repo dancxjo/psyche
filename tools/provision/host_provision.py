@@ -120,7 +120,7 @@ def copy_current_user_ssh_to_pete():
             print(f"No public SSH keys found in {ssh_dir} for user {src_user}; skipping")
             return
 
-        # Ensure pete home and .ssh exist
+        # Ensure pete home and .ssh exist (create early so SSH can write known_hosts)
         pete_home = Path("/home/pete")
         run_sudo(["mkdir", "-p", str(pete_home)])
         run_sudo(["chown", "-R", "pete:root", str(pete_home)])
@@ -132,6 +132,16 @@ def copy_current_user_ssh_to_pete():
         run_sudo(["chmod", "0700", str(pete_ssh)])
 
         auth_keys = pete_ssh / "authorized_keys"
+        # ensure the file exists so later grep/append won't fail
+        try:
+            if not auth_keys.exists():
+                p = subprocess.Popen(["sudo", "tee", str(auth_keys)], stdin=subprocess.PIPE)
+                p.communicate(input=("\n").encode())
+                run_sudo(["chmod", "0600", str(auth_keys)])
+                run_sudo(["chown", "pete:root", str(auth_keys)])
+        except Exception:
+            # non-fatal; we'll attempt to append keys later
+            pass
         for key in found_keys:
             # append if not already present
             q = shlex.quote(key)
@@ -265,15 +275,28 @@ def clone_or_update(url: str, dest: Path, branch: str = ""):
     url = normalize_git_url(url)
     if (dest / ".git").exists():
         print(f"Updating existing repo at {dest}")
-        run(["sudo", "-u", "pete", "git", "-C", str(dest), "fetch", "--all", "--prune"])
+        # Be tolerant of fetch/pull failures (network/auth); continue provisioning
+        try:
+            run(["sudo", "-u", "pete", "git", "-C", str(dest), "fetch", "--all", "--prune"], check=False)
+        except Exception as e:
+            print(f"Warning: git fetch failed for {dest}: {e}")
         if branch:
             try:
-                run(["sudo", "-u", "pete", "git", "-C", str(dest), "checkout", branch])
-            except subprocess.CalledProcessError:
-                run(["sudo", "-u", "pete", "git", "-C", str(dest), "checkout", "-B", branch])
-            run(["sudo", "-u", "pete", "git", "-C", str(dest), "pull", "--ff-only"], check=False)
+                run(["sudo", "-u", "pete", "git", "-C", str(dest), "checkout", branch], check=False)
+            except Exception:
+                try:
+                    run(["sudo", "-u", "pete", "git", "-C", str(dest), "checkout", "-B", branch], check=False)
+                except Exception as e:
+                    print(f"Warning: failed to create/checkout branch {branch} in {dest}: {e}")
+            try:
+                run(["sudo", "-u", "pete", "git", "-C", str(dest), "pull", "--ff-only"], check=False)
+            except Exception as e:
+                print(f"Warning: git pull failed for {dest}: {e}")
         else:
-            run(["sudo", "-u", "pete", "git", "-C", str(dest), "pull", "--ff-only"], check=False)
+            try:
+                run(["sudo", "-u", "pete", "git", "-C", str(dest), "pull", "--ff-only"], check=False)
+            except Exception as e:
+                print(f"Warning: git pull failed for {dest}: {e}")
     else:
         print(f"Cloning {url} into {dest}")
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -281,7 +304,26 @@ def clone_or_update(url: str, dest: Path, branch: str = ""):
         if branch:
             cmd += ["--branch", branch]
         cmd += [url, str(dest)]
-        run(cmd)
+        try:
+            run(cmd)
+        except subprocess.CalledProcessError as e:
+            # If the clone failed, attempt an HTTPS fallback for GitHub SSH URLs
+            try:
+                if isinstance(url, str) and url.startswith("git@github.com:"):
+                    https_url = "https://github.com/" + url.split(":", 1)[1]
+                    print(f"SSH clone failed; retrying with HTTPS {https_url}")
+                    cmd2 = ["sudo", "-u", "pete", "git", "clone"]
+                    if branch:
+                        cmd2 += ["--branch", branch]
+                    cmd2 += [https_url, str(dest)]
+                    run(cmd2)
+                else:
+                    # Last-resort: try cloning with check=False so provisioning continues
+                    print(f"Clone failed for {url} into {dest}: {e}; continuing provisioning")
+            except subprocess.CalledProcessError as e2:
+                print(f"Fallback HTTPS clone also failed for {url}: {e2}; continuing provisioning")
+            except Exception as e2:
+                print(f"Unexpected error during clone fallback for {url}: {e2}; continuing provisioning")
 
 
 def copy_local_repo(src: Path, dest: Path):
