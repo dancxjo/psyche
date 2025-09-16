@@ -35,6 +35,20 @@ ensure_basics() {
 
 clone_repo() {
   local dest="/opt/psyched"
+  # Determine clone strategy: prefer SSH clone as the invoking user (SUDO_USER)
+  # if they have SSH keys or an agent available. Otherwise use HTTPS with
+  # optional GITHUB_TOKEN, or public HTTPS.
+  CLONE_AS_USER="${SUDO_USER-}"
+  USE_SSH=0
+  if [ -n "$CLONE_AS_USER" ]; then
+    # Check for public key files or SSH_AUTH_SOCK for agent
+    if sudo -u "$CLONE_AS_USER" bash -lc 'shopt -s nullglob; keys=(~/.ssh/id_*); ((${#keys[@]}>0))' >/dev/null 2>&1; then
+      USE_SSH=1
+    elif sudo -u "$CLONE_AS_USER" bash -lc 'test -n "${SSH_AUTH_SOCK-}"' >/dev/null 2>&1; then
+      USE_SSH=1
+    fi
+  fi
+
   if [ -d "$dest/.git" ]; then
     log "Repo already present at $dest"
     log "Repo already present at $dest; attempting to update"
@@ -54,8 +68,14 @@ clone_repo() {
     fi
     set -e
   else
-    log "Cloning $REPO_URL@$BRANCH to $dest"
-    git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$dest"
+    if [ "$USE_SSH" -eq 1 ]; then
+      CLONE_URL="git@github.com:dancxjo/psyched.git"
+      log "Cloning via SSH as $CLONE_AS_USER: $CLONE_URL@$BRANCH to $dest"
+      sudo -u "$CLONE_AS_USER" git clone --depth 1 --branch "$BRANCH" "$CLONE_URL" "$dest"
+    else
+      log "Cloning $REPO_URL@$BRANCH to $dest"
+      git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$dest"
+    fi
   fi
   # Make group-writable by sudo group and setgid on dirs
   log "Setting group write permissions for sudo group"
