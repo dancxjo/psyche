@@ -41,23 +41,58 @@ extract() {
     staged="${DEST_DIR}.new"
     rm -rf "${staged}"
     mkdir -p "${staged}"
-
-    # Extract safely: prefer unzip, then bsdtar/tar
-    if command -v unzip >/dev/null 2>&1; then
-        unzip -q "${ZIPPATH}" -d "${TMPDIR}"
-    elif command -v bsdtar >/dev/null 2>&1; then
-        bsdtar -xf "${ZIPPATH}" -C "${TMPDIR}"
-    elif command -v tar >/dev/null 2>&1; then
-        if tar --version >/dev/null 2>&1 && tar --help | grep -q unzip; then
-            tar -xf "${ZIPPATH}" -C "${TMPDIR}"
-        else
-            echo "Error: no suitable extractor found (requires unzip or bsdtar)." >&2
-            exit 1
-        fi
-    else
-        echo "Error: no suitable extractor found (requires unzip or bsdtar)." >&2
-        exit 1
+    # Detect archive type and extract appropriately.
+    # Prefer: unzip (zip), python3 zipfile (zip), bsdtar (many), tar (tarballs).
+    MIMETYPE=""
+    if command -v file >/dev/null 2>&1; then
+        MIMETYPE=$(file --brief --mime-type "${ZIPPATH}" 2>/dev/null || true)
     fi
+
+    case "${MIMETYPE}" in
+        application/zip|application/x-zip|application/x-zip-compressed)
+            if command -v unzip >/dev/null 2>&1; then
+                unzip -q "${ZIPPATH}" -d "${TMPDIR}"
+            elif command -v python3 >/dev/null 2>&1; then
+                echo "[install] 'unzip' not available; using python3 zipfile to extract"
+                python3 - <<PY
+import sys, zipfile
+from pathlib import Path
+zf = zipfile.ZipFile(r'${ZIPPATH}')
+zf.extractall(r'${TMPDIR}')
+zf.close()
+PY
+            elif command -v bsdtar >/dev/null 2>&1; then
+                bsdtar -xf "${ZIPPATH}" -C "${TMPDIR}"
+            else
+                echo "Error: no tool available to extract ZIP archives (install 'unzip' or ensure python3 is present)." >&2
+                exit 1
+            fi
+            ;;
+        application/x-gzip|application/x-tar|application/x-xz|application/x-bzip2)
+            # tar-compatible archive
+            if command -v tar >/dev/null 2>&1; then
+                tar -xf "${ZIPPATH}" -C "${TMPDIR}"
+            elif command -v bsdtar >/dev/null 2>&1; then
+                bsdtar -xf "${ZIPPATH}" -C "${TMPDIR}"
+            else
+                echo "Error: no tar-compatible extractor found." >&2
+                exit 1
+            fi
+            ;;
+        *)
+            # Unknown mime type: try unzip, then bsdtar, then tar as last resort
+            if command -v unzip >/dev/null 2>&1; then
+                unzip -q "${ZIPPATH}" -d "${TMPDIR}" || true
+            elif command -v bsdtar >/dev/null 2>&1; then
+                bsdtar -xf "${ZIPPATH}" -C "${TMPDIR}" || true
+            elif command -v tar >/dev/null 2>&1; then
+                tar -xf "${ZIPPATH}" -C "${TMPDIR}" || true
+            else
+                echo "Error: no extractor available for archive." >&2
+                exit 1
+            fi
+            ;;
+    esac
 
     TOPDIR=$(find "${TMPDIR}" -maxdepth 1 -mindepth 1 -type d | head -n1)
     if [ -z "${TOPDIR}" ]; then
@@ -76,18 +111,20 @@ extract() {
 }
 
 ensure_unzip() {
-    if command -v unzip >/dev/null 2>&1; then
+    # Ensure both unzip and zip are available so we can extract and create zips
+    if command -v unzip >/dev/null 2>&1 && command -v zip >/dev/null 2>&1; then
         return 0
     fi
 
-    echo "'unzip' not found; attempting to install via apt-get (requires sudo)"
+    echo "'unzip' or 'zip' not found; attempting to install via apt-get (requires sudo)"
     if ! command -v sudo >/dev/null 2>&1; then
-        echo "Error: 'sudo' is required to install unzip but was not found." >&2
+        echo "Error: 'sudo' is required to install unzip/zip but was not found." >&2
         exit 1
     fi
 
-    sudo apt-get update -y && sudo apt-get install -y unzip || {
-        echo "Error: failed to install 'unzip' via apt-get" >&2
+    # Install common extraction helpers: unzip, zip, libarchive-tools (bsdtar), and file
+    sudo apt-get update -y && sudo apt-get install -y unzip zip libarchive-tools file || {
+        echo "Error: failed to install unzip/zip (or helpers) via apt-get" >&2
         exit 1
     }
 }
