@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import argparse
 import pathlib
-import tomllib
+
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 
 REQUIRED_TOP_LEVEL = ["device", "layer1", "layer2", "layer3"]
 

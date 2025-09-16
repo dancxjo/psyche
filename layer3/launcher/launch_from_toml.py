@@ -13,8 +13,12 @@ import argparse
 import dataclasses
 import os
 import pathlib
-import tomllib
 from typing import List
+
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 
 
 @dataclasses.dataclass
