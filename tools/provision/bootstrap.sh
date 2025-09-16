@@ -6,8 +6,37 @@ set -euo pipefail
 # - --force: force rerun of actions even if already applied
 # - --install-ros2: run tools/provision/setup_ros2.sh install-ros2
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 || pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Help/usage block (also printed when running with -h/--help)
+print_help() {
+  cat <<'EOF'
+Usage: bootstrap.sh [--force] [--install-ros2]
+
+This bootstrap script prepares a host to run the Psyched workspace. It is
+safe to run from a checkout or via a piped installer (e.g. curl ... | sudo bash).
+
+Non-interactive cloning options (recommended):
+  1) Preferred (private repo): run on the host as your normal user and let
+     the script clone using your SSH keys. Example:
+       ssh you@host 'curl -fsSL https://dancxjo.github.io/psyched | sudo bash'
+
+  2) Token-based (CI or automation): export a short-lived GITHUB_TOKEN that
+     has at least read access and run the script. The token is used only for
+     the one-time clone URL and is not stored by the script:
+       sudo GITHUB_TOKEN=ghp_xxx bash bootstrap.sh
+
+  3) Manual (fallback): clone the repository yourself as your user, then run
+     the bootstrap from the checked-out copy as root:
+       git clone git@github.com:dancxjo/psyched.git ~/psyched
+       sudo bash ~/psyched/tools/provision/bootstrap.sh
+
+If cloning-as-invoker (SSH) is selected but fails because the agent or
+keys are not available, the script prints clear fallback steps.
+
+EOF
+}
 
 # If the script isn't running from inside a checked-out repository (for example
 # when run via `curl ... | sudo bash`), clone the repo into a temporary
@@ -16,11 +45,63 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 if [ ! -f "$PROJECT_ROOT/tools/provision/setup_ros2.sh" ]; then
   echo "Repository files not found next to bootstrap script; cloning repo to temporary dir"
   TMP_CLONE_DIR=$(mktemp -d /tmp/psyched-bootstrap.XXXX)
-  echo "Cloning https://github.com/dancxjo/psyched.git to $TMP_CLONE_DIR"
+  echo "Cloning repository to $TMP_CLONE_DIR"
   if command -v git >/dev/null 2>&1; then
-    git clone --depth 1 https://github.com/dancxjo/psyched.git "$TMP_CLONE_DIR" || {
-      echo "git clone failed" >&2; exit 1
-    }
+    # Determine the user we should clone as. When this script is invoked via
+    # `sudo bash` the original user is available in SUDO_USER. Prefer
+    # cloning as that user so their SSH keys are used for private repo access.
+    CLONE_AS_USER="${SUDO_USER-}"
+
+    # Build a clone URL. Prefer SSH if we're cloning as a non-root user (so
+    # their SSH keys are used). If a GITHUB_TOKEN is provided, use an
+    # HTTPS token-based URL for non-interactive clones.
+    if [ -n "${GITHUB_TOKEN-}" ]; then
+      echo "Using GITHUB_TOKEN for non-interactive HTTPS clone"
+      CLONE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/dancxjo/psyched.git"
+    else
+      # If we have a invoking user, prefer SSH which will use their
+      # ~/.ssh keys. Otherwise fall back to HTTPS (public repo case).
+      if [ -n "$CLONE_AS_USER" ]; then
+        CLONE_URL="git@github.com:dancxjo/psyched.git"
+      else
+        CLONE_URL="https://github.com/dancxjo/psyched.git"
+      fi
+    fi
+
+    if [ -n "$CLONE_AS_USER" ]; then
+      echo "Cloning as user: $CLONE_AS_USER"
+      # Quick heuristic: check whether the invoker likely has SSH keys or an
+      # agent available. This is a best-effort check — it does not guarantee
+      # success but provides a helpful early message to the user.
+      SSH_OK=0
+      # Check for at least one public key file in the invoker's .ssh dir
+      if sudo -u "$CLONE_AS_USER" bash -lc 'shopt -s nullglob; files=(~/.ssh/id_*.pub ~/.ssh/*.pub); ((${#files[@]} > 0))' >/dev/null 2>&1; then
+        SSH_OK=1
+      fi
+
+      # Also attempt a non-invasive ssh-agent test by checking for SSH_AUTH_SOCK
+      if sudo -u "$CLONE_AS_USER" bash -lc 'test -n "${SSH_AUTH_SOCK-}"' >/dev/null 2>&1; then
+        SSH_OK=1
+      fi
+
+      if [ "$SSH_OK" -ne 1 ]; then
+        echo "Warning: no SSH public keys or ssh-agent detected for $CLONE_AS_USER." >&2
+        echo "If the repository is private, the non-interactive clone may fail." >&2
+        echo "Options: (A) Use the SSH-capable invocation shown in the help, (B) set GITHUB_TOKEN, or (C) manually clone and run the bootstrap from a checkout." >&2
+      fi
+      sudo -u "$CLONE_AS_USER" git clone --depth 1 "$CLONE_URL" "$TMP_CLONE_DIR" || {
+        echo "git clone failed" >&2; exit 1
+      }
+    else
+      git clone --depth 1 "$CLONE_URL" "$TMP_CLONE_DIR" || {
+        echo "git clone failed" >&2; exit 1
+      }
+    fi
+
+    # Mark the cloned directory as a safe git directory for the root user so
+    # later root-run git operations won't be blocked by Git's ownership checks.
+    git config --global --add safe.directory "$TMP_CLONE_DIR" 2>/dev/null || true
+
     PROJECT_ROOT="$TMP_CLONE_DIR"
     echo "Using cloned project at $PROJECT_ROOT"
   else
@@ -46,7 +127,7 @@ while [ $# -gt 0 ]; do
       shift
       ;;
     -h|--help)
-      echo "Usage: $(basename "$0") [--force] [--install-ros2]"
+      print_help
       exit 0
       ;;
     *)
@@ -72,7 +153,63 @@ $SUDO chown $(id -u):$(id -g) "$STATE_DIR"
 # Ensure system user 'pete' exists (system account, no home)
 if ! id -u pete >/dev/null 2>&1; then
   echo "Creating system user 'pete'"
-  $SUDO useradd --system --no-create-home --shell /usr/sbin/nologin pete || true
+  # Create pete with a normal shell and home so we can run git and maintenance
+  # operations as that user. We intentionally create a constrained account but
+  # with a usable shell to allow non-interactive maintenance via sudo -u pete.
+  $SUDO useradd --system --create-home --shell /bin/bash --home-dir /home/pete pete || true
+fi
+
+# If an invoking user exists (SUDO_USER) try to import their public SSH
+# keys into a managed location and into pete's authorized_keys so pete can
+# perform git operations using SSH when appropriate. We ONLY copy public
+# keys (files ending in .pub) — we do not copy private keys.
+if [ -n "${SUDO_USER-}" ]; then
+  INVOKER="$SUDO_USER"
+  INV_SSH_DIR="/home/${INVOKER}/.ssh"
+  DEST_KEYS_DIR="/opt/psyched/ssh_keys"
+  $SUDO mkdir -p "$DEST_KEYS_DIR"
+  $SUDO chown root:root "$DEST_KEYS_DIR"
+  $SUDO chmod 0755 "$DEST_KEYS_DIR"
+
+  if [ -d "$INV_SSH_DIR" ]; then
+    # Collect public keys from invoker's .ssh (id_*.pub, *.pub)
+    PUB_FILES=$(sudo -u "$INVOKER" bash -lc 'ls -1 ~/.ssh/*.pub 2>/dev/null || true') || PUB_FILES=""
+    if [ -n "$PUB_FILES" ]; then
+      echo "Importing public SSH keys from $INVOKER"
+      for f in $PUB_FILES; do
+        base=$(basename "$f")
+        # Copy the public key into a managed dir (overwriting existing)
+        $SUDO cp "$f" "$DEST_KEYS_DIR/${INVOKER}_${base}"
+        $SUDO chown root:root "$DEST_KEYS_DIR/${INVOKER}_${base}"
+        $SUDO chmod 0644 "$DEST_KEYS_DIR/${INVOKER}_${base}"
+      done
+
+      # Ensure pete has an .ssh and an authorized_keys file and append keys
+      PETE_SSH_DIR="/home/pete/.ssh"
+      $SUDO mkdir -p "$PETE_SSH_DIR"
+      $SUDO chown pete:root "$PETE_SSH_DIR"
+      $SUDO chmod 0700 "$PETE_SSH_DIR"
+
+      AUTH_FILE="$PETE_SSH_DIR/authorized_keys"
+      touch /tmp/psyched_pub_concat || true
+      > /tmp/psyched_pub_concat
+      for f in $PUB_FILES; do
+        sudo -u "$INVOKER" bash -lc "cat '$f' >> /tmp/psyched_pub_concat" || true
+      done
+      # Append unique keys into pete's authorized_keys
+      if [ -s /tmp/psyched_pub_concat ]; then
+        # Use awk to only add keys not already present
+        $SUDO touch "$AUTH_FILE"
+        $SUDO chown pete:root "$AUTH_FILE"
+        $SUDO chmod 0600 "$AUTH_FILE"
+        # Append any keys that are not already in authorized_keys
+        sudo awk 'FNR==NR{a[$0];next}!($0 in a){print $0}' "$AUTH_FILE" /tmp/psyched_pub_concat | $SUDO tee -a "$AUTH_FILE" >/dev/null || true
+        $SUDO chown pete:root "$AUTH_FILE"
+        $SUDO chmod 0600 "$AUTH_FILE"
+      fi
+      rm -f /tmp/psyched_pub_concat || true
+    fi
+  fi
 fi
 
 state_current=""
