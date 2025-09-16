@@ -1,0 +1,5 @@
+enabled: true
+package: psyche_ublox_publisher
+# This service is provided by the local ROS2 package `psyche_ublox_publisher`.
+# It will be launched via the project's launcher which uses 'ros2 run' semantics.
+node_launch: "ros2 run psyche_ublox_publisher ublox_publisher"

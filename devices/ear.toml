@@ -21,7 +21,24 @@ domain_id = 42
 namespace = "/ear"
 
 [layer3]
-nodes = []
+nodes = [
+]
+
+[[layer3.nodes]]
+name = "ublox_publisher"
+type = "node"
+package = "psyche_ublox_publisher"
+executable = "ublox_publisher"
+namespace = "/ear"
+
+[hardware.gps]
+type = "ublox7"
+enabled = true
+# Serial device path (provisioning may create a symlink in /dev/serial/by-id)
+serial_port = "/dev/ttyUSB0"
+baud = 9600
+# Whether to use gpsd (true) or read NMEA directly in the node (false)
+use_gpsd = true
 
 [python]
-requirements = ["rclpy", "opencv-python"]
+requirements = ["rclpy", "opencv-python", "pynmea2", "pyserial"]

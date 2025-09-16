@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+    <name>psyche_ublox_publisher</name>
+    <version>0.1.0</version>
+    <description>UBlox NMEA publisher for Psyche project</description>
+    <maintainer email="dev@local">Psyche Dev</maintainer>
+    <license>Apache-2.0</license>
+    <exec_depend>rclpy</exec_depend>
+    <exec_depend>sensor_msgs</exec_depend>
+    <exec_depend>pyserial</exec_depend>
+    <exec_depend>pynmea2</exec_depend>
+</package>

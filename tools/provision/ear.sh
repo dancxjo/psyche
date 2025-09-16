@@ -1,4 +1,55 @@
 #!/usr/bin/env bash
+set -euo pipefail
+# Provisioning helper for ublox7 on the 'ear' device.
+# Creates a udev rule to provide a stable symlink and ensures gpsd is installed and started.
+
+SERIAL_ID="ublox7-ear"
+DEV_SYMLINK="/dev/${SERIAL_ID}"
+
+echo "Looking for USB serial devices..."
+# Try to find a USB serial by product/vendor or just use first /dev/ttyUSB*
+PORT=""
+for p in /dev/serial/by-id/*USB* /dev/serial/by-id/*; do
+  if [ -e "$p" ]; then
+    realp=$(readlink -f "$p")
+    echo "Found candidate: $p -> $realp"
+    PORT=$realp
+    break
+  fi
+done
+
+if [ -z "${PORT}" ]; then
+  # fallback to /dev/ttyUSB0
+  if [ -e /dev/ttyUSB0 ]; then
+    PORT=/dev/ttyUSB0
+  else
+    echo "No serial GPS device found. Connect the ublox7 and re-run."
+    exit 1
+  fi
+fi
+
+echo "Creating symlink ${DEV_SYMLINK} -> ${PORT}"
+sudo ln -sf "$PORT" "$DEV_SYMLINK"
+
+echo "Creating udev rule for stable symlink"
+UDEV_RULE="SUBSYSTEM==\"tty\", SYMLINK+=\"${SERIAL_ID}\", ATTRS{idVendor}==\"1546\", ATTRS{idProduct}==\"01a8\""
+echo "${UDEV_RULE}" | sudo tee /etc/udev/rules.d/99-ublox.rules >/dev/null
+sudo udevadm control --reload-rules && sudo udevadm trigger
+
+echo "Ensure gpsd is installed and started (Debian/Ubuntu)."
+if command -v apt >/dev/null; then
+  sudo apt update
+  sudo apt install -y gpsd gpsd-clients
+fi
+
+echo "Stop gpsd and restart bound to device"
+sudo systemctl stop gpsd.socket || true
+sudo systemctl disable gpsd.socket || true
+sudo killall gpsd || true
+sudo gpsd -N -n "$DEV_SYMLINK" &
+
+echo "Provisioning complete. Device available at ${DEV_SYMLINK}"
+#!/usr/bin/env bash
 # Provision a Raspberry Pi Zero 2 W as the "ear" device.
 #
 # Idempotent; safe to re-run. Designed to be piped via curl:
