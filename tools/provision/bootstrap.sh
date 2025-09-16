@@ -30,4 +30,8 @@ else
 	bash "${SETUP_ROS2_SCRIPT}"
 fi
 
+
+
+
+
 echo "[bootstrap] Completed provisioning bootstrap"
