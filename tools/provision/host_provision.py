@@ -20,6 +20,15 @@ import sys
 import pwd
 from pathlib import Path
 
+# Determine the target non-root user to run workspace operations as.
+# Prefer the original invoking user when running via sudo (SUDO_USER), else fall back
+# to the current user (ENV USER or effective UID). This eliminates the hard-coded
+# 'pete' system user and uses the invoking user or root as appropriate.
+if os.environ.get("SUDO_USER"):
+    TARGET_USER = os.environ.get("SUDO_USER")
+else:
+    TARGET_USER = os.environ.get("USER") or pwd.getpwuid(os.geteuid()).pw_name
+
 # Tool hooks for optional TTS provisioning
 try:
     from tools.provision.tools import piper_tool, mbrola_tool, espeak_tool
@@ -40,31 +49,45 @@ def run_sudo(cmd):
 
 def run_as_pete(cmd_str):
     # Run a shell command as user pete via sudo -u pete bash -lc
-    full = ["sudo", "-u", "pete", "bash", "-lc", cmd_str]
+    full = ["sudo", "-u", TARGET_USER, "bash", "-lc", cmd_str]
     return run(full)
 
 
+def run_as_user(cmd_str):
+    """Run a shell command as TARGET_USER. If TARGET_USER equals the effective user, run directly."""
+    eff = pwd.getpwuid(os.geteuid()).pw_name
+    if TARGET_USER == eff:
+        return run(["bash", "-lc", cmd_str])
+    else:
+        return run(["sudo", "-u", TARGET_USER, "bash", "-lc", cmd_str])
+
+
+def run_as_user_cmd(cmd_list, check=True, capture_output=False):
+    """Run a command list as TARGET_USER (no shell)."""
+    eff = pwd.getpwuid(os.geteuid()).pw_name
+    if TARGET_USER == eff:
+        return run(cmd_list, check=check, capture_output=capture_output)
+    else:
+        return run(["sudo", "-u", TARGET_USER] + cmd_list, check=check, capture_output=capture_output)
+
+
 def ensure_pete():
-    try:
-        run(["id", "-u", "pete"], check=True)
-        print("user 'pete' exists")
-    except subprocess.CalledProcessError:
-        print("creating system user 'pete'")
-        run_sudo(["useradd", "--system", "--no-create-home", "--shell", "/usr/sbin/nologin", "pete"])
+    # No-op: we no longer create a dedicated 'pete' user. Use the invoking user (or root) instead.
+    print(f"Using target user '{TARGET_USER}' for non-root operations (no 'pete' user will be created)")
 
 
 def ensure_dirs(workspace_dir: Path, clone_dir: Path):
     print(f"Ensuring workspace {workspace_dir} and clone dir {clone_dir} exist")
     run_sudo(["mkdir", "-p", str(workspace_dir)])
     run_sudo(["mkdir", "-p", str(clone_dir)])
-    run_sudo(["chown", "-R", "pete:root", str(clone_dir)])
-    run_sudo(["chown", "-R", "pete:root", str(workspace_dir)])
+    run_sudo(["chown", "-R", f"{TARGET_USER}:root", str(clone_dir)])
+    run_sudo(["chown", "-R", f"{TARGET_USER}:root", str(workspace_dir)])
     run_sudo(["chmod", "0755", str(clone_dir)])
     run_sudo(["chmod", "0775", str(workspace_dir)])
 
 
 def copy_current_user_ssh_to_pete():
-    """Copy the invoking user's public SSH key(s) into /home/pete/.ssh/authorized_keys.
+    """Copy the invoking user's public SSH key(s) into TARGET_USER's authorized_keys.
 
     Uses SUDO_USER if available, else falls back to $USER or getpass.getuser(). This is
     best-effort and will not error out provisioning if a key cannot be found or written.
@@ -83,8 +106,8 @@ def copy_current_user_ssh_to_pete():
             print("No invoking user detected for SSH key copy; skipping")
             return
 
-        if src_user == "pete":
-            print("Invoking user is 'pete'; no key copy needed")
+        if src_user == TARGET_USER:
+            print(f"Invoking user is '{TARGET_USER}'; no key copy needed")
             return
 
         try:
@@ -120,28 +143,38 @@ def copy_current_user_ssh_to_pete():
             print(f"No public SSH keys found in {ssh_dir} for user {src_user}; skipping")
             return
 
-        # Ensure pete home and .ssh exist (create early so SSH can write known_hosts)
-        pete_home = Path("/home/pete")
-        run_sudo(["mkdir", "-p", str(pete_home)])
-        run_sudo(["chown", "-R", "pete:root", str(pete_home)])
-        run_sudo(["chmod", "0755", str(pete_home)])
+        # determine target user's home directory
+        try:
+            tgt_info = pwd.getpwnam(TARGET_USER)
+            tgt_home = Path(tgt_info.pw_dir)
+        except Exception:
+            # fallback: assume /root for root or /home/<user>
+            if TARGET_USER == "root":
+                tgt_home = Path("/root")
+            else:
+                tgt_home = Path(f"/home/{TARGET_USER}")
 
-        pete_ssh = pete_home / ".ssh"
-        run_sudo(["mkdir", "-p", str(pete_ssh)])
-        run_sudo(["chown", "-R", "pete:root", str(pete_ssh)])
-        run_sudo(["chmod", "0700", str(pete_ssh)])
+        run_sudo(["mkdir", "-p", str(tgt_home)])
+        run_sudo(["chown", "-R", f"{TARGET_USER}:root", str(tgt_home)])
+        run_sudo(["chmod", "0755", str(tgt_home)])
 
-        auth_keys = pete_ssh / "authorized_keys"
+        tgt_ssh = tgt_home / ".ssh"
+        run_sudo(["mkdir", "-p", str(tgt_ssh)])
+        run_sudo(["chown", "-R", f"{TARGET_USER}:root", str(tgt_ssh)])
+        run_sudo(["chmod", "0700", str(tgt_ssh)])
+
+        auth_keys = tgt_ssh / "authorized_keys"
         # ensure the file exists so later grep/append won't fail
         try:
             if not auth_keys.exists():
                 p = subprocess.Popen(["sudo", "tee", str(auth_keys)], stdin=subprocess.PIPE)
                 p.communicate(input=("\n").encode())
                 run_sudo(["chmod", "0600", str(auth_keys)])
-                run_sudo(["chown", "pete:root", str(auth_keys)])
+                run_sudo(["chown", f"{TARGET_USER}:root", str(auth_keys)])
         except Exception:
             # non-fatal; we'll attempt to append keys later
             pass
+
         for key in found_keys:
             # append if not already present. Use grep -Fxq for exact-line match and escape the key safely
             # We'll run a single sudo bash -lc invocation which checks and appends atomically.
@@ -154,11 +187,11 @@ def copy_current_user_ssh_to_pete():
                 print(f"Failed to add key for {src_user} to {auth_keys}: {e}")
 
         # Ensure ownership and permissions
-        run_sudo(["chown", "-R", "pete:root", str(pete_ssh)])
+        run_sudo(["chown", "-R", f"{TARGET_USER}:root", str(tgt_ssh)])
         run_sudo(["chmod", "0600", str(auth_keys)])
-        print(f"Copied SSH keys from {src_user} to /home/pete/.ssh/authorized_keys")
+        print(f"Copied SSH keys from {src_user} to {auth_keys}")
     except Exception as e:
-        print(f"Unexpected error while copying SSH keys to pete: {e}")
+        print(f"Unexpected error while copying SSH keys to {TARGET_USER}: {e}")
 
 
 def ensure_cyclone_dds_if_needed(services, ros_distro: str = ""):
@@ -277,46 +310,46 @@ def clone_or_update(url: str, dest: Path, branch: str = ""):
         print(f"Updating existing repo at {dest}")
         # Be tolerant of fetch/pull failures (network/auth); continue provisioning
         try:
-            run(["sudo", "-u", "pete", "git", "-C", str(dest), "fetch", "--all", "--prune"], check=False)
+            run_as_user_cmd(["git", "-C", str(dest), "fetch", "--all", "--prune"], check=False)
         except Exception as e:
             print(f"Warning: git fetch failed for {dest}: {e}")
         if branch:
             try:
-                run(["sudo", "-u", "pete", "git", "-C", str(dest), "checkout", branch], check=False)
+                run_as_user_cmd(["git", "-C", str(dest), "checkout", branch], check=False)
             except Exception:
                 try:
-                    run(["sudo", "-u", "pete", "git", "-C", str(dest), "checkout", "-B", branch], check=False)
+                    run_as_user_cmd(["git", "-C", str(dest), "checkout", "-B", branch], check=False)
                 except Exception as e:
                     print(f"Warning: failed to create/checkout branch {branch} in {dest}: {e}")
             try:
-                run(["sudo", "-u", "pete", "git", "-C", str(dest), "pull", "--ff-only"], check=False)
+                run_as_user_cmd(["git", "-C", str(dest), "pull", "--ff-only"], check=False)
             except Exception as e:
                 print(f"Warning: git pull failed for {dest}: {e}")
         else:
             try:
-                run(["sudo", "-u", "pete", "git", "-C", str(dest), "pull", "--ff-only"], check=False)
+                run_as_user_cmd(["git", "-C", str(dest), "pull", "--ff-only"], check=False)
             except Exception as e:
                 print(f"Warning: git pull failed for {dest}: {e}")
     else:
         print(f"Cloning {url} into {dest}")
         dest.parent.mkdir(parents=True, exist_ok=True)
-        cmd = ["sudo", "-u", "pete", "git", "clone"]
+        cmd = ["git", "clone"]
         if branch:
             cmd += ["--branch", branch]
         cmd += [url, str(dest)]
         try:
-            run(cmd)
+            run_as_user_cmd(cmd)
         except subprocess.CalledProcessError as e:
             # If the clone failed, attempt an HTTPS fallback for GitHub SSH URLs
             try:
                 if isinstance(url, str) and url.startswith("git@github.com:"):
                     https_url = "https://github.com/" + url.split(":", 1)[1]
                     print(f"SSH clone failed; retrying with HTTPS {https_url}")
-                    cmd2 = ["sudo", "-u", "pete", "git", "clone"]
+                    cmd2 = ["git", "clone"]
                     if branch:
                         cmd2 += ["--branch", branch]
                     cmd2 += [https_url, str(dest)]
-                    run(cmd2)
+                    run_as_user_cmd(cmd2)
                 else:
                     # Last-resort: try cloning with check=False so provisioning continues
                     print(f"Clone failed for {url} into {dest}: {e}; continuing provisioning")
@@ -333,7 +366,7 @@ def copy_local_repo(src: Path, dest: Path):
     # Use rsync-like copy via sudo tar to preserve perms as pete will own later
     run(["sudo", "rm", "-rf", str(dest)], check=False)
     run(["sudo", "cp", "-a", str(src), str(dest)])
-    run_sudo(["chown", "-R", "pete:root", str(dest)])
+    run_sudo(["chown", "-R", f"{TARGET_USER}:root", str(dest)])
 
 
 def link_into_workspace(canonical: Path, linkpath: Path):
@@ -343,7 +376,7 @@ def link_into_workspace(canonical: Path, linkpath: Path):
         print(f"Parent directory {parent} does not exist; creating")
         try:
             run_sudo(["mkdir", "-p", str(parent)])
-            run_sudo(["chown", "-R", "pete:root", str(parent)])
+            run_sudo(["chown", "-R", f"{TARGET_USER}:root", str(parent)])
             run_sudo(["chmod", "0775", str(parent)])
         except Exception as e:
             print(f"Failed to create parent directory {parent}: {e}")
@@ -387,14 +420,14 @@ def build_workspace(repo_root: Path, workspace_dir: Path, ros_distro: str = "kil
 
     # Run rosdep install for workspace
     rosdep_cmd = f"rosdep install --from-paths {src_dir} --ignore-src -y || true"
-    run_as_pete(rosdep_cmd)
+    run_as_user(rosdep_cmd)
 
     # Build workspace as pete, sourcing the ROS distro if available
     build_cmd = (
         f"if [ -f /opt/ros/{ros_distro}/setup.bash ]; then . /opt/ros/{ros_distro}/setup.bash; fi && "
         f"colcon build --install-base '{workspace_dir}/install' --merge-install || true"
     )
-    run_as_pete(build_cmd)
+    run_as_user(build_cmd)
 
     # Ensure global workspace is sourced for all users
     profile_script = Path("/etc/profile.d/psyched_workspace.sh")
@@ -490,7 +523,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=pete
+User={TARGET_USER}
 Group=root
 ExecStart=/bin/bash -lc 'source /opt/psyched_workspace/install/setup.bash 2>/dev/null || true; source /opt/psyched_venv/bin/activate 2>/dev/null || true; exec ros2 launch {pkg_name} {launch_file}'
 Restart=always
@@ -672,16 +705,16 @@ def main():
 
     # If debug_log present, ensure pete can read the system journal
     if "debug_log" in services:
-        print("Configuring journal access for 'pete' (debug_log present)")
+        print(f"Configuring journal access for '{TARGET_USER}' (debug_log present)")
         # Prefer systemd-journal group; fallback to adm
         try:
             run_sudo(["getent", "group", "systemd-journal"], check=False)
-            run_sudo(["usermod", "-aG", "systemd-journal", "pete"], check=False)
+            run_sudo(["usermod", "-aG", "systemd-journal", TARGET_USER], check=False)
         except Exception:
             try:
-                run_sudo(["usermod", "-aG", "adm", "pete"], check=False)
+                run_sudo(["usermod", "-aG", "adm", TARGET_USER], check=False)
             except Exception as e:
-                print(f"Failed to add pete to journal group: {e}")
+                print(f"Failed to add {TARGET_USER} to journal group: {e}")
 
 
 def setup_gps_device():
