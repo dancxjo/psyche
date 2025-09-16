@@ -144,7 +144,15 @@ if [ "${install_ros2}" = "true" ] || [ "${install_ros2}" = "True" ]; then
 	# pip --user and ownership behavior is correct. Preserve environment where safe.
 	if [ -n "${SUDO_USER:-}" ]; then
 		echo "[bootstrap] Detected sudo, running setup as user: ${SUDO_USER}"
-		sudo -E -u "${SUDO_USER}" bash -c "'${SETUP_ROS2_SCRIPT}'"
+		# Preserve PSYCHED_VENV and PATH for the child environment so setup_ros2.sh
+		# can use the shared venv. If sudo supports -E to preserve env, use it.
+		if sudo -n true 2>/dev/null; then
+			# When sudo doesn't clear env, try to export PSYCHED_VENV and PATH explicitly
+			sudo -E -u "${SUDO_USER}" env "PSYCHED_VENV=${PSYCHED_VENV}" "PATH=${PSYCHED_VENV}/bin:${PATH}" bash -c "'${SETUP_ROS2_SCRIPT}'"
+		else
+			# Fallback: run as user with env assignment
+			sudo -u "${SUDO_USER}" env "PSYCHED_VENV=${PSYCHED_VENV}" "PATH=${PSYCHED_VENV}/bin:${PATH}" bash -c "'${SETUP_ROS2_SCRIPT}'"
+		fi
 	else
 		bash "${SETUP_ROS2_SCRIPT}"
 	fi

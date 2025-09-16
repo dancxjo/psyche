@@ -83,7 +83,12 @@ VENV_SOURCE_LINE=""
 if [ -n "${PSYCHED_VENV:-}" ]; then
     VENV_SOURCE_LINE="source ${PSYCHED_VENV}/bin/activate && "
 fi
-UNIT_CONTENT="[Unit]\nDescription=Psyched foot launch wrapper\nAfter=network.target\n\n[Service]\nUser=${SUDO_USER:-$USER}\nEnvironment=RMW_IMPLEMENTATION=rmw_cyclonedds_cpp\nExecStart=/bin/bash -lc '${VENV_SOURCE_LINE}source /opt/psyched_workspace/install/setup.bash && ros2 launch psyched_create_launch foot_launch.py'\nRestart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n"
+ENV_LINES="Environment=RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
+if [ -n "${PSYCHED_VENV:-}" ]; then
+    # Export PSYCHED_VENV so systemd unit processes can prefer the venv
+    ENV_LINES="${ENV_LINES}\nEnvironment=PSYCHED_VENV=${PSYCHED_VENV}"
+fi
+UNIT_CONTENT="[Unit]\nDescription=Psyched foot launch wrapper\nAfter=network.target\n\n[Service]\nUser=${SUDO_USER:-$USER}\n${ENV_LINES}\nExecStart=/bin/bash -lc '${VENV_SOURCE_LINE}source /opt/psyched_workspace/install/setup.bash && ros2 launch psyched_create_launch foot_launch.py'\nRestart=always\nRestartSec=5\n\n[Install]\nWantedBy=multi-user.target\n"
 
 if [ "$DRY_RUN" = false ]; then
     echo "$UNIT_CONTENT" | sudo tee "$UNIT_PATH" >/dev/null

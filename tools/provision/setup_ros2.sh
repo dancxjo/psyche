@@ -78,9 +78,29 @@ sudo apt-get install -y --no-install-recommends ros-${ROS_DISTRO}-rmw-cyclonedds
 sudo mkdir -p "${WS_DIR}/src"
 sudo chown -R "${SUDO_USER:-$USER}":"${SUDO_USER:-$USER}" "${WS_DIR}"
 
-# Install colcon and other Python tools into user pip (non-root)
-echo "[setup_ros2] Installing colcon and python tools into user site-packages"
-python3 -m pip install --upgrade --user colcon-common-extensions colcon-mixin colcon-ros || true
+# Ensure colcon and python tools are available.
+# Prefer installing into the shared venv (PSYCHED_VENV) if present. Fall back to
+# distro packages via apt where available, then last-resort pip --user.
+echo "[setup_ros2] Ensuring colcon and python tools are available"
+if [ -n "${PSYCHED_VENV:-}" ] && [ -x "${PSYCHED_VENV}/bin/pip" ]; then
+	echo "[setup_ros2] Installing colcon into venv: ${PSYCHED_VENV}"
+	# Use venv's pip to avoid system-managed environment issues (PEP 668)
+	"${PSYCHED_VENV}/bin/pip" install --upgrade pip setuptools wheel || true
+	"${PSYCHED_VENV}/bin/pip" install --upgrade colcon-common-extensions colcon-mixin colcon-ros || true
+else
+	# Try to install distro-packaged colcon first
+	if command -v apt-get >/dev/null 2>&1; then
+		echo "[setup_ros2] Attempting to install colcon from apt packages"
+		sudo apt-get update -y
+		# Install the common extensions package where available
+		sudo apt-get install -y python3-colcon-common-extensions || true
+		# Some distro repositories may provide additional colcon plugins; attempt a few
+		sudo apt-get install -y python3-colcon-ros || true || true
+	else
+		echo "[setup_ros2] apt-get not available; falling back to pip --user (may fail under some distros)"
+		python3 -m pip install --upgrade --user colcon-common-extensions colcon-mixin colcon-ros || true
+	fi
+fi
 
 # Create a profile.d file so all users source the workspace and get RMW env
 echo "[setup_ros2] Writing global profile at ${PROFILE_D_FILE}"
@@ -98,6 +118,13 @@ fi
 if [ -z "\${RMW_IMPLEMENTATION:-}" ]; then
 	export RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}
 fi
+# If a shared venv was created by bootstrap, put it on PATH so colcon from venv is found
+if [ -n "\${PSYCHED_VENV:-}" ] && [ -d "\${PSYCHED_VENV}/bin" ]; then
+	case ":\$PATH:" in
+		*:\${PSYCHED_VENV}/bin:*) ;;
+		*) export PATH="\${PSYCHED_VENV}/bin:\$PATH" ;;
+	esac
+fi
 # If workspace overlay contains ROS setup.*sh, source it automatically
 if [ -f "\${PSYCHED_WS}/install/setup.bash" ]; then
 	source "\${PSYCHED_WS}/install/setup.bash"
@@ -109,3 +136,18 @@ EOF
 sudo chmod 644 "${PROFILE_D_FILE}"
 
 echo "[setup_ros2] Completed. Users will get the workspace and RMW via ${PROFILE_D_FILE} on next login."
+
+# Ensure interactive non-login bash shells (e.g. terminals) also pick up the
+# workspace profile by adding a source line to /etc/bash.bashrc if present.
+BASH_GLOBAL_FILE="/etc/bash.bashrc"
+if [ -f "${BASH_GLOBAL_FILE}" ]; then
+	if ! grep -Fq "${PROFILE_D_FILE}" "${BASH_GLOBAL_FILE}" 2>/dev/null; then
+		echo "[setup_ros2] Adding source of ${PROFILE_D_FILE} to ${BASH_GLOBAL_FILE} so interactive shells pick it up"
+		sudo bash -c "cat >> '${BASH_GLOBAL_FILE}' <<'BASH_SRC'
+# Source psyched workspace profile so interactive non-login shells get ROS env
+if [ -f '${PROFILE_D_FILE}' ]; then
+	. '${PROFILE_D_FILE}'
+fi
+BASH_SRC"
+	fi
+fi
