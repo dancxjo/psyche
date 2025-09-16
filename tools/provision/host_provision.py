@@ -91,7 +91,7 @@ def ensure_cyclone_dds_if_needed(services, ros_distro: str = ""):
             print(f"install {pkg} failed (continuing): {e}")
 
     # Persist RMW implementation in profile script if not already present
-    profile_script = Path("/etc/profile.d/psyche_workspace.sh")
+    profile_script = Path("/etc/profile.d/psyched_workspace.sh")
     export_line = "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp\n"
     try:
         if profile_script.exists():
@@ -101,8 +101,8 @@ def ensure_cyclone_dds_if_needed(services, ros_distro: str = ""):
                 p.communicate(input=export_line.encode())
         else:
             content = """#!/bin/sh
-if [ -f /opt/psyche_workspace/install/setup.bash ]; then
-  . /opt/psyche_workspace/install/setup.bash
+if [ -f /opt/psyched_workspace/install/setup.bash ]; then
+    . /opt/psyched_workspace/install/setup.bash
 fi
 """
             content += export_line
@@ -111,6 +111,53 @@ fi
         run_sudo(["chmod", "0644", str(profile_script)])
     except Exception as e:
         print(f"Failed to update profile script for RMW env: {e}")
+
+
+def ensure_shared_python_venv(services, venv_path: Path = Path("/opt/psyched_venv")):
+    """Create a shared virtualenv for python service requirements and install per-service pip packages.
+
+    The venv is owned by root but accessible to `pete` (group or permissions as needed). It's recommended that services and systemd units use the venv python.
+    """
+    print(f"Ensuring shared python virtualenv at {venv_path}")
+    run_sudo(["apt", "update"])
+    # Ensure venv tooling
+    run_sudo(["apt", "install", "-y", "python3-venv", "python3-pip"]) 
+
+    if not venv_path.exists():
+        run_sudo(["mkdir", "-p", str(venv_path)])
+        run_sudo(["python3", "-m", "venv", str(venv_path)])
+        run_sudo(["chown", "-R", "root:root", str(venv_path)])
+        run_sudo(["chmod", "0755", str(venv_path)])
+
+    # Install service related pip packages into the venv
+    # Base packages that may be needed by services
+    pkgs = set()
+    if "mic" in services:
+        pkgs.update(["sounddevice", "webrtcvad"]) 
+    if "gps" in services:
+        pkgs.update(["pynmea2", "pyserial"]) 
+
+    if pkgs:
+        pip = str(venv_path / "bin" / "pip")
+        cmd = ["sudo", pip, "install"] + list(pkgs)
+        try:
+            run(cmd)
+        except Exception as e:
+            print(f"Failed to install pip packages into venv: {e}")
+
+    # Ensure pete can use the venv; create a small wrapper script for services to source
+    envshim = Path("/etc/profile.d/psyched_venv.sh")
+    content = f"""# psyched shared Python virtualenv
+VIRTUAL_ENV={venv_path}
+PATH=$VIRTUAL_ENV/bin:$PATH
+export VIRTUAL_ENV PATH
+"""
+    try:
+        p = subprocess.Popen(["sudo", "tee", str(envshim)], stdin=subprocess.PIPE)
+        p.communicate(input=content.encode())
+        run_sudo(["chmod", "0644", str(envshim)])
+    except Exception as e:
+        print(f"Failed to write venv shim: {e}")
 
 
 def clone_or_update(url: str, dest: Path, branch: str = ""):
@@ -191,21 +238,125 @@ def build_workspace(repo_root: Path, workspace_dir: Path, ros_distro: str = "kil
     run_as_pete(build_cmd)
 
     # Ensure global workspace is sourced for all users
-    profile_script = Path("/etc/profile.d/psyche_workspace.sh")
+    profile_script = Path("/etc/profile.d/psyched_workspace.sh")
     content = """#!/bin/sh
-if [ -f /opt/psyche_workspace/install/setup.bash ]; then
-  . /opt/psyche_workspace/install/setup.bash
+if [ -f /opt/psyched_workspace/install/setup.bash ]; then
+    . /opt/psyched_workspace/install/setup.bash
 fi
 """
-    run_sudo(["tee", str(profile_script)],)
-    # write via sudo tee
-    p = subprocess.Popen(["sudo", "tee", str(profile_script)], stdin=subprocess.PIPE)
-    p.communicate(input=content.encode())
+    try:
+        p = subprocess.Popen(["sudo", "tee", str(profile_script)], stdin=subprocess.PIPE)
+        p.communicate(input=content.encode())
+        run_sudo(["chmod", "0644", str(profile_script)])
+    except Exception as e:
+        print(f"Failed to write profile script: {e}")
     run_sudo(["chmod", "0644", str(profile_script)])
 
     run_sudo(["touch", str(marker)])
     run_sudo(["chown", "root:root", str(marker)])
     print("Workspace build complete")
+
+
+def install_cli(repo_root: Path):
+    """Install the /usr/bin/psyched wrapper that invokes the packaged CLI module."""
+    print("Installing /usr/bin/psyched CLI wrapper")
+    wrapper = """#!/usr/bin/env bash
+# Auto-generated psyched wrapper (uses shared venv if present)
+VENV=/opt/psyched_venv
+if [ -x "$VENV/bin/python3" ]; then
+    PYTHON_EXEC="$VENV/bin/python3"
+else
+    PYTHON_EXEC=python3
+fi
+export PYTHONPATH=/opt/psyched:$PYTHONPATH
+exec "$PYTHON_EXEC" -m tools.provision.psyched_cli "$@"
+"""
+    try:
+        p = subprocess.Popen(["sudo", "tee", "/usr/bin/psyched"], stdin=subprocess.PIPE)
+        p.communicate(input=wrapper.encode())
+        run_sudo(["chmod", "+x", "/usr/bin/psyched"])
+    except Exception as e:
+        print(f"Failed to install psyched CLI wrapper: {e}")
+
+
+def install_systemd_units(repo_root: Path, services, workspace_dir: Path, clone_dir: Path, ros_distro: str = "kilted"):
+    """Create, enable, and start systemd units for any service that provides a launch_wrapper.
+
+    This is best-effort: units are named `psyched-<wrapper>.service` and run as `pete`.
+    """
+    services_dir = repo_root / "tools" / "provision" / "services"
+    units_created = []
+    for svc in services:
+        svc_file = services_dir / f"{svc}.json"
+        if not svc_file.exists():
+            continue
+        try:
+            with svc_file.open() as sf:
+                sdata = json.load(sf)
+        except Exception as e:
+            print(f"Failed to load service file {svc_file}: {e}")
+            continue
+
+        for lw in sdata.get("launch_wrappers", []):
+            # lw is expected to be a dict with relpath for local wrappers
+            rel = None
+            if isinstance(lw, dict):
+                rel = lw.get("relpath")
+            else:
+                rel = lw
+            if not rel:
+                continue
+
+            pkg_name = rel
+            # Determine a launch file name in the canonical clone
+            launch_dir = clone_dir / pkg_name / "launch"
+            launch_file = None
+            if launch_dir.exists() and launch_dir.is_dir():
+                for p in launch_dir.iterdir():
+                    if p.suffix == ".py":
+                        launch_file = p.stem
+                        break
+
+            # fallback: try to use a common naming
+            if not launch_file:
+                launch_file = f"{pkg_name}_launch"
+
+            unit_name = f"psyched-{pkg_name}.service"
+            unit_path = Path("/etc/systemd/system") / unit_name
+
+            unit_content = f"""[Unit]
+Description=psyched {pkg_name} launch
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pete
+Group=root
+ExecStart=/bin/bash -lc 'source /opt/psyched_workspace/install/setup.bash 2>/dev/null || true; source /opt/psyched_venv/bin/activate 2>/dev/null || true; exec ros2 launch {pkg_name} {launch_file}'
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+"""
+
+            try:
+                print(f"Writing systemd unit {unit_path}")
+                p = subprocess.Popen(["sudo", "tee", str(unit_path)], stdin=subprocess.PIPE)
+                p.communicate(input=unit_content.encode())
+                run_sudo(["chmod", "0644", str(unit_path)])
+                # reload systemd, enable and start the unit
+                run_sudo(["systemctl", "daemon-reload"]) 
+                run_sudo(["systemctl", "enable", unit_name],)
+                run_sudo(["systemctl", "restart", unit_name],)
+                units_created.append(unit_name)
+            except Exception as e:
+                print(f"Failed to create/start systemd unit for {pkg_name}: {e}")
+
+    if units_created:
+        print("Systemd units created:", units_created)
 
 
 def main():
@@ -236,7 +387,7 @@ def main():
         else:
             print("Warning: setup_ros2.sh not found; skipping ROS2 installation")
 
-    WORKSPACE_DIR = Path(os.environ.get("WORKSPACE_DIR", "/opt/psyche_workspace"))
+    WORKSPACE_DIR = Path(os.environ.get("WORKSPACE_DIR", "/opt/psyched_workspace"))
     CLONE_DIR = Path(os.environ.get("CLONE_DIR", "/opt/psyched"))
 
     ensure_pete()
@@ -287,10 +438,25 @@ def main():
         clone_or_update(url, dest, branch)
         link_into_workspace(dest, linkpath)
 
+    # Ensure shared python virtualenv for service python requirements
+    ensure_shared_python_venv(services)
+
     # Ensure Cyclone DDS if any services require DDS and persist RMW selection
     ensure_cyclone_dds_if_needed(services, ros_distro=cfg.get("ros_distro", "kilted"))
 
     build_workspace(repo_root, WORKSPACE_DIR, ros_distro=cfg.get("ros_distro", "kilted"))
+
+    # Install helper CLI wrapper to /usr/bin/psyched for easy reprovision/update/deprovision
+    try:
+        install_cli(repo_root)
+    except Exception as e:
+        print(f"Failed to install psyched CLI wrapper: {e}")
+
+    # Install systemd units for any launch_wrappers provided by services
+    try:
+        install_systemd_units(repo_root, services, WORKSPACE_DIR, CLONE_DIR, ros_distro=cfg.get("ros_distro", "kilted"))
+    except Exception as e:
+        print(f"Failed to install systemd units: {e}")
 
     # If gps service present, perform device setup
     if "gps" in services:
@@ -340,6 +506,19 @@ def main():
         else:
             print("piper_tool not available; piper may need manual installation")
 
+    # If debug_log present, ensure pete can read the system journal
+    if "debug_log" in services:
+        print("Configuring journal access for 'pete' (debug_log present)")
+        # Prefer systemd-journal group; fallback to adm
+        try:
+            run_sudo(["getent", "group", "systemd-journal"], check=False)
+            run_sudo(["usermod", "-aG", "systemd-journal", "pete"], check=False)
+        except Exception:
+            try:
+                run_sudo(["usermod", "-aG", "adm", "pete"], check=False)
+            except Exception as e:
+                print(f"Failed to add pete to journal group: {e}")
+
 
 def setup_gps_device():
     """Perform basic ublox/gpsd setup: install gpsd, enable service, add udev rule for u-blox8/7 devices.
@@ -368,3 +547,100 @@ def setup_gps_device():
 
 if __name__ == "__main__":
     main()
+
+
+def provision_from_json(host_json_path: str):
+    """Programmatic entrypoint: run provisioning for given host json path."""
+    sys.argv = [sys.argv[0], host_json_path]
+    main()
+
+
+def deprovision_from_json(host_json_path: str, purge_repos: bool = False):
+    """Undo provisioning as best-effort: call teardown hooks, remove symlinks, and optionally remove cloned repos.
+
+    This is intentionally conservative: it will attempt to remove symlinks in the workspace src and call tool teardowns.
+    Purging repos (deleting from CLONE_DIR) is only performed if purge_repos is True.
+    """
+    host_json = Path(host_json_path)
+    if not host_json.exists():
+        print(f"Host config not found: {host_json}")
+        return
+
+    repo_root = host_json.parent.parent
+    with host_json.open() as f:
+        cfg = json.load(f)
+
+    WORKSPACE_DIR = Path(os.environ.get("WORKSPACE_DIR", "/opt/psyched_workspace"))
+    CLONE_DIR = Path(os.environ.get("CLONE_DIR", "/opt/psyched"))
+
+    services = cfg.get("services", [])
+
+    # Call tool teardown hooks if available
+    # Auto-discover any tool modules under tools/provision/tools and call teardown() if provided
+    tools_dir = repo_root / "tools" / "provision" / "tools"
+    if tools_dir.exists():
+        for f in tools_dir.glob("*_tool.py"):
+            modname = f.stem
+            try:
+                # import via relative package name
+                pkg = __import__(f"tools.provision.tools.{modname}", fromlist=[modname])
+                if hasattr(pkg, "teardown"):
+                    try:
+                        print(f"Running teardown for tool {modname}")
+                        pkg.teardown()
+                    except Exception as e:
+                        print(f"teardown for {modname} raised: {e}")
+            except Exception as e:
+                print(f"Failed to import tool module {modname}: {e}")
+
+    # Remove symlinks from workspace src for services' repos
+    services_dir = repo_root / "tools" / "provision" / "services"
+    repos = []
+    for svc in services:
+        svc_file = services_dir / f"{svc}.json"
+        if not svc_file.exists():
+            continue
+        with svc_file.open() as sf:
+            sdata = json.load(sf)
+            srepos = sdata.get("repos", [])
+            repos.extend(srepos)
+            slaunch = sdata.get("launch_wrappers", [])
+            for lw in slaunch:
+                # support both object and string forms
+                if isinstance(lw, dict):
+                    if lw.get("local"):
+                        repos.append({"local": True, "path": lw.get("path"), "relpath": lw.get("relpath")})
+                else:
+                    # string wrapper name; assume local under services/launch_wrappers
+                    repos.append({"local": True, "path": str(services_dir / "launch_wrappers" / lw), "relpath": lw})
+
+    # Remove symlinks and optionally purge repos
+    for r in repos:
+        relpath = r.get("relpath")
+        if not relpath:
+            # derive a relpath from path for local entries if missing
+            relpath = Path(r.get("path")).name
+        linkpath = WORKSPACE_DIR / "src" / relpath
+        canonical = CLONE_DIR / relpath
+        if linkpath.is_symlink():
+            print(f"Removing symlink {linkpath}")
+            run_sudo(["rm", "-f", str(linkpath)])
+        else:
+            print(f"No symlink at {linkpath}; skipping")
+
+        if purge_repos:
+            if canonical.exists():
+                print(f"Purging canonical repo {canonical}")
+                run_sudo(["rm", "-rf", str(canonical)])
+
+        # Optionally remove the installed CLI wrapper when purging
+        if purge_repos:
+            try:
+                if Path('/usr/bin/psyched').exists():
+                    print('Removing /usr/bin/psyched')
+                    run_sudo(['rm', '-f', '/usr/bin/psyched'])
+            except Exception as e:
+                print(f'Failed to remove /usr/bin/psyched: {e}')
+
+    print("Deprovision complete (best-effort)")
+

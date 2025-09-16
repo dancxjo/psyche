@@ -1,17 +1,5 @@
 {
     "name": "debug_log",
-    "repos": [
-        {
-            "path": "tools/provision/services/debug_log_code/debug_log_node",
-            "local": true
-        }
-    ],
-    "launch_wrappers": [
-        "psyche_debug_log_launch"
-    ]
-}
-{
-    "name": "debug_log",
     "description": "Streams system journal messages to the /voice topic for spoken alerts.",
     "repos": [
         {
