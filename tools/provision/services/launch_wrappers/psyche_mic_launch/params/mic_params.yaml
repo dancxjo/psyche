@@ -1,7 +1,0 @@
-mic_node:
-  ros__parameters:
-    device: ""
-    sample_rate: 16000
-    frame_ms: 30
-    channels: 1
-    vad_aggressiveness: 2

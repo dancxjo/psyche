@@ -11,8 +11,8 @@
     "launch_wrappers": [
         {
             "local": true,
-            "path": "tools/provision/services/launch_wrappers/psyche_mic_launch",
-            "relpath": "psyche_mic_launch"
+            "path": "tools/provision/services/launch_wrappers/psyched_mic_launch",
+            "relpath": "psyched_mic_launch"
         }
     ]
 }

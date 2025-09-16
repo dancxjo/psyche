@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="3">
-    <name>psyche_ublox_launch</name>
+    <name>psyched_voice_launch</name>
     <version>0.0.1</version>
-    <description>Launch wrapper for ublox driver with sensible defaults</description>
-    <maintainer email="tdreed@gmail.com">you</maintainer>
+    <description>Launch wrapper for voice_node</description>
+    <maintainer email="you@example.com">psyched</maintainer>
     <license>Apache-2.0</license>
 
     <buildtool_depend>ament_python</buildtool_depend>

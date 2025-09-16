@@ -10,8 +10,8 @@
     "launch_wrappers": [
         {
             "local": true,
-            "path": "tools/provision/services/launch_wrappers/psyche_ublox_launch",
-            "relpath": "psyche_ublox_launch"
+            "path": "tools/provision/services/launch_wrappers/psyched_ublox_launch",
+            "relpath": "psyched_ublox_launch"
         }
     ]
 }

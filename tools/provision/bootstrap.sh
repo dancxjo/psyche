@@ -15,10 +15,10 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # launcher safe to run directly on a host.
 if [ ! -f "$PROJECT_ROOT/tools/provision/setup_ros2.sh" ]; then
   echo "Repository files not found next to bootstrap script; cloning repo to temporary dir"
-  TMP_CLONE_DIR=$(mktemp -d /tmp/psyche-bootstrap.XXXX)
-  echo "Cloning https://github.com/dancxjo/psyche.git to $TMP_CLONE_DIR"
+  TMP_CLONE_DIR=$(mktemp -d /tmp/psyched-bootstrap.XXXX)
+  echo "Cloning https://github.com/dancxjo/psyched.git to $TMP_CLONE_DIR"
   if command -v git >/dev/null 2>&1; then
-    git clone --depth 1 https://github.com/dancxjo/psyche.git "$TMP_CLONE_DIR" || {
+    git clone --depth 1 https://github.com/dancxjo/psyched.git "$TMP_CLONE_DIR" || {
       echo "git clone failed" >&2; exit 1
     }
     PROJECT_ROOT="$TMP_CLONE_DIR"
@@ -29,7 +29,7 @@ if [ ! -f "$PROJECT_ROOT/tools/provision/setup_ros2.sh" ]; then
   fi
 fi
 HOSTNAME_FULL="$(hostname --fqdn 2>/dev/null || hostname)"
-STATE_DIR="/var/lib/psyche_bootstrap"
+STATE_DIR="/var/lib/psyched_bootstrap"
 STATE_FILE="$STATE_DIR/$HOSTNAME_FULL.state"
 
 FORCE=0

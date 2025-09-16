@@ -17,12 +17,12 @@ class VoiceNode(Node):
         self.declare_parameter('piper_cmd', 'piper')
         self.declare_parameter('voice', 'en-us')
         self.declare_parameter('rate', 1.0)
-    self.declare_parameter('mbrola_voice', 'en1')
+        self.declare_parameter('mbrola_voice', 'en1')
 
         self.piper_cmd = self.get_parameter('piper_cmd').get_parameter_value().string_value
         self.voice = self.get_parameter('voice').get_parameter_value().string_value
         self.rate = self.get_parameter('rate').get_parameter_value().double_value
-    self.mbrola_voice = self.get_parameter('mbrola_voice').get_parameter_value().string_value
+        self.mbrola_voice = self.get_parameter('mbrola_voice').get_parameter_value().string_value
 
         self.subscription = self.create_subscription(String, '/voice', self.on_voice, 10)
         self._stop = threading.Event()
@@ -44,7 +44,7 @@ class VoiceNode(Node):
             piper_path = shutil.which(self.piper_cmd)
             if piper_path:
                 # Render to temp wav then aplay
-                tmp = '/tmp/psyche_voice.wav'
+                tmp = '/tmp/psyched_voice.wav'
                 cmd = [piper_path, '-l', self.voice, '-t', text, '-o', tmp]
                 subprocess.run(cmd, check=True)
                 subprocess.run(['aplay', tmp], check=True)
@@ -65,7 +65,7 @@ class VoiceNode(Node):
         try:
             # Using subprocess pipeline: echo text | text2pho ? but simplest: use espeak-ng with mbrola output
             # We will try: espeak-ng -v mbrola-<voice> -w /tmp/out.wav "text" then aplay
-            tmp = '/tmp/psyche_voice_mbrola.wav'
+            tmp = '/tmp/psyched_voice_mbrola.wav'
             cmd = ['espeak-ng', '-v', f'mbrola-{self.mbrola_voice}', '-w', tmp, text]
             subprocess.run(cmd, check=True)
             subprocess.run(['aplay', tmp], check=True)

@@ -14,8 +14,8 @@
     "launch_wrappers": [
         {
             "local": true,
-            "path": "tools/provision/services/launch_wrappers/psyche_create_launch",
-            "relpath": "psyche_create_launch"
+            "path": "tools/provision/services/launch_wrappers/psyched_create_launch",
+            "relpath": "psyched_create_launch"
         }
     ]
 }
