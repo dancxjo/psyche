@@ -12,6 +12,13 @@
 #   -r|--repo URL        Git URL to clone (default from script variable)
 #   -b|--branch BR       Branch to checkout (default: main)
 #   --git-as-user        Force cloning via SSH as the invoking user (requires SSH key or agent)
+#
+# Note: Older versions of this project invoked `tools/provision/apply.sh` after
+# cloning. That script was replaced by the Python provisioner
+# `tools/provision/host_provision.py`. The bootstrapper now detects a host
+# descriptor under `/opt/psyched/hosts/<hostname>.json` and invokes the
+# Python provisioner if present. This keeps bootstrap behavior idempotent and
+# avoids calling a missing `apply.sh` file.
 set -euo pipefail
 
 DEFAULT_REPO_URL="https://github.com/dancxjo/psyched.git"
@@ -152,8 +159,30 @@ install_updater() {
 }
 
 apply_config() {
+  # The old `apply.sh` helper was removed; use the Python provisioner
+  # `host_provision.py` and select the host descriptor by the local hostname.
+  # This keeps bootstrap idempotent and non-failing when no host config is present.
   log "Applying provisioning configuration"
-  /opt/psyched/tools/provision/apply.sh || true
+  REPO_ROOT="/opt/psyched"
+  HOSTNAME_SHORT=$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo "")
+  HOST_JSON="${REPO_ROOT}/hosts/${HOSTNAME_SHORT}.json"
+  # try lowercase fallback
+  if [ ! -f "${HOST_JSON}" ]; then
+    HOSTNAME_LC=$(echo "${HOSTNAME_SHORT}" | tr '[:upper:]' '[:lower:]')
+    HOST_JSON="${REPO_ROOT}/hosts/${HOSTNAME_LC}.json"
+  fi
+
+  if [ -f "${HOST_JSON}" ]; then
+    if command -v python3 >/dev/null 2>&1; then
+      log "Invoking host_provision.py with ${HOST_JSON}"
+      # run but don't let failures break the bootstrap flow
+      python3 "${REPO_ROOT}/tools/provision/host_provision.py" "${HOST_JSON}" || log "host_provision.py failed (continuing)"
+    else
+      log "python3 not available; skipping host provisioning"
+    fi
+  else
+    log "No host config found at ${REPO_ROOT}/hosts/<hostname>.json; skipping provisioning"
+  fi
 }
 
 main() {
