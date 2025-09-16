@@ -30,8 +30,8 @@ fi
 
 ## Subcommands
 install_ros2() {
-		# Minimal Kaiju (ROS 2 kilted) setup
-		echo "Starting Kaiju (ROS 2 kilted) base setup"
+		# Install ROS2 from prebuilt packages (apt) and required dev tooling.
+		echo "Starting ROS2 (Kaiju/kilted) prebuilt package installation"
 
 		if [ "$EUID" -ne 0 ]; then
 			SUDO=sudo
@@ -41,42 +41,38 @@ install_ros2() {
 
 		export DEBIAN_FRONTEND=noninteractive
 
-		echo "Updating apt and installing prerequisites"
+		echo "Installing prerequisites"
 		$SUDO apt update
-		$SUDO apt install -y locales curl software-properties-common ca-certificates gnupg lsb-release build-essential git python3-pip python3-venv
+		$SUDO apt install -y curl gnupg lsb-release software-properties-common locales ca-certificates
 
 		echo "Configuring locale to en_US.UTF-8"
-		$SUDO apt install -y locales
 		$SUDO locale-gen en_US en_US.UTF-8 || true
 		$SUDO update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 || true
 		export LANG=en_US.UTF-8
 
 		echo "Enabling universe repository"
-		$SUDO add-apt-repository -y universe
+		$SUDO add-apt-repository -y universe || true
 
-		echo "Installing ros2 apt-source package"
-		TMP_DEB="/tmp/ros2-apt-source.deb"
-		export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
-		UBU_CODENAME=$(. /etc/os-release && echo $VERSION_CODENAME)
-		curl -fsSL -o "$TMP_DEB" "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.${UBU_CODENAME}_all.deb"
-		$SUDO dpkg -i "$TMP_DEB" || true
+		# Allow override via environment variable, default to 'kilted'
+		: "${ROS_DISTRO:=kilted}"
 
-		echo "Installing development packages recommended by ROS 2"
+		echo "Adding ROS 2 apt repository and key for distro: $ROS_DISTRO"
+		# Install keyring in modern, apt-key-free way
+		KEYRING=/usr/share/keyrings/ros-archive-keyring.gpg
+		$SUDO mkdir -p "$(dirname "$KEYRING")"
+		curl -fsSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | $SUDO gpg --dearmour -o "$KEYRING" || true
+
+		echo "Adding APT source for ROS 2"
+		DIST_CODENAME=$(lsb_release -sc)
+		echo "deb [signed-by=$KEYRING] http://packages.ros.org/ros2/ubuntu $DIST_CODENAME main" | $SUDO tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+		echo "Updating apt and installing ROS 2 base package and development tools"
 		$SUDO apt update
-		$SUDO apt install -y \
+		# Install ros base (no desktop) and common development tools
+		$SUDO apt install -y "ros-${ROS_DISTRO}-ros-base" \
 			python3-colcon-common-extensions \
-			python3-flake8-blind-except \
-			python3-flake8-class-newline \
-			python3-flake8-deprecated \
-			python3-mypy \
 			python3-pip \
-			python3-pytest \
-			python3-pytest-cov \
-			python3-pytest-mock \
-			python3-pytest-repeat \
-			python3-pytest-rerunfailures \
-			python3-pytest-runner \
-			python3-pytest-timeout \
+			python3-rosdep \
 			build-essential \
 			cmake \
 			git \
@@ -87,39 +83,19 @@ install_ros2() {
 			libasio-dev \
 			libtinyxml2-dev \
 			libssl-dev \
-			libpcre3-dev
+			libpcre3-dev || true
 
-		echo "Preparing workspace at ~/ros2_kilted/src"
-		WORKSPACE_DIR="$HOME/ros2_kilted"
-		mkdir -p "$WORKSPACE_DIR/src"
-		cd "$WORKSPACE_DIR"
-
-		if [ ! -d src/.rosinstall ]; then
-			echo "Importing ROS 2 kilted source manifest (this may take a while)"
-			if command -v vcs >/dev/null 2>&1; then
-				vcs import --input https://raw.githubusercontent.com/ros2/ros2/kilted/ros2.repos src || true
-			else
-				echo "vcs tool not found; installing python3-vcstool"
-				$SUDO pip3 install -U vcstool
-				vcs import --input https://raw.githubusercontent.com/ros2/ros2/kilted/ros2.repos src || true
-			fi
-		else
-			echo "Workspace already has sources, skipping vcs import"
+		echo "Initializing rosdep"
+		if ! command -v rosdep >/dev/null 2>&1; then
+		  $SUDO apt install -y python3-rosdep || true
 		fi
-
-		echo "Installing rosdep and dependencies"
-		$SUDO apt install -y python3-rosdep
 		if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
-			sudo rosdep init || true
+		  $SUDO rosdep init || true
 		fi
 		rosdep update || true
-		rosdep install --from-paths src --ignore-src -y --skip-keys "fastcdr rti-connext-dds-7.3.0 urdfdom_headers" || true
 
-		echo "Building workspace (colcon). This may take a long time."
-		colcon build --symlink-install || true
-
-		echo "Setup complete. To use Kaiju (kilted) in a shell run:"
-		echo "  . $WORKSPACE_DIR/install/local_setup.bash"
+		echo "ROS2 installation complete. To use it in a shell, source the distro setup if available (example):"
+		echo "  source /opt/ros/$ROS_DISTRO/setup.bash"
 
 		return 0
 }
