@@ -143,11 +143,11 @@ def copy_current_user_ssh_to_pete():
             # non-fatal; we'll attempt to append keys later
             pass
         for key in found_keys:
-            # append if not already present
-            q = shlex.quote(key)
-            cmd = (
-                f"bash -lc 'grep -F {q} {shlex.quote(str(auth_keys))} >/dev/null 2>&1 || echo {q} | tee -a {shlex.quote(str(auth_keys))}'"
-            )
+            # append if not already present. Use grep -Fxq for exact-line match and escape the key safely
+            # We'll run a single sudo bash -lc invocation which checks and appends atomically.
+            escaped_key = key.replace("'", "'\\''")
+            auth_path = str(auth_keys)
+            cmd = f"grep -Fxq '{escaped_key}' '{auth_path}' >/dev/null 2>&1 || echo '{escaped_key}' >> '{auth_path}'"
             try:
                 run_sudo(["bash", "-lc", cmd])
             except Exception as e:
