@@ -36,7 +36,22 @@ ensure_basics() {
 clone_repo() {
   local dest="/opt/psyched"
   if [ -d "$dest/.git" ]; then
-    log "Repo already present at $dest"
+    log "Repo already present at $dest; attempting to update"
+    # Try a best-effort update: fetch and fast-forward merge, falling back to reset
+    set +e
+    cd "$dest" || return 0
+    git fetch --prune origin "$BRANCH" 2>/dev/null
+    if git rev-parse --verify "origin/${BRANCH}" >/dev/null 2>&1; then
+      if git merge --ff-only "origin/${BRANCH}" >/dev/null 2>&1; then
+        log "Fast-forwarded $dest to origin/$BRANCH"
+      else
+        log "Fast-forward not possible; performing hard reset to origin/$BRANCH"
+        git reset --hard "origin/${BRANCH}" >/dev/null 2>&1 || log "git reset failed; repository may be in detached state"
+      fi
+    else
+      log "Remote branch origin/$BRANCH not found; skipping update"
+    fi
+    set -e
   else
     log "Cloning $REPO_URL@$BRANCH to $dest"
     git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$dest"
