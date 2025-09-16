@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+    <name>mic_node</name>
+    <version>0.0.1</version>
+    <description>Microphone capture and VAD node (stub)</description>
+    <maintainer email="tdreed@gmail.com">you</maintainer>
+    <license>Apache-2.0</license>
+
+    <buildtool_depend>ament_python</buildtool_depend>
+    <exec_depend>rclpy</exec_depend>
+    <exec_depend>std_msgs</exec_depend>
+    <exec_depend>audio_common_msgs</exec_depend>
+
+</package>

@@ -1,0 +1,18 @@
+{
+    "name": "mic",
+    "description": "Microphone/audio processing stack (stub). Add audio capture and processing repos here.",
+    "repos": [
+        {
+            "local": true,
+            "path": "tools/provision/services/mic_code/mic_node",
+            "relpath": "mic_node"
+        }
+    ],
+    "launch_wrappers": [
+        {
+            "local": true,
+            "path": "tools/provision/services/launch_wrappers/psyche_mic_launch",
+            "relpath": "psyche_mic_launch"
+        }
+    ]
+}

@@ -1,0 +1,4 @@
+create_node:
+  ros__parameters:
+    port: "/dev/ttyACM1"
+    baudrate: 57600

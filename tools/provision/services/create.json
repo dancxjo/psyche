@@ -1,0 +1,21 @@
+{
+    "name": "create",
+    "repos": [
+        {
+            "url": "https://github.com/revyos-ros/libcreate.git",
+            "relpath": "libcreate",
+            "branch": "fix-std-string"
+        },
+        {
+            "url": "https://github.com/autonomylab/create_robot.git",
+            "relpath": "create_robot"
+        }
+    ],
+    "launch_wrappers": [
+        {
+            "local": true,
+            "path": "tools/provision/services/launch_wrappers/psyche_create_launch",
+            "relpath": "psyche_create_launch"
+        }
+    ]
+}

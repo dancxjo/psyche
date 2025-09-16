@@ -1,0 +1,5 @@
+voice_node:
+  ros__parameters:
+    piper_cmd: "piper"
+    voice: "en-us"
+    rate: 1.0

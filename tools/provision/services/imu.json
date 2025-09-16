@@ -1,0 +1,5 @@
+{
+    "name": "imu",
+    "description": "IMU sensor stack (stub). Add repos required to build IMU drivers and ROS nodes.",
+    "repos": []
+}

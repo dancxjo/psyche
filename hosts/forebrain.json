@@ -1,23 +1,9 @@
 {
     "host": "forebrain",
     "install_ros2": true,
-    "repos": [
-        {
-            "url": "https://github.com/clydemcqueen/opencv_cam.git",
-            "relpath": "opencv_cam"
-        },
-        {
-            "url": "https://github.com/ptrmu/ros2_shared.git",
-            "relpath": "ros2_shared"
-        },
-        {
-            "url": "https://github.com/bribribriambriguy/kinect_ros2.git",
-            "relpath": "kinect_ros2",
-            "branch": "frame_correction"
-        },
-        {
-            "url": "https://github.com/OpenKinect/libfreenect.git",
-            "relpath": "libfreenect"
-        }
+    "services": [
+        "vision",
+        "kinect",
+        "language"
     ]
 }

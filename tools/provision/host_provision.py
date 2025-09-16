@@ -18,6 +18,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Tool hooks for optional TTS provisioning
+try:
+    from tools.provision.tools import piper_tool, mbrola_tool, espeak_tool
+except Exception:
+    piper_tool = None
+    mbrola_tool = None
+    espeak_tool = None
+
 
 def run(cmd, check=True, capture_output=False, env=None):
     print("+ ", " ".join(cmd))
@@ -73,6 +81,16 @@ def clone_or_update(url: str, dest: Path, branch: str = ""):
             cmd += ["--branch", branch]
         cmd += [url, str(dest)]
         run(cmd)
+
+
+def copy_local_repo(src: Path, dest: Path):
+    print(f"Copying local repo {src} to canonical location {dest}")
+    # Ensure dest parent exists and then copy (overwrite safe)
+    run_sudo(["mkdir", "-p", str(dest.parent)])
+    # Use rsync-like copy via sudo tar to preserve perms as pete will own later
+    run(["sudo", "rm", "-rf", str(dest)], check=False)
+    run(["sudo", "cp", "-a", str(src), str(dest)])
+    run_sudo(["chown", "-R", "pete:root", str(dest)])
 
 
 def link_into_workspace(canonical: Path, linkpath: Path):
@@ -172,8 +190,43 @@ def main():
     ensure_pete()
     ensure_dirs(WORKSPACE_DIR, CLONE_DIR)
 
-    repos = cfg.get("repos", [])
+    # Expand services into repo lists by loading service definitions
+    repos = []
+    services = cfg.get("services", [])
+    services_dir = repo_root / "tools" / "provision" / "services"
+    for svc in services:
+        svc_file = services_dir / f"{svc}.json"
+        if not svc_file.exists():
+            print(f"Warning: service definition not found: {svc_file}")
+            continue
+        with svc_file.open() as sf:
+            sdata = json.load(sf)
+            srepos = sdata.get("repos", [])
+            repos.extend(srepos)
+            # also collect any local launch wrapper packages
+            slaunch = sdata.get("launch_wrappers", [])
+            for lw in slaunch:
+                # treat launch wrappers like local repos for copying
+                if lw.get("local"):
+                    repos.append({"local": True, "path": lw.get("path"), "relpath": lw.get("relpath")})
+
+    # Allow a host to also list explicit repos (backwards-compat)
+    repos.extend(cfg.get("repos", []))
+
     for r in repos:
+        # support service entries that are local code copies instead of remote git
+        if r.get("local"):
+            src_path = repo_root / r.get("path")
+            relpath = r.get("relpath")
+            dest = CLONE_DIR / relpath
+            linkpath = WORKSPACE_DIR / "src" / relpath
+            if not src_path.exists():
+                print(f"Warning: local service code not found: {src_path}")
+                continue
+            copy_local_repo(src_path, dest)
+            link_into_workspace(dest, linkpath)
+            continue
+
         url = r.get("url")
         relpath = r.get("relpath")
         branch = r.get("branch", "")
@@ -183,6 +236,79 @@ def main():
         link_into_workspace(dest, linkpath)
 
     build_workspace(repo_root, WORKSPACE_DIR, ros_distro=cfg.get("ros_distro", "kilted"))
+
+    # If gps service present, perform device setup
+    if "gps" in services:
+        setup_gps_device()
+
+    # Ensure Python GPS deps are installed for the python bridge
+    if "gps" in services:
+        print("Installing Python GPS dependencies: pynmea2, pyserial")
+        run_sudo(["pip3", "install", "pynmea2", "pyserial"])    
+
+    # Ensure Python audio deps for mic service
+    if "mic" in services:
+        print("Installing system and Python audio dependencies for mic service")
+        # libportaudio for sounddevice
+        run_sudo(["apt", "update"])
+        run_sudo(["apt", "install", "-y", "libportaudio2", "portaudio19-dev", "python3-pip"])
+        # pip packages: sounddevice, webrtcvad
+        run_sudo(["pip3", "install", "sounddevice", "webrtcvad"]) 
+
+    # Ensure TTS/playback deps for voice service
+    if "voice" in services:
+        print("Running voice tool setup hooks (voice service present)")
+        # Basic playback tools
+        run_sudo(["apt", "update"])
+        run_sudo(["apt", "install", "-y", "alsa-utils"])
+        # Call tool-specific setup hooks so tools can manage their own installs
+        if espeak_tool is not None:
+            try:
+                espeak_tool.setup()
+            except Exception as e:
+                print(f"espeak_tool.setup failed: {e}")
+        else:
+            # Try system install as fallback
+            run_sudo(["apt", "install", "-y", "espeak-ng", "espeak"],)
+
+        if mbrola_tool is not None:
+            try:
+                mbrola_tool.setup()
+            except Exception as e:
+                print(f"mbrola_tool.setup failed: {e}")
+
+        if piper_tool is not None:
+            try:
+                piper_tool.setup()
+            except Exception as e:
+                print(f"piper_tool.setup failed: {e}")
+        else:
+            print("piper_tool not available; piper may need manual installation")
+
+
+def setup_gps_device():
+    """Perform basic ublox/gpsd setup: install gpsd, enable service, add udev rule for u-blox8/7 devices.
+    This is minimal and intended to get the device visible at /dev/ttyACM0 or similar and publish via gpsd.
+    """
+    print("Configuring gpsd and udev rules for ublox device (best-effort)")
+    # Install gpsd and dependencies
+    run_sudo(["apt", "update"])
+    run_sudo(["apt", "install", "-y", "gpsd", "gpsd-clients", "python3-gpsdclient", "python3-serial"])    
+
+    # Create a udev rule for common u-blox vendor/device ids (this is generic and may need tuning)
+    udev_rule = (
+        'SUBSYSTEM=="tty", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a8", MODE="0666", GROUP="dialout"'
+    )
+    rule_path = Path("/etc/udev/rules.d/99-ublox.rules")
+    p = subprocess.Popen(["sudo", "tee", str(rule_path)], stdin=subprocess.PIPE)
+    p.communicate(input=(udev_rule + "\n").encode())
+    run_sudo(["udevadm", "control", "--reload-rules"])    
+
+    # Enable and restart gpsd
+    run_sudo(["systemctl", "enable", "gpsd"])
+    run_sudo(["systemctl", "restart", "gpsd"])
+
+    print("gpsd and udev configured (you may need to adjust device path or udev ids for your hardware)")
 
 
 if __name__ == "__main__":

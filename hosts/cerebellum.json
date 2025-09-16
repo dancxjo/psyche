@@ -1,0 +1,8 @@
+{
+    "host": "cerebellum",
+    "install_ros2": true,
+    "services": [
+        "lidar",
+        "nav"
+    ]
+}

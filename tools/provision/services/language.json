@@ -1,0 +1,5 @@
+{
+    "name": "language",
+    "description": "Language/NLP stack (stub). Add ASR/TTS or NLU repos here.",
+    "repos": []
+}
