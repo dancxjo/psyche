@@ -3,6 +3,12 @@
     "install_ros2": true,
     "services": [
         "lidar",
-        "nav"
+        "nav",
+        "create",
+        "imu",
+        "gps",
+        "mic",
+        "voice",
+        "debug_log"
     ]
 }
