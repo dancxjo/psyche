@@ -9,11 +9,6 @@ scouting = true
 seed_peers = ["tcp/forebrain.local:7447", "tcp/cerebellum.local:7447"]
 bridge_ros2dds = { enabled = true }
 
-[layer1.services.web]
-enabled = true
-host = "0.0.0.0"
-port = 8080
-
 [layer2]
 ros_distro = "jazzy"
 rmw = "rmw_cyclonedds_cpp"
