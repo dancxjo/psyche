@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="/opt/psyched"
+PROV="$ROOT/provision"
+HOSTCFG_DIR="$PROV/hosts"
+SVCDIR="$PROV/services"
+WS="$ROOT/ws"
+
+usage() {
+  cat <<USAGE
+psy — psycheOS host/service manager
+
+Usage:
+  psy host apply [<host>]      Apply host's service set (defaults to $(hostname))
+  psy svc list                 List available services
+  psy svc enable <name>        Enable a service for this host
+  psy svc disable <name>       Disable a service for this host
+  psy build                    colcon build (creates ws if needed)
+  psy bringup nav              Launch nav2 stack (tmux/screen-less; use systemd)
+  psy systemd install          Install per-service systemd units and enable configured ones
+  psy systemd up               Start all enabled service units now
+  psy systemd down             Stop all service units
+USAGE
+}
+
+host_cfg() { echo "${HOSTCFG_DIR}/${1}.toml"; }
+
+get_host() { echo "${1:-$(hostname)}"; }
+
+toml_get_array() { # naive: extract array entries line-by-line
+  # arg1=file arg2=key
+  awk -v k="$2" '
+    BEGIN{ inarr=0 }
+    $0 ~ "^[[:space:]]*"k"[[:space:]]*=" { inarr=1; next }
+    inarr {
+      if ($0 ~ /\]/) { inarr=0; exit }
+      gsub(/[" ,\[\]]/, "", $0)
+      if (length($0)>0) print $0
+    }' "$1"
+}
+
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  host)
+    sub="${1:-}"; shift || true
+    case "$sub" in
+      apply)
+        HOST="$(get_host "${1:-}")"
+        CFG="$(host_cfg "$HOST")"
+        [ -f "$CFG" ] || { echo "No host config: $CFG" >&2; exit 1; }
+        mapfile -t SERVICES < <(toml_get_array "$CFG" "services")
+        for s in "${SERVICES[@]}"; do
+          echo "[psy] apply service: $s"
+          bash "$SVCDIR/$s.sh" provision
+        done
+        ;;
+      *) usage; exit 1;;
+    esac
+    ;;
+  svc)
+    sub="${1:-}"; shift || true
+    case "$sub" in
+      list)
+        (cd "$SVCDIR" && ls -1 *.sh | sed 's/\.sh$//')
+        ;;
+      enable|disable)
+        HOST="$(get_host)"
+        CFG="$(host_cfg "$HOST")"
+        NAME="${1:?service name}"
+        tmp="$(mktemp)"
+        if [ "$sub" = "enable" ]; then
+          awk -v n="$NAME" '
+            BEGIN{done=0}
+            /^services[[:space:]]*=/ {print; inarr=1; next}
+            inarr {
+              if ($0 ~ /\]/ && done==0) { sub(/\]/,", \"" n "\" ]"); done=1 }
+              print; if ($0 ~ /\]/) {inarr=0} ; next
+            }
+            {print}
+            END{ if(done==0) print "services = [ \"" n "\" ]" }
+          ' "$CFG" > "$tmp"
+        else
+          awk -v n="$NAME" '
+            /^services[[:space:]]*=/ {print; inarr=1; next}
+            inarr {
+              gsub("\"" n "\"","")
+              gsub(/,,/,",")
+              gsub(/\[ *\]/,"[ ]")
+              print
+              if ($0 ~ /\]/) inarr=0
+              next
+            }
+            {print}
+          ' "$CFG" > "$tmp"
+        fi
+        mv "$tmp" "$CFG"
+        echo "[psy] $sub $NAME on $HOST"
+        ;;
+      *) usage; exit 1;;
+    esac
+    ;;
+  build)
+    mkdir -p "$WS/src"
+    bash "$SVCDIR/workspace.sh" build
+    ;;
+  bringup)
+    which ros2 >/dev/null 2>&1 || source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true
+    sub="${1:-}"; shift || true
+    case "$sub" in
+      nav)
+        bash "$PROV/bringup/nav2.sh"
+        ;;
+      *) usage; exit 1;;
+    esac
+    ;;
+  systemd)
+    sub="${1:-}"; shift || true
+    case "$sub" in
+      install) bash "$PROV/systemd/install_units.sh" ;;
+      up)      sudo systemctl start 'psyched@*' ;;
+      down)    sudo systemctl stop  'psyched@*' ;;
+      *) usage; exit 1;;
+    esac
+    ;;
+  *) usage; exit 1;;
+esac

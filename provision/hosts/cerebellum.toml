@@ -1,0 +1,15 @@
+# Pi 5 (cerebellum)
+ros_distro = "jazzy"
+domain_id = 42
+rmw = "rmw_cyclonedds_cpp"
+
+services = [
+  "ros",
+  "workspace",
+  "foot",      # Create base (libcreate fork)
+  "imu",       # mpu6050
+  "lidar",     # set driver in service script env or auto-detect
+  "camera",    # usb_cam
+  "mic",       # alsa setup only, optional ros audio later
+  "gps"        # u-blox7 via nmea_navsat_driver
+]

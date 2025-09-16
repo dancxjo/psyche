@@ -1,9 +1,0 @@
-{
-    "host": "forebrain",
-    "install_ros2": true,
-    "services": [
-        "vision",
-        "kinect",
-        "language"
-    ]
-}
