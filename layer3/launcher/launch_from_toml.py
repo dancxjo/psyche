@@ -54,16 +54,8 @@ def parse_device(path: pathlib.Path) -> DeviceConfig:
     data = tomllib.loads(path.read_text())
     nodes = [Node(**n) for n in data.get("layer3", {}).get("nodes", [])]
     layer2 = data.get("layer2", {})
-    # Services may be declared under layer3 (for ROS-based devices)
-    # or under layer1 for lightweight devices that don't run ROS
+    # Services are declared under layer3 (for ROS-based devices)
     services = data.get("layer3", {}).get("services", {})
-    # merge in layer1.services if present (layer1 should take precedence
-    # for services intended to run on devices without ROS)
-    layer1_services = data.get("layer1", {}).get("services", {})
-    # Simple merge: keys from layer1 override layer3
-    merged = dict(services)
-    merged.update(layer1_services)
-    services = merged
     return DeviceConfig(layer2=layer2, nodes=nodes, services=services)
 
 
@@ -96,9 +88,8 @@ def main() -> None:
     if web_cfg and web_cfg.get("enabled"):
         host = web_cfg.get("host", "0.0.0.0")
         port = web_cfg.get("port", 8000)
-        # Use uvicorn to run the FastAPI app defined in web.app:app
-        # For devices that don't have ROS, this will be declared under [layer1.services.web]
-        cmd = ["python", "-m", "uvicorn", "web.app:app", "--host", str(host), "--port", str(port)]
+            # Use uvicorn to run the FastAPI app defined in web.app:app
+            cmd = ["python", "-m", "uvicorn", "web.app:app", "--host", str(host), "--port", str(port)]
         print("Would run:", " ".join(cmd))
 
 

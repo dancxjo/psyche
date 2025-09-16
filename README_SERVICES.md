@@ -6,8 +6,8 @@ This file documents how to enable and run Layer3 services (web UI and the
 
 1) Enabling the web service via device TOML
 ------------------------------------------
-Add a `layer3.services.web` section to the device TOML (for ROS-enabled hosts)
-or `layer1.services.web` for non-ROS hosts. Example in `devices/ear.toml`:
+Add a `layer3.services.web` section to the device TOML (for ROS-enabled hosts).
+Example in `devices/ear.toml`:
 
 [layer3.services.web]
 enabled = true

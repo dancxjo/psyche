@@ -475,7 +475,7 @@ setup_web_service() {
     log "No device TOML ($DEVICE_TOML); skipping web service setup"
     return 0
   fi
-  # Prefer layer3.services.web (for ROS-enabled hosts); fall back to layer1.services.web
+  # Read web configuration from layer3.services.web only
   enabled=$(python3 - "$DEVICE_TOML" <<'PY'
 import sys, pathlib
 try:

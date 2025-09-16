@@ -168,11 +168,6 @@ mode = "client"
 scouting = true
 bridge_ros2dds = { enabled = false }
 
-[layer1.services.web]
-enabled = true
-host = "0.0.0.0"
-port = 8080
-
 [layer2]
 ros_distro = "none"
 
@@ -183,66 +178,7 @@ TOML
   # Zenoh configs (skipped when zenoh disabled)
   if [ "$ENABLE_ZENOH" = true ]; then
     cat > /etc/zenoh/router.json5 << 'JSON'
-{
-  "mode": "router",
-  "listen": ["tcp/0.0.0.0:7447"],
-  "scouting": { "enabled": true }
-}
-JSON
-  else
-    log "Zenoh disabled: skipping zenoh config files"
-  fi
-
-setup_web_service() {
-  local toml=/opt/psyched/devices/ear.toml
-  if [ ! -f "$toml" ]; then
-    log "No device TOML at $toml; skipping web setup"
-    return 0
-  fi
-
-  # Check if layer1.services.web.enabled = true using a simple grep-based parse
-  if ! grep -A3 "\[layer1.services.web\]" "$toml" | grep -q "enabled\s*=\s*true"; then
-    log "Web service not enabled in $toml; skipping web setup"
-    return 0
-  fi
-
-  # Extract host and port (fallback to defaults)
-  local host port
-  host=$(grep -A3 "\[layer1.services.web\]" "$toml" | sed -n 's/^[[:space:]]*host[[:space:]]*=[[:space:]]*"\?\([^"]*\)"\?$/\1/p' | tr -d '\n')
-  port=$(grep -A3 "\[layer1.services.web\]" "$toml" | sed -n 's/^[[:space:]]*port[[:space:]]*=[[:space:]]*\([0-9]*\).*$/\1/p' | tr -d '\n')
-  host=${host:-0.0.0.0}
-  port=${port:-8080}
-
-  log "Setting up web service (host=$host port=$port)"
-
-  # Ensure pip is available
-  if ! command -v pip3 >/dev/null 2>&1; then
-    log "Installing python3-pip"
-    DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip || true
-  fi
-
-  # Install runtime requirements (fastapi, uvicorn). zenoh-python is optional.
-  if [ "$ENABLE_ZENOH" = true ]; then
-    log "Installing Python packages (fastapi, uvicorn, zenoh)"
-    pip3 install --no-cache-dir fastapi "uvicorn[standard]" "zenoh>=0.4.0" || true
-  else
-    log "Installing Python packages (fastapi, uvicorn) -- zenoh skipped"
-    pip3 install --no-cache-dir fastapi "uvicorn[standard]" || true
-  fi
-
-  # Create systemd unit to run the FastAPI app. Assumes code lives under /opt/psyched
-  cat > /etc/systemd/system/psyche-web.service << UNIT
-[Unit]
-Description=Psyche Web UI (uvicorn)
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/psyched
-ExecStart=/usr/bin/python3 -m uvicorn web.app:app --host ${host} --port ${port}
-Restart=always
-RestartSec=2
+# Note: layer1 web service removed. Web UI is configured under layer3.services.web
 
 [Install]
 WantedBy=multi-user.target
