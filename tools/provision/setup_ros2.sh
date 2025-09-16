@@ -84,8 +84,12 @@ sudo chown -R "${SUDO_USER:-$USER}":"${SUDO_USER:-$USER}" "${WS_DIR}"
 echo "[setup_ros2] Ensuring colcon and python tools are available"
 if [ -n "${PSYCHED_VENV:-}" ] && [ -x "${PSYCHED_VENV}/bin/pip" ]; then
 	echo "[setup_ros2] Installing colcon into venv: ${PSYCHED_VENV}"
-	# Use venv's pip to avoid system-managed environment issues (PEP 668)
-	"${PSYCHED_VENV}/bin/pip" install --upgrade pip setuptools wheel || true
+	# Use venv's pip to avoid system-managed environment issues (PEP 668).
+	# NOTE: colcon-core has a hard requirement of setuptools<80; avoid
+	# upgrading setuptools to 80+ which would break colcon. Pin setuptools
+	# to a compatible upper bound while upgrading pip and wheel.
+	"${PSYCHED_VENV}/bin/pip" install --upgrade pip wheel 'setuptools<80' || true
+	# Now install colcon and related plugins into the venv
 	"${PSYCHED_VENV}/bin/pip" install --upgrade colcon-common-extensions colcon-mixin colcon-ros || true
 else
 	# Try to install distro-packaged colcon first
