@@ -14,17 +14,33 @@ if [ ! -d "$HOSTS_DIR" ]; then
     exit 1
 fi
 
-host_name="$(hostname --fqdn 2>/dev/null || hostname)"
+host_name_raw="$(hostname --fqdn 2>/dev/null || hostname)"
+# Strip common local domain suffixes like .local to map to our JSON filenames
+host_name="${host_name_raw%%.local}"
 
 echo "Provisioning host: $host_name"
-
+HOST_JSON="$HOSTS_DIR/$host_name.json"
 host_script="$HOSTS_DIR/$host_name.sh"
+
+if [ -f "$HOST_JSON" ]; then
+	echo "Found host JSON config: $HOST_JSON"
+	# Prefer the Python provisioner when a JSON config exists
+	PY_PROV="$SCRIPT_DIR/host_provision.py"
+	if [ -x "$PY_PROV" ]; then
+		echo "Invoking Python host provisioner: $PY_PROV $HOST_JSON"
+		"$PY_PROV" "$HOST_JSON"
+	else
+		echo "Invoking Python host provisioner via python3: $PY_PROV $HOST_JSON"
+		python3 "$PY_PROV" "$HOST_JSON"
+	fi
+	exit 0
+fi
 
 if [ -f "$host_script" ]; then
 	echo "Found host-specific script: $host_script"
 	/bin/bash "$host_script"
 else
-	echo "No host-specific provisioning script for '$host_name' (looked for $host_script)"
+	echo "No host-specific provisioning script or JSON for '$host_name' (looked for $host_script and $HOST_JSON)"
 	exit 0
 fi
 

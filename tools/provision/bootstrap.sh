@@ -8,6 +8,26 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# If the script isn't running from inside a checked-out repository (for example
+# when run via `curl ... | sudo bash`), clone the repo into a temporary
+# directory and run provisioning from that clone. This makes the bootstrap
+# launcher safe to run directly on a host.
+if [ ! -f "$PROJECT_ROOT/tools/provision/setup_ros2.sh" ]; then
+  echo "Repository files not found next to bootstrap script; cloning repo to temporary dir"
+  TMP_CLONE_DIR=$(mktemp -d /tmp/psyche-bootstrap.XXXX)
+  echo "Cloning https://github.com/dancxjo/psyche.git to $TMP_CLONE_DIR"
+  if command -v git >/dev/null 2>&1; then
+    git clone --depth 1 https://github.com/dancxjo/psyche.git "$TMP_CLONE_DIR" || {
+      echo "git clone failed" >&2; exit 1
+    }
+    PROJECT_ROOT="$TMP_CLONE_DIR"
+    echo "Using cloned project at $PROJECT_ROOT"
+  else
+    echo "git not available; cannot clone repository. Please run from a checkout or install git." >&2
+    exit 1
+  fi
+fi
 HOSTNAME_FULL="$(hostname --fqdn 2>/dev/null || hostname)"
 STATE_DIR="/var/lib/psyche_bootstrap"
 STATE_FILE="$STATE_DIR/$HOSTNAME_FULL.state"
@@ -48,6 +68,12 @@ echo "Bootstrap starting for host: $HOSTNAME_FULL"
 # Ensure state dir exists
 $SUDO mkdir -p "$STATE_DIR"
 $SUDO chown $(id -u):$(id -g) "$STATE_DIR"
+
+# Ensure system user 'pete' exists (system account, no home)
+if ! id -u pete >/dev/null 2>&1; then
+  echo "Creating system user 'pete'"
+  $SUDO useradd --system --no-create-home --shell /usr/sbin/nologin pete || true
+fi
 
 state_current=""
 if [ -f "$STATE_FILE" ]; then
