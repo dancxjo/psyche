@@ -1,0 +1,26 @@
+[Unit]
+Description=Psyched foot launch wrapper
+After=network.target
+
+[Service]
+User=%i
+Environment=RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ExecStart=/bin/bash -lc 'source /opt/psyched_workspace/install/setup.bash && ros2 launch psyched_create_launch foot_launch.py'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+[Unit]
+Description=Psyched foot launch wrapper
+After=network.target
+
+[Service]
+User=%i
+Environment=RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ExecStart=/bin/bash -lc 'source /opt/psyched_workspace/install/setup.bash && ros2 launch psyched_create_launch foot_launch.py'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

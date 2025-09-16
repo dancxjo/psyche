@@ -70,6 +70,107 @@ else
 	echo "[bootstrap] install_ros2 is false — skipping ${SETUP_ROS2_SCRIPT}"
 fi
 
+# --- Service provisioning ---
+# Parse host services list (array of service names) from host config
+HOST_SERVICES=""
+if [ -f "${HOST_CONFIG}" ]; then
+	if command -v jq >/dev/null 2>&1; then
+		# newline-separated list
+		HOST_SERVICES=$(jq -r '.services[]? // empty' "${HOST_CONFIG}" 2>/dev/null || true)
+	else
+		if command -v python3 >/dev/null 2>&1; then
+			HOST_SERVICES=$(python3 - <<'PY'
+import json,sys
+try:
+	cfg=json.load(open(sys.argv[1]))
+	for s in cfg.get('services', []):
+		print(s)
+except Exception:
+	pass
+PY
+ "%s"  "${HOST_CONFIG}")
+		else
+			echo "[bootstrap] Warning: neither jq nor python3 available; cannot parse host services"
+			HOST_SERVICES=""
+		fi
+	fi
+fi
+
+# Helper: run service tool if present. Tool path convention(s):
+#  - tools/provision/tools/<service>_tool.py (legacy)
+#  - services/<service>/(setup.sh|teardown.sh) (preferred)
+run_service_action() {
+	local svc="$1" action="$2"
+	# service directories live at repo-root `services/<svc>`
+	local svc_dir="${SCRIPT_DIR}/../../services/${svc}"
+	local tool1="${SCRIPT_DIR}/tools/${svc}_tool.py"
+	local tool2="${SCRIPT_DIR}/services/${svc}_tool.py"
+
+	# Prefer service directory scripts (setup.sh/teardown.sh)
+	if [ -d "${svc_dir}" ]; then
+		local script="${svc_dir}/${action}.sh"
+		if [ -x "${script}" ]; then
+			echo "[bootstrap] Running ${action} via ${script}"
+			"${script}" || echo "[bootstrap] Script ${script} returned non-zero"
+			return
+		elif [ -f "${script}" ]; then
+			echo "[bootstrap] Running ${action} via ${script} (sh)"
+			sh "${script}" || echo "[bootstrap] Script ${script} returned non-zero"
+			return
+		fi
+	fi
+
+	if [ -f "${tool1}" ]; then
+		echo "[bootstrap] Running ${action} via ${tool1}"
+		python3 "${tool1}" "${action}" || echo "[bootstrap] Tool ${tool1} returned non-zero"
+		return
+	fi
+	if [ -f "${tool2}" ]; then
+		echo "[bootstrap] Running ${action} via ${tool2}"
+		python3 "${tool2}" "${action}" || echo "[bootstrap] Tool ${tool2} returned non-zero"
+		return
+	fi
+
+	echo "[bootstrap] No tool hook found for service '${svc}' (checked ${tool1} and ${tool2}); skipping"
+}
+
+echo "[bootstrap] Processing services in ${SCRIPT_DIR}/../../services"
+shopt -s nullglob
+for svc_json in "${SCRIPT_DIR}/../../services"/*.json; do
+	# get service name from descriptor
+	svc_name=""
+	if command -v jq >/dev/null 2>&1; then
+		svc_name=$(jq -r '.name // empty' "${svc_json}" 2>/dev/null || true)
+	else
+		if command -v python3 >/dev/null 2>&1; then
+			svc_name=$(python3 - <<'PY'
+import json,sys
+try:
+	cfg=json.load(open(sys.argv[1]))
+	print(cfg.get('name',''))
+except Exception:
+	print('')
+PY
+ "%s"  "${svc_json}")
+		fi
+	fi
+	if [ -z "${svc_name}" ]; then
+		echo "[bootstrap] Warning: could not determine service name for ${svc_json}; skipping"
+		continue
+	fi
+
+	# Determine whether service is enabled on this host
+	if printf '%s
+' "${HOST_SERVICES}" | grep -xFq "${svc_name}"; then
+		echo "[bootstrap] Service ${svc_name} is ENABLED on this host — setting up"
+		run_service_action "${svc_name}" setup
+	else
+		echo "[bootstrap] Service ${svc_name} is NOT enabled on this host — tearing down if present"
+		run_service_action "${svc_name}" teardown
+	fi
+done
+shopt -u nullglob
+
 
 
 

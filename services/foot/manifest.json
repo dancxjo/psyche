@@ -1,5 +1,6 @@
 {
-    "name": "create",
+    "name": "foot",
+    "description": "Provision the Create-based foot robot components (libcreate + create_robot)",
     "repos": [
         {
             "url": "https://github.com/revyos-ros/libcreate.git",
@@ -14,7 +15,7 @@
     "launch_wrappers": [
         {
             "local": true,
-            "path": "tools/provision/services/launch_wrappers/psyched_create_launch",
+            "path": "services/launch_wrappers/psyched_create_launch",
             "relpath": "psyched_create_launch"
         }
     ]
