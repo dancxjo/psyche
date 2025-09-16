@@ -2,12 +2,12 @@
     "name": "create",
     "repos": [
         {
-            "url": "https://github.com/revyos-ros/libcreate.git",
+            "url": "git@github.com:revyos-ros/libcreate.git",
             "relpath": "libcreate",
             "branch": "fix-std-string"
         },
         {
-            "url": "https://github.com/autonomylab/create_robot.git",
+            "url": "git@github.com:autonomylab/create_robot.git",
             "relpath": "create_robot"
         }
     ],

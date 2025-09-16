@@ -161,6 +161,18 @@ export VIRTUAL_ENV PATH
 
 
 def clone_or_update(url: str, dest: Path, branch: str = ""):
+    # Normalize GitHub HTTPS URLs to SSH to prefer SSH auth
+    def normalize_git_url(u: str) -> str:
+        # Convert https://github.com/owner/repo(.git) -> git@github.com:owner/repo(.git)
+        if u and u.startswith("https://github.com/"):
+            rest = u[len("https://github.com/"):]
+            # remove leading slash if present
+            if rest.startswith("/"):
+                rest = rest[1:]
+            return f"git@github.com:{rest}"
+        return u
+
+    url = normalize_git_url(url)
     if (dest / ".git").exists():
         print(f"Updating existing repo at {dest}")
         run(["sudo", "-u", "pete", "git", "-C", str(dest), "fetch", "--all", "--prune"])

@@ -2,11 +2,11 @@
     "name": "vision",
     "repos": [
         {
-            "url": "https://github.com/clydemcqueen/opencv_cam.git",
+            "url": "git@github.com:clydemcqueen/opencv_cam.git",
             "relpath": "opencv_cam"
         },
         {
-            "url": "https://github.com/ptrmu/ros2_shared.git",
+            "url": "git@github.com:ptrmu/ros2_shared.git",
             "relpath": "ros2_shared"
         }
     ]

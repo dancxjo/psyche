@@ -21,7 +21,7 @@
 # avoids calling a missing `apply.sh` file.
 set -euo pipefail
 
-DEFAULT_REPO_URL="https://github.com/dancxjo/psyched.git"
+DEFAULT_REPO_URL="git@github.com:dancxjo/psyched.git"
 DEFAULT_BRANCH="main"
 
 log() { echo "[bootstrap] $*"; }
