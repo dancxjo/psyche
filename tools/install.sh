@@ -75,6 +75,23 @@ extract() {
     mv "${staged}" "${DEST_DIR}"
 }
 
+ensure_unzip() {
+    if command -v unzip >/dev/null 2>&1; then
+        return 0
+    fi
+
+    echo "'unzip' not found; attempting to install via apt-get (requires sudo)"
+    if ! command -v sudo >/dev/null 2>&1; then
+        echo "Error: 'sudo' is required to install unzip but was not found." >&2
+        exit 1
+    fi
+
+    sudo apt-get update -y && sudo apt-get install -y unzip || {
+        echo "Error: failed to install 'unzip' via apt-get" >&2
+        exit 1
+    }
+}
+
 run_bootstrap() {
     BOOTSTRAP="${DEST_DIR}/tools/provision/bootstrap.sh"
     if [ ! -x "${BOOTSTRAP}" ]; then
@@ -92,6 +109,7 @@ run_bootstrap() {
 }
 
 download
+ensure_unzip
 extract
 run_bootstrap
 
