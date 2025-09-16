@@ -1,132 +1,111 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-# Provisioning entrypoint: determine host and run host-specific script
-# Host scripts live in the hosts/ subdirectory beside this script.
+# setup_ros2.sh
+# Robust, idempotent installer for ROS APT source, ROS packages, and a global
+# workspace at /opt/ros2_ws. Creates a profile script in /etc/profile.d so all
+# users will automatically have the workspace environment and RMW settings.
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_ROS_APT_SOURCE_REPO="https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest"
+TMP_DEB="/tmp/ros2-apt-source.deb"
+WS_DIR="/opt/ros2_ws"
+PROFILE_D_FILE="/etc/profile.d/psyched_workspace.sh"
 
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-HOSTS_DIR="$PROJECT_ROOT/hosts"
-if [ ! -d "$HOSTS_DIR" ]; then
-	mkdir -p "$HOSTS_DIR"
-    echo "Created hosts directory at $HOSTS_DIR; please add host-specific scripts and re-run this script."
-    exit 1
+# Allow overriding from environment when provisioning (e.g. CI or different distro)
+ROS_APT_SOURCE_VERSION_OVERRIDE="${ROS_APT_SOURCE_VERSION_OVERRIDE:-}" # set to full tag like v0.1.0 if desired
+ROS_DISTRO="${ROS_DISTRO:-kilted}"
+RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}"
+
+echo "[setup_ros2] Starting ROS2 setup (workspace: ${WS_DIR})"
+
+# Ensure we can run apt commands non-interactively
+export DEBIAN_FRONTEND=noninteractive
+
+# Ensure locale supports UTF-8 (best-effort)
+if ! locale -a 2>/dev/null | grep -iq "en_US.utf-8"; then
+	echo "[setup_ros2] Generating en_US.UTF-8 locale"
+	sudo apt-get update -y
+	sudo apt-get install -y locales
+	sudo locale-gen en_US.UTF-8 || true
 fi
 
-host_name_raw="$(hostname --fqdn 2>/dev/null || hostname)"
-# Strip common local domain suffixes like .local to map to our JSON filenames
-host_name="${host_name_raw%%.local}"
-
-echo "Provisioning host: $host_name"
-HOST_JSON="$HOSTS_DIR/$host_name.json"
-host_script="$HOSTS_DIR/$host_name.sh"
-
-if [ -f "$HOST_JSON" ]; then
-	echo "Found host JSON config: $HOST_JSON"
-	# Prefer the Python provisioner when a JSON config exists
-	PY_PROV="$SCRIPT_DIR/host_provision.py"
-	if [ -x "$PY_PROV" ]; then
-		echo "Invoking Python host provisioner: $PY_PROV $HOST_JSON"
-		"$PY_PROV" "$HOST_JSON"
-	else
-		echo "Invoking Python host provisioner via python3: $PY_PROV $HOST_JSON"
-		python3 "$PY_PROV" "$HOST_JSON"
-	fi
-	exit 0
+# Ensure the Ubuntu Universe repository is enabled (idempotent)
+sudo apt-get update -y
+sudo apt-get install -y --no-install-recommends software-properties-common curl
+if ! grep -E '^deb .* universe' /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null | grep -q .; then
+	echo "[setup_ros2] Enabling 'universe' repository"
+	sudo add-apt-repository -y universe
 fi
 
-if [ -f "$host_script" ]; then
-	echo "Found host-specific script: $host_script"
-	/bin/bash "$host_script"
+sudo apt-get update -y
+
+# Fetch the latest ros-apt-source release tag unless overridden
+if [ -z "${ROS_APT_SOURCE_VERSION_OVERRIDE}" ]; then
+	echo "[setup_ros2] Detecting latest ros-apt-source release"
+	ROS_APT_SOURCE_VERSION=$(curl -s ${DEFAULT_ROS_APT_SOURCE_REPO} | grep -F "tag_name" | awk -F\" '{print $4}')
 else
-	echo "No host-specific provisioning script or JSON for '$host_name' (looked for $host_script and $HOST_JSON)"
-	exit 0
+	ROS_APT_SOURCE_VERSION="${ROS_APT_SOURCE_VERSION_OVERRIDE}"
 fi
 
-## Subcommands
-install_ros2() {
-		# Install ROS2 from prebuilt packages (apt) and required dev tooling.
-		echo "Starting ROS2 (Kaiju/kilted) prebuilt package installation"
+# Determine distro codename for package filename
+if [ -r /etc/os-release ]; then
+	. /etc/os-release
+	CODENAME="${VERSION_CODENAME:-${UBUNTU_CODENAME:-}}"
+fi
+if [ -z "${CODENAME}" ]; then
+	echo "[setup_ros2] Warning: could not determine OS codename; defaulting to 'focal'"
+	CODENAME="focal"
+fi
 
-		if [ "$EUID" -ne 0 ]; then
-			SUDO=sudo
-		else
-			SUDO=
-		fi
+DEB_URL="https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.${CODENAME}_all.deb"
+echo "[setup_ros2] Downloading: ${DEB_URL}"
+curl -fsSL -o "${TMP_DEB}" "${DEB_URL}"
+sudo dpkg -i "${TMP_DEB}" || sudo apt-get -f install -y
 
-		export DEBIAN_FRONTEND=noninteractive
+# Install ROS packages (idempotent)
+sudo apt-get update -y
+echo "[setup_ros2] Installing ROS packages (distro: ${ROS_DISTRO})"
+sudo apt-get install -y --no-install-recommends ros-${ROS_DISTRO}-ros-base || true
 
-		echo "Installing prerequisites"
-		$SUDO apt update
-		$SUDO apt install -y curl gnupg lsb-release software-properties-common locales ca-certificates
+# Install recommended dev tools
+sudo apt-get install -y --no-install-recommends ros-dev-tools || true
 
-		echo "Configuring locale to en_US.UTF-8"
-		$SUDO locale-gen en_US en_US.UTF-8 || true
-		$SUDO update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 || true
-		export LANG=en_US.UTF-8
+# Install the RMW implementation package
+echo "[setup_ros2] Installing RMW implementation: ${RMW_IMPLEMENTATION}"
+sudo apt-get install -y --no-install-recommends ros-${ROS_DISTRO}-rmw-cyclonedds-cpp || true
 
-		echo "Enabling universe repository"
-		$SUDO add-apt-repository -y universe || true
+# Create a global workspace for our packages
+sudo mkdir -p "${WS_DIR}/src"
+sudo chown -R "${SUDO_USER:-$USER}":"${SUDO_USER:-$USER}" "${WS_DIR}"
 
-		# Allow override via environment variable, default to 'kilted'
-		: "${ROS_DISTRO:=kilted}"
+# Install colcon and other Python tools into user pip (non-root)
+echo "[setup_ros2] Installing colcon and python tools into user site-packages"
+python3 -m pip install --upgrade --user colcon-common-extensions colcon-mixin colcon-ros || true
 
-		echo "Adding ROS 2 apt repository and key for distro: $ROS_DISTRO"
-		# Install keyring in modern, apt-key-free way
-		KEYRING=/usr/share/keyrings/ros-archive-keyring.gpg
-		$SUDO mkdir -p "$(dirname "$KEYRING")"
-		curl -fsSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | $SUDO gpg --dearmour -o "$KEYRING" || true
-
-		echo "Adding APT source for ROS 2"
-		DIST_CODENAME=$(lsb_release -sc)
-		echo "deb [signed-by=$KEYRING] http://packages.ros.org/ros2/ubuntu $DIST_CODENAME main" | $SUDO tee /etc/apt/sources.list.d/ros2.list > /dev/null
-
-		echo "Updating apt and installing ROS 2 base package and development tools"
-		$SUDO apt update
-		# Install ros base (no desktop) and common development tools
-		$SUDO apt install -y "ros-${ROS_DISTRO}-ros-base" \
-			python3-colcon-common-extensions \
-			python3-pip \
-			python3-rosdep \
-			build-essential \
-			cmake \
-			git \
-			wget \
-			pkg-config \
-			python3-dev \
-			python3-setuptools \
-			libasio-dev \
-			libtinyxml2-dev \
-			libssl-dev \
-			libpcre3-dev || true
-
-		echo "Initializing rosdep"
-		if ! command -v rosdep >/dev/null 2>&1; then
-		  $SUDO apt install -y python3-rosdep || true
-		fi
-		if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
-		  $SUDO rosdep init || true
-		fi
-		rosdep update || true
-
-		echo "ROS2 installation complete. To use it in a shell, source the distro setup if available (example):"
-		echo "  source /opt/ros/$ROS_DISTRO/setup.bash"
-
-		return 0
-}
-
-# If invoked with a subcommand, handle it and exit before host dispatch
-if [ $# -ge 1 ]; then
-	case "$1" in
-		install-ros2|install_ros2)
-			install_ros2
-			exit $?
-			;;
-		*)
-			echo "Unknown subcommand: $1"
-			echo "Usage: $(basename "$0") [install-ros2]"
-			exit 2
-			;;
+# Create a profile.d file so all users source the workspace and get RMW env
+echo "[setup_ros2] Writing global profile at ${PROFILE_D_FILE}"
+sudo tee "${PROFILE_D_FILE}" > /dev/null <<EOF
+# psyched global ROS2 workspace configuration
+export PSYCHED_WS="${WS_DIR}"
+# Add user's local python bin (where pip --user installs colcon) to PATH if present
+if [ -d "\$HOME/.local/bin" ]; then
+	case ":\$PATH:" in
+		*:\$HOME/.local/bin:*) ;;
+		*) export PATH="\$HOME/.local/bin:\$PATH" ;;
 	esac
 fi
+# Set the RMW implementation unless already set
+if [ -z "\${RMW_IMPLEMENTATION:-}" ]; then
+	export RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}
+fi
+# If workspace overlay contains ROS setup.*sh, source it automatically
+if [ -f "\${PSYCHED_WS}/install/setup.bash" ]; then
+	source "\${PSYCHED_WS}/install/setup.bash"
+elif [ -f "\${PSYCHED_WS}/install/setup.sh" ]; then
+	source "\${PSYCHED_WS}/install/setup.sh"
+fi
+EOF
+
+sudo chmod 644 "${PROFILE_D_FILE}"
+
+echo "[setup_ros2] Completed. Users will get the workspace and RMW via ${PROFILE_D_FILE} on next login."

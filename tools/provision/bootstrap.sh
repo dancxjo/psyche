@@ -1,198 +1,33 @@
 #!/usr/bin/env bash
-# Bootstrap installer: clones repo, installs auto-updater, applies config.
-#
-# Usage (piped):
-#   # recommended (preserves your SSH agent so the clone can use your keys):
-#   ssh -A you@host "curl -fsSL https://dancxjo.github.io/psyched | sudo bash -s -- --git-as-user"
-#
-#   # or when running locally on the machine as root (no SSH-as-user):
-#   curl -fsSL https://dancxjo.github.io/psyched | sudo bash
-#
-# Optional flags:
-#   -r|--repo URL        Git URL to clone (default from script variable)
-#   -b|--branch BR       Branch to checkout (default: main)
-#   --git-as-user        Force cloning via SSH as the invoking user (requires SSH key or agent)
-#
-# Note: Older versions of this project invoked `tools/provision/apply.sh` after
-# cloning. That script was replaced by the Python provisioner
-# `tools/provision/host_provision.py`. The bootstrapper now detects a host
-# descriptor under `/opt/psyched/hosts/<hostname>.json` and invokes the
-# Python provisioner if present. This keeps bootstrap behavior idempotent and
-# avoids calling a missing `apply.sh` file.
 set -euo pipefail
 
-DEFAULT_REPO_URL="https://github.com/dancxjo/psyched.git"
-DEFAULT_BRANCH="main"
+# bootstrap.sh
+# Top-level provisioning bootstrap. This script is executed after the
+# repository has been extracted (assumed location: /opt/psyched). It calls
+# smaller setup helpers such as `setup_ros2.sh`.
 
-log() { echo "[bootstrap] $*"; }
-require_root() { [ "${EUID:-$(id -u)}" -eq 0 ] || { echo "Run as root" >&2; exit 1; }; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SETUP_ROS2_SCRIPT="${SCRIPT_DIR}/setup_ros2.sh"
 
-debug_env() {
-  log "Debug: SUDO_USER='${SUDO_USER-}' SSH_AUTH_SOCK='${SSH_AUTH_SOCK-}'"
-  if [ -n "${SUDO_USER-}" ]; then
-    if sudo -u "$SUDO_USER" bash -lc 'shopt -s nullglob; keys=(~/.ssh/id_*); printf "%s\n" "${#keys[@]}"' >/tmp/psyched_ssh_key_count 2>/dev/null; then
-      kc=$(cat /tmp/psyched_ssh_key_count 2>/dev/null || echo "0")
-      log "Debug: $SUDO_USER has approximately $kc SSH key files in ~/.ssh"
-      rm -f /tmp/psyched_ssh_key_count || true
-    fi
-  fi
-}
+echo "[bootstrap] Running provisioning bootstrap"
 
-parse_args() {
-  REPO_URL="$DEFAULT_REPO_URL"
-  BRANCH="$DEFAULT_BRANCH"
-  GIT_AS_USER=0
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      -r|--repo) REPO_URL="$2"; shift 2 ;;
-      -b|--branch) BRANCH="$2"; shift 2 ;;
-      --git-as-user) GIT_AS_USER=1; shift ;;
-      *) echo "Unknown arg: $1" >&2; exit 2 ;;
-    esac
-  done
-}
+if [ ! -f "${SETUP_ROS2_SCRIPT}" ]; then
+	echo "[bootstrap] ERROR: setup script not found: ${SETUP_ROS2_SCRIPT}" >&2
+	exit 1
+fi
 
-ensure_basics() {
-  log "Installing git, curl, and Python"
-  apt-get update -y
-  # Ensure basic tools: git, curl, python3, unzip
-  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl python3 unzip
-  # Try to install GitHub CLI if available via apt
-  if ! command -v gh >/dev/null 2>&1; then
-    # Install GitHub CLI via official repository if not present
-    if command -v curl >/dev/null 2>&1; then
-      curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg >/dev/null 2>&1 || true
-      chmod 644 /usr/share/keyrings/githubcli-archive-keyring.gpg || true
-      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list >/dev/null
-      apt-get update -y
-      DEBIAN_FRONTEND=noninteractive apt-get install -y gh || true
-    fi
-  fi
-}
+echo "[bootstrap] Calling ${SETUP_ROS2_SCRIPT}"
+if [ ! -x "${SETUP_ROS2_SCRIPT}" ]; then
+	chmod +x "${SETUP_ROS2_SCRIPT}"
+fi
 
-clone_repo() {
-  local dest="/opt/psyched"
-  local zip_url="https://github.com/dancxjo/psyche/archive/refs/heads/${BRANCH}.zip"
-  local tmpdir
-  tmpdir=$(mktemp -d)
-  local zippath="${tmpdir}/psyche.zip"
+# If called under sudo, prefer running the setup as the original user so that
+# pip --user and ownership behavior is correct. Preserve environment where safe.
+if [ -n "${SUDO_USER:-}" ]; then
+	echo "[bootstrap] Detected sudo, running setup as user: ${SUDO_USER}"
+	sudo -E -u "${SUDO_USER}" bash -c "'${SETUP_ROS2_SCRIPT}'"
+else
+	bash "${SETUP_ROS2_SCRIPT}"
+fi
 
-  log "Downloading repository zip from ${zip_url}"
-  if command -v curl >/dev/null 2>&1; then
-    curl -fSL -o "${zippath}" "${zip_url}"
-  elif command -v wget >/dev/null 2>&1; then
-    wget -q -O "${zippath}" "${zip_url}"
-  else
-    echo "Error: need curl or wget to download repository zip" >&2
-    rm -rf "${tmpdir}"
-    exit 1
-  fi
-
-  # Extract into staging dir for atomic swap
-  local staged="${dest}.new"
-  rm -rf "${staged}"
-  mkdir -p "${staged}"
-
-  if command -v unzip >/dev/null 2>&1; then
-    unzip -q "${zippath}" -d "${tmpdir}"
-  elif command -v bsdtar >/dev/null 2>&1; then
-    bsdtar -xf "${zippath}" -C "${tmpdir}"
-  else
-    echo "Error: no suitable extractor (unzip or bsdtar) available" >&2
-    rm -rf "${tmpdir}"
-    exit 1
-  fi
-
-  TOPDIR=$(find "${tmpdir}" -maxdepth 1 -mindepth 1 -type d | head -n1)
-  if [ -z "${TOPDIR}" ]; then
-    echo "Error: extracted archive did not produce expected directory" >&2
-    rm -rf "${tmpdir}"
-    exit 1
-  fi
-
-  log "Copying extracted tree to staging dir ${staged}"
-  cp -a "${TOPDIR}/." "${staged}/"
-
-  # Set permissions on staged tree
-  groupadd -f sudo || true
-  chgrp -R sudo "${staged}" || true
-  chmod -R g+rwX "${staged}" || true
-  find "${staged}" -type d -exec chmod g+s {} + || true
-
-  # Swap into place atomically: back up existing dest then move staged
-  if [ -d "${dest}" ]; then
-    log "Backing up existing ${dest} to ${dest}.bak"
-    rm -rf "${dest}.bak"
-    mv "${dest}" "${dest}.bak"
-  fi
-  mv "${staged}" "${dest}"
-
-  # Clean up
-  rm -rf "${tmpdir}"
-}
-
-install_updater() {
-  log "Installing updater service and timer"
-  local updater_src="/opt/psyched/tools/provision/update_repo.sh"
-  local updater_dst="/usr/local/bin/psyched-update"
-  if [ -f "${updater_src}" ]; then
-    install -m 0755 "${updater_src}" "${updater_dst}"
-    ln -sf "${updater_dst}" /usr/bin/update-psyche
-  else
-    log "Updater script not found at ${updater_src}; skipping installation of updater binary"
-  fi
-
-  local svc_src="/opt/psyched/systemd/psyched-updater.service"
-  local timer_src="/opt/psyched/systemd/psyched-updater.timer"
-  if [ -f "${svc_src}" ] || [ -f "${timer_src}" ]; then
-    [ -f "${svc_src}" ] && install -m 0644 "${svc_src}" /etc/systemd/system/psyched-updater.service || log "Service unit not found; skipping"
-    [ -f "${timer_src}" ] && install -m 0644 "${timer_src}" /etc/systemd/system/psyched-updater.timer || log "Timer unit not found; skipping"
-    systemctl daemon-reload || log "systemctl daemon-reload failed or systemctl not available"
-    if systemctl list-unit-files | grep -q psyched-updater.timer 2>/dev/null; then
-      systemctl enable --now psyched-updater.timer || log "Failed to enable/start psyched-updater.timer"
-    else
-      log "psyched-updater.timer unit not installed; skipping enable/start"
-    fi
-  else
-    log "No systemd units found for updater; skipping systemd installation"
-  fi
-}
-
-apply_config() {
-  # The old `apply.sh` helper was removed; use the Python provisioner
-  # `host_provision.py` and select the host descriptor by the local hostname.
-  # This keeps bootstrap idempotent and non-failing when no host config is present.
-  log "Applying provisioning configuration"
-  REPO_ROOT="/opt/psyched"
-  HOSTNAME_SHORT=$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo "")
-  HOST_JSON="${REPO_ROOT}/hosts/${HOSTNAME_SHORT}.json"
-  # try lowercase fallback
-  if [ ! -f "${HOST_JSON}" ]; then
-    HOSTNAME_LC=$(echo "${HOSTNAME_SHORT}" | tr '[:upper:]' '[:lower:]')
-    HOST_JSON="${REPO_ROOT}/hosts/${HOSTNAME_LC}.json"
-  fi
-
-  if [ -f "${HOST_JSON}" ]; then
-    if command -v python3 >/dev/null 2>&1; then
-      log "Invoking host_provision.py with ${HOST_JSON}"
-      # run but don't let failures break the bootstrap flow
-      python3 "${REPO_ROOT}/tools/provision/host_provision.py" "${HOST_JSON}" || log "host_provision.py failed (continuing)"
-    else
-      log "python3 not available; skipping host provisioning"
-    fi
-  else
-    log "No host config found at ${REPO_ROOT}/hosts/<hostname>.json; skipping provisioning"
-  fi
-}
-
-main() {
-  require_root
-  parse_args "$@"
-  ensure_basics
-  clone_repo
-  install_updater
-  apply_config
-  log "Bootstrap complete. Provisioner will keep repo up to date."
-}
-
-main "$@"
+echo "[bootstrap] Completed provisioning bootstrap"
