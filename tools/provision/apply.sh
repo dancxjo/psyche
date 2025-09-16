@@ -258,11 +258,17 @@ install_files_and_units() {
 
   # device roles for autonet: parse from TOML roles
   if [ -f "$DEVICE_TOML" ]; then
-    python3 -c 'import json, pathlib, sys, tomllib
-path = pathlib.Path(sys.argv[1])
-data = tomllib.loads(path.read_text())
-roles = data.get("device", {}).get("roles", [])
-print(json.dumps({"roles": roles}))' "$DEVICE_TOML" >/etc/psyched/device_roles.json
+    python3 - "$DEVICE_TOML" <<'PY' >/etc/psyched/device_roles.json
+import json, pathlib, sys
+try:
+    import tomllib as toml
+except Exception:
+    import tomli as toml
+p=pathlib.Path(sys.argv[1])
+d=toml.loads(p.read_text())
+roles = d.get("device", {}).get("roles", [])
+print(json.dumps({"roles": roles}))
+PY
   fi
 
   # Create dedicated 'pete' system user for psyched services (no home)
@@ -342,11 +348,18 @@ RULE
   "$PY_BIN" -m pip install --upgrade pip || true
   # Read python requirements from device TOML and install into venv
   if [ -f "$DEVICE_TOML" ]; then
-    REQS=$(python3 -c 'import tomllib, sys, pathlib
+    REQS=$(python3 - "$DEVICE_TOML" <<'PY'
+import sys, pathlib
+try:
+    import tomllib as toml
+except Exception:
+    import tomli as toml
 p=pathlib.Path(sys.argv[1])
-d=tomllib.loads(p.read_text())
+d=toml.loads(p.read_text())
 reqs = d.get("python", {}).get("requirements", [])
-print(" ".join(reqs))' "$DEVICE_TOML")
+print(" ".join(reqs))
+PY
+)
     if [ -n "$REQS" ]; then
       log "Installing Python requirements for host: $REQS"
       "$PY_BIN" -m pip install $REQS || true
@@ -362,10 +375,17 @@ print(" ".join(reqs))' "$DEVICE_TOML")
 
   # If ROS is requested by the device TOML, ensure colcon build tooling is present
   if [ -f "$DEVICE_TOML" ]; then
-    rosreq=$(python3 -c 'import tomllib,sys,pathlib
+    rosreq=$(python3 - "$DEVICE_TOML" <<'PY'
+import sys, pathlib
+try:
+    import tomllib as toml
+except Exception:
+    import tomli as toml
 p=pathlib.Path(sys.argv[1])
-d=tomllib.loads(p.read_text())
-print(d.get("layer2",{}).get("ros_distro","none"))' "$DEVICE_TOML") || true
+d=toml.loads(p.read_text())
+print(d.get("layer2",{}).get("ros_distro","none"))
+PY
+) || true
     if [ "$rosreq" != "none" ]; then
       log "Ensuring colcon build tooling for ROS"
       DEBIAN_FRONTEND=noninteractive apt-get update -y || true
@@ -381,30 +401,51 @@ print(d.get("layer2",{}).get("ros_distro","none"))' "$DEVICE_TOML") || true
   fi
   # Enable bridge if requested in device TOML
   if [ -f "$DEVICE_TOML" ]; then
-    br=$(python3 -c 'import tomllib, sys, pathlib
+  br=$(python3 - "$DEVICE_TOML" <<'PY'
+import sys, pathlib
+try:
+  import tomllib as toml
+except Exception:
+  import tomli as toml
 p=pathlib.Path(sys.argv[1])
-d=tomllib.loads(p.read_text())
-print(str(d.get("layer1",{}).get("bridge_ros2dds",{}).get("enabled", False)).lower())' "$DEVICE_TOML")
+d=toml.loads(p.read_text())
+print(str(d.get("layer1",{}).get("bridge_ros2dds",{}).get("enabled", False)).lower())
+PY
+)
     if [ "$br" = "true" ]; then
       enable_unit layer1-bridge.service
     else
       disable_unit layer1-bridge.service
     fi
     # Enable/disable level3 services declared in device TOML
-    foot_en=$(python3 -c 'import tomllib,sys,pathlib
+  foot_en=$(python3 - "$DEVICE_TOML" <<'PY'
+import sys, pathlib
+try:
+  import tomllib as toml
+except Exception:
+  import tomli as toml
 p=pathlib.Path(sys.argv[1])
-d=tomllib.loads(p.read_text())
-print(str(d.get("layer3",{}).get("services",{}).get("foot",{}).get("enabled", False)).lower())' "$DEVICE_TOML") || foot_en="false"
+d=toml.loads(p.read_text())
+print(str(d.get("layer3",{}).get("services",{}).get("foot",{}).get("enabled", False)).lower())
+PY
+) || foot_en="false"
     if [ "$foot_en" = "true" ]; then
       enable_unit psyche-foot.service
     else
       disable_unit psyche-foot.service
     fi
 
-    imu_en=$(python3 -c 'import tomllib,sys,pathlib
+  imu_en=$(python3 - "$DEVICE_TOML" <<'PY'
+import sys, pathlib
+try:
+  import tomllib as toml
+except Exception:
+  import tomli as toml
 p=pathlib.Path(sys.argv[1])
-d=tomllib.loads(p.read_text())
-print(str(d.get("layer3",{}).get("services",{}).get("imu",{}).get("enabled", False)).lower())' "$DEVICE_TOML") || imu_en="false"
+d=toml.loads(p.read_text())
+print(str(d.get("layer3",{}).get("services",{}).get("imu",{}).get("enabled", False)).lower())
+PY
+) || imu_en="false"
     if [ "$imu_en" = "true" ]; then
       enable_unit psyche-imu.service
     else
@@ -435,25 +476,46 @@ setup_web_service() {
     return 0
   fi
 
-  enabled=$(python3 -c "import tomllib,sys,pathlib
-p=pathlib.Path('$DEVICE_TOML')
-d=tomllib.loads(p.read_text())
+  enabled=$(python3 - "$DEVICE_TOML" <<'PY'
+import sys, pathlib
+try:
+    import tomllib as toml
+except Exception:
+    import tomli as toml
+p=pathlib.Path(sys.argv[1])
+d=toml.loads(p.read_text())
 web=d.get('layer1',{}).get('services',{}).get('web',{})
-print(str(web.get('enabled',False)).lower())")
+print(str(web.get('enabled',False)).lower())
+PY
+)
   if [ "$enabled" != "true" ]; then
     log "Web service not enabled in $DEVICE_TOML; skipping"
     return 0
   fi
-  host=$(python3 -c "import tomllib,sys,pathlib
-p=pathlib.Path('$DEVICE_TOML')
-d=tomllib.loads(p.read_text())
+  host=$(python3 - "$DEVICE_TOML" <<'PY'
+import sys, pathlib
+try:
+    import tomllib as toml
+except Exception:
+    import tomli as toml
+p=pathlib.Path(sys.argv[1])
+d=toml.loads(p.read_text())
 web=d.get('layer1',{}).get('services',{}).get('web',{})
-print(web.get('host','0.0.0.0'))")
-  port=$(python3 -c "import tomllib,sys,pathlib
-p=pathlib.Path('$DEVICE_TOML')
-d=tomllib.loads(p.read_text())
+print(web.get('host','0.0.0.0'))
+PY
+)
+  port=$(python3 - "$DEVICE_TOML" <<'PY'
+import sys, pathlib
+try:
+    import tomllib as toml
+except Exception:
+    import tomli as toml
+p=pathlib.Path(sys.argv[1])
+d=toml.loads(p.read_text())
 web=d.get('layer1',{}).get('services',{}).get('web',{})
-print(web.get('port',8080))")
+print(web.get('port',8080))
+PY
+)
 
   log "Provisioning web service (host=$host port=$port)"
   VENV_DIR="$REPO_DIR/venv"
@@ -503,10 +565,17 @@ maybe_setup_ros2() {
     log "Device TOML not found: $DEVICE_TOML"
     return 0
   fi
-  distro=$(python3 -c 'import tomllib, sys, pathlib
+  distro=$(python3 - "$DEVICE_TOML" <<'PY'
+import sys, pathlib
+try:
+    import tomllib as toml
+except Exception:
+    import tomli as toml
 p=pathlib.Path(sys.argv[1])
-d=tomllib.loads(p.read_text()).get("layer2",{}).get("ros_distro","none")
-print(d)' "$DEVICE_TOML")
+d=toml.loads(p.read_text()).get("layer2",{}).get("ros_distro","none")
+print(d)
+PY
+)
   if [ "$distro" = "none" ]; then
     log "ROS 2 not requested"
     return 0
