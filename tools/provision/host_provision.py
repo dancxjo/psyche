@@ -61,6 +61,58 @@ def ensure_dirs(workspace_dir: Path, clone_dir: Path):
     run_sudo(["chmod", "0775", str(workspace_dir)])
 
 
+def ensure_cyclone_dds_if_needed(services, ros_distro: str = ""):
+    """If any service requires DDS, attempt to install Cyclone DDS RMW and persist RMW env var.
+
+    This is best-effort and will not fail provisioning if packages are unavailable.
+    """
+    needed = {"mic", "voice", "debug_log"}
+    if not needed.intersection(set(services)):
+        return
+
+    print("Ensuring Cyclone DDS (rmw_cyclonedds_cpp) is installed and configured")
+    run_sudo(["apt", "update"])
+
+    candidates = []
+    if ros_distro:
+        candidates.append(f"ros-{ros_distro}-rmw-cyclonedds-cpp")
+    candidates.extend([
+        "ros-rmw-cyclonedds-cpp",
+        "rmw-cyclonedds-cpp",
+        "libcyclonedds-dev",
+        "cyclonedds",
+    ])
+
+    for pkg in candidates:
+        try:
+            print(f"Attempting to install {pkg}")
+            run_sudo(["apt", "install", "-y", pkg],)
+        except Exception as e:
+            print(f"install {pkg} failed (continuing): {e}")
+
+    # Persist RMW implementation in profile script if not already present
+    profile_script = Path("/etc/profile.d/psyche_workspace.sh")
+    export_line = "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp\n"
+    try:
+        if profile_script.exists():
+            content = profile_script.read_text()
+            if "RMW_IMPLEMENTATION" not in content:
+                p = subprocess.Popen(["sudo", "tee", "-a", str(profile_script)], stdin=subprocess.PIPE)
+                p.communicate(input=export_line.encode())
+        else:
+            content = """#!/bin/sh
+if [ -f /opt/psyche_workspace/install/setup.bash ]; then
+  . /opt/psyche_workspace/install/setup.bash
+fi
+"""
+            content += export_line
+            p = subprocess.Popen(["sudo", "tee", str(profile_script)], stdin=subprocess.PIPE)
+            p.communicate(input=content.encode())
+        run_sudo(["chmod", "0644", str(profile_script)])
+    except Exception as e:
+        print(f"Failed to update profile script for RMW env: {e}")
+
+
 def clone_or_update(url: str, dest: Path, branch: str = ""):
     if (dest / ".git").exists():
         print(f"Updating existing repo at {dest}")
@@ -234,6 +286,9 @@ def main():
         linkpath = WORKSPACE_DIR / "src" / relpath
         clone_or_update(url, dest, branch)
         link_into_workspace(dest, linkpath)
+
+    # Ensure Cyclone DDS if any services require DDS and persist RMW selection
+    ensure_cyclone_dds_if_needed(services, ros_distro=cfg.get("ros_distro", "kilted"))
 
     build_workspace(repo_root, WORKSPACE_DIR, ros_distro=cfg.get("ros_distro", "kilted"))
 

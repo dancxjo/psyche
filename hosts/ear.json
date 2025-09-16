@@ -6,6 +6,7 @@
         "imu",
         "gps",
         "mic",
-        "voice"
+        "voice",
+        "debug_log"
     ]
 }

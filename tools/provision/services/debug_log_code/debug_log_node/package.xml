@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="3">
+    <name>debug_log_node</name>
+    <version>0.0.1</version>
+    <description>Streams journalctl logs to /voice as text messages.</description>
+    <maintainer email="you@example.com">you</maintainer>
+    <license>Apache-2.0</license>
+
+    <buildtool_depend>ament_python</buildtool_depend>
+    <exec_depend>rclpy</exec_depend>
+    <exec_depend>std_msgs</exec_depend>
+
+</package>
