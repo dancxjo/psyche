@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 # Bootstrap installer: clones repo, installs auto-updater, applies config.
 #
-# Usage (no args):
-#   curl -fsSL https://raw.githubusercontent.com/dancxjo/psyche/refs/heads/main/tools/provision/bootstrap.sh?token=GHSAT0AAAAAADK7LS54HA6T4RJVUFOKL5TO2GHMPNA | sudo bash
+# Usage (piped):
+#   # recommended (preserves your SSH agent so the clone can use your keys):
+#   ssh -A you@host "curl -fsSL https://dancxjo.github.io/psyched | sudo bash -s -- --git-as-user"
+#
+#   # or when running locally on the machine as root (no SSH-as-user):
+#   curl -fsSL https://dancxjo.github.io/psyched | sudo bash
 #
 # Optional flags:
-#   -r|--repo URL   Git URL to clone (default from script variable)
-#   -b|--branch BR  Branch to checkout (default: main)
+#   -r|--repo URL        Git URL to clone (default from script variable)
+#   -b|--branch BR       Branch to checkout (default: main)
+#   --git-as-user        Force cloning via SSH as the invoking user (requires SSH key or agent)
 set -euo pipefail
 
 DEFAULT_REPO_URL="https://github.com/dancxjo/psyched.git"
@@ -15,13 +20,26 @@ DEFAULT_BRANCH="main"
 log() { echo "[bootstrap] $*"; }
 require_root() { [ "${EUID:-$(id -u)}" -eq 0 ] || { echo "Run as root" >&2; exit 1; }; }
 
+debug_env() {
+  log "Debug: SUDO_USER='${SUDO_USER-}' SSH_AUTH_SOCK='${SSH_AUTH_SOCK-}'"
+  if [ -n "${SUDO_USER-}" ]; then
+    if sudo -u "$SUDO_USER" bash -lc 'shopt -s nullglob; keys=(~/.ssh/id_*); printf "%s\n" "${#keys[@]}"' >/tmp/psyched_ssh_key_count 2>/dev/null; then
+      kc=$(cat /tmp/psyched_ssh_key_count 2>/dev/null || echo "0")
+      log "Debug: $SUDO_USER has approximately $kc SSH key files in ~/.ssh"
+      rm -f /tmp/psyched_ssh_key_count || true
+    fi
+  fi
+}
+
 parse_args() {
   REPO_URL="$DEFAULT_REPO_URL"
   BRANCH="$DEFAULT_BRANCH"
+  GIT_AS_USER=0
   while [ $# -gt 0 ]; do
     case "$1" in
       -r|--repo) REPO_URL="$2"; shift 2 ;;
       -b|--branch) BRANCH="$2"; shift 2 ;;
+      --git-as-user) GIT_AS_USER=1; shift ;;
       *) echo "Unknown arg: $1" >&2; exit 2 ;;
     esac
   done
@@ -40,12 +58,30 @@ clone_repo() {
   # optional GITHUB_TOKEN, or public HTTPS.
   CLONE_AS_USER="${SUDO_USER-}"
   USE_SSH=0
-  if [ -n "$CLONE_AS_USER" ]; then
-    # Check for public key files or SSH_AUTH_SOCK for agent
-    if sudo -u "$CLONE_AS_USER" bash -lc 'shopt -s nullglob; keys=(~/.ssh/id_*); ((${#keys[@]}>0))' >/dev/null 2>&1; then
+  # If user explicitly requested git-as-user, require SUDO_USER to be set
+  if [ "${GIT_AS_USER-0}" -eq 1 ]; then
+    if [ -z "$CLONE_AS_USER" ]; then
+      echo "--git-as-user requires invoking the installer via sudo from your user (SUDO_USER not set)." >&2
+      echo "Recommended: ssh -A you@host 'curl -fsSL https://dancxjo.github.io/psyched | sudo bash -s -- --git-as-user'" >&2
+      exit 2
+    fi
+    # Force SSH usage, but verify keys or agent exist
+    if sudo -u "$CLONE_AS_USER" bash -lc 'shopt -s nullglob; keys=(~/.ssh/id_*); ((${#keys[@]}>0))' >/dev/null 2>&1 || sudo -u "$CLONE_AS_USER" bash -lc 'test -n "${SSH_AUTH_SOCK-}"' >/dev/null 2>&1; then
       USE_SSH=1
-    elif sudo -u "$CLONE_AS_USER" bash -lc 'test -n "${SSH_AUTH_SOCK-}"' >/dev/null 2>&1; then
-      USE_SSH=1
+    else
+      echo "Requested --git-as-user but no SSH keys or agent detected for $CLONE_AS_USER." >&2
+      echo "Start an SSH session with agent forwarding and re-run:" >&2
+      echo "  ssh -A $CLONE_AS_USER@host 'curl -fsSL https://dancxjo.github.io/psyched | sudo bash -s -- --git-as-user'" >&2
+      exit 2
+    fi
+  else
+    if [ -n "$CLONE_AS_USER" ]; then
+      # Check for public key files or SSH_AUTH_SOCK for agent
+      if sudo -u "$CLONE_AS_USER" bash -lc 'shopt -s nullglob; keys=(~/.ssh/id_*); ((${#keys[@]}>0))' >/dev/null 2>&1; then
+        USE_SSH=1
+      elif sudo -u "$CLONE_AS_USER" bash -lc 'test -n "${SSH_AUTH_SOCK-}"' >/dev/null 2>&1; then
+        USE_SSH=1
+      fi
     fi
   fi
 
@@ -68,6 +104,8 @@ clone_repo() {
     fi
     set -e
   else
+    debug_env
+    log "Decision: USE_SSH=$USE_SSH; CLONE_AS_USER='$CLONE_AS_USER'"
     if [ "$USE_SSH" -eq 1 ]; then
       CLONE_URL="git@github.com:dancxjo/psyched.git"
       log "Cloning via SSH as $CLONE_AS_USER: $CLONE_URL@$BRANCH to $dest"
