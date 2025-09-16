@@ -193,15 +193,30 @@ def copy_local_repo(src: Path, dest: Path):
 
 
 def link_into_workspace(canonical: Path, linkpath: Path):
+    # Ensure the parent directory for the link exists (e.g. /opt/psyched_workspace/src)
+    parent = linkpath.parent
+    if not parent.exists():
+        print(f"Parent directory {parent} does not exist; creating")
+        try:
+            run_sudo(["mkdir", "-p", str(parent)])
+            run_sudo(["chown", "-R", "pete:root", str(parent)])
+            run_sudo(["chmod", "0775", str(parent)])
+        except Exception as e:
+            print(f"Failed to create parent directory {parent}: {e}")
+            raise
+
     if linkpath.exists() and not linkpath.is_symlink():
         print(f"{linkpath} exists and is not a symlink; leaving in place")
         return
+
     if linkpath.is_symlink():
         current = linkpath.resolve()
         if current != canonical.resolve():
             print(f"Updating symlink {linkpath} -> {canonical}")
             run_sudo(["rm", "-f", str(linkpath)])
             run_sudo(["ln", "-s", str(canonical), str(linkpath)])
+        else:
+            print(f"Symlink {linkpath} already points to {canonical}; skipping")
     else:
         print(f"Creating symlink {linkpath} -> {canonical}")
         run_sudo(["ln", "-s", str(canonical), str(linkpath)])
