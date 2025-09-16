@@ -26,7 +26,8 @@ ensure_python_env() {
 		if [ "$(id -u)" -eq 0 ]; then
 			echo "[bootstrap] pip3 not found — installing python3-pip, python3-venv and build deps via apt"
 			apt-get update -y
-			apt-get install -y python3-pip python3-venv python3-distutils python3-setuptools build-essential || true
+			# python3-distutils may be unavailable on some platforms; avoid installing it directly.
+			apt-get install -y python3-pip python3-venv python3-setuptools build-essential || true
 		else
 			echo "[bootstrap] Warning: pip3 not found and not running as root; please install pip3 or run under sudo" >&2
 		fi
@@ -34,19 +35,43 @@ ensure_python_env() {
 
 	if [ ! -d "${PSYCHED_VENV}" ]; then
 		echo "[bootstrap] Creating shared venv at ${PSYCHED_VENV}"
-		if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then
-			# create venv as the non-root sudo user so files are owned correctly
-			sudo -E -u "${SUDO_USER}" -H python3 -m venv "${PSYCHED_VENV}"
+		# Ensure parent dir exists
+		parent_dir="$(dirname "${PSYCHED_VENV}")"
+		if [ ! -d "${parent_dir}" ]; then
+			mkdir -p "${parent_dir}" || true
+		fi
+		# Try to create venv. If running as root, create as root then chown to SUDO_USER so ownership is sane.
+		if [ "$(id -u)" -eq 0 ]; then
+			# create venv as root
+			if ! python3 -m venv "${PSYCHED_VENV}"; then
+				echo "[bootstrap] ERROR: failed to create venv at ${PSYCHED_VENV}" >&2
+			else
+				# if we were invoked via sudo, change ownership to the original user
+				if [ -n "${SUDO_USER:-}" ]; then
+					chown -R "${SUDO_USER}:${SUDO_USER}" "${PSYCHED_VENV}" || true
+				fi
+			fi
 		else
-			python3 -m venv "${PSYCHED_VENV}"
+			if ! python3 -m venv "${PSYCHED_VENV}"; then
+				echo "[bootstrap] ERROR: failed to create venv at ${PSYCHED_VENV} — permission denied or missing parent dir" >&2
+			fi
 		fi
 	fi
 
-	if [ -x "${PSYCHED_VENV}/bin/pip" ]; then
-		echo "[bootstrap] Upgrading pip, setuptools and wheel inside ${PSYCHED_VENV}"
-		"${PSYCHED_VENV}/bin/pip" install --upgrade pip setuptools wheel || true
+	# Ensure pip is available in the venv; try ensurepip fallback then upgrade
+	if [ -f "${PSYCHED_VENV}/bin/python" ]; then
+		if ! "${PSYCHED_VENV}/bin/python" -m pip --version >/dev/null 2>&1; then
+			# attempt to bootstrap pip into the venv
+			"${PSYCHED_VENV}/bin/python" -m ensurepip --upgrade >/dev/null 2>&1 || true
+		fi
+		if [ -x "${PSYCHED_VENV}/bin/pip" ]; then
+			echo "[bootstrap] Upgrading pip, setuptools and wheel inside ${PSYCHED_VENV}"
+			"${PSYCHED_VENV}/bin/pip" install --upgrade pip setuptools wheel || true
+		else
+			echo "[bootstrap] Warning: ${PSYCHED_VENV}/bin/pip not found after ensurepip; venv may be broken" >&2
+		fi
 	else
-		echo "[bootstrap] Warning: ${PSYCHED_VENV}/bin/pip not found; venv may be broken" >&2
+		echo "[bootstrap] Warning: ${PSYCHED_VENV}/bin/python not found; venv creation may have failed" >&2
 	fi
 
 	# Export venv so child scripts can use it
