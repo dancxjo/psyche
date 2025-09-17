@@ -13,8 +13,10 @@ provision() {
   sudo apt-get update -y
   sudo apt-get install -y curl gnupg lsb-release
   sudo apt-get install -y software-properties-common
-  sudo apt-get install -y python3-pip python3-venv python3-numpy python3-numpy-dev python3-dev python3-distutils python3-setuptools python3-rosdep ros-dev-tools || \
-  sudo apt-get install -y python3-pip python3-venv python3-numpy python3-dev python3-distutils python3-setuptools python3-rosdep ros-dev-tools
+  # Core Python tooling (distutils is deprecated/absent on modern distros; rely on setuptools)
+  sudo apt-get install -y python3-pip python3-venv python3-numpy python3-dev python3-setuptools python3-rosdep ros-dev-tools
+  # Optional NumPy headers package (may not exist on all distros)
+  sudo apt-get install -y python3-numpy-dev || true
   # Try distro colcon extensions; ignore if not found, we'll fallback to pip
   sudo apt-get install -y python3-colcon-common-extensions || true
   # Fallback: install colcon via pip if not present
