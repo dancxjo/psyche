@@ -71,9 +71,7 @@ class PiperEngine(TTSEngine):
         )
         if proc.returncode != 0 or not os.path.exists(wav_path):
             self._logger.error(
-                "piper synth failed rc=%s: %s",
-                proc.returncode,
-                proc.stderr.decode(errors="ignore")[:200],
+                f"piper synth failed rc={proc.returncode}: {proc.stderr.decode(errors='ignore')[:200]}"
             )
             try:
                 os.unlink(wav_path)
@@ -124,7 +122,7 @@ class PiperEngine(TTSEngine):
                 continue
             if os.path.isfile(candidate):
                 if candidate != self.model_path:
-                    self._logger.info("Using Piper model: %s", candidate)
+                    self._logger.info(f"Using Piper model: {candidate}")
                 self.model_path = candidate
                 return candidate
 
@@ -150,19 +148,17 @@ class PiperEngine(TTSEngine):
                 if path not in self.model_candidates:
                     self.model_candidates.append(path)
             fallback = discovered[0]
-            self._logger.warn("Falling back to discovered Piper model: %s", fallback)
+            self._logger.warn(f"Falling back to discovered Piper model: {fallback}")
             self.model_path = fallback
             return fallback
 
         if initial:
             self._logger.warn(
-                "No available voice model found among candidates: %s.",
-                self.model_candidates,
+                f"No available voice model found among candidates: {self.model_candidates}."
             )
         else:
             self._logger.error(
-                "No Piper model files exist for candidates: %s.",
-                self.model_candidates,
+                f"No Piper model files exist for candidates: {self.model_candidates}."
             )
         self.model_path = None
         return None
@@ -262,10 +258,7 @@ class VoiceNode(Node):
         self.player_thread.start()
 
         self.get_logger().info(
-            "VoiceNode ready. Text: %s | Cmd: %s | Engine: %s",
-            self.base_topic,
-            f"{self.base_topic}/cmd",
-            self.engine.describe(),
+            f"VoiceNode ready. Text: {self.base_topic} | Cmd: {self.base_topic}/cmd | Engine: {self.engine.describe()}"
         )
 
     # Subscription callbacks -----------------------------------------------------
@@ -273,7 +266,7 @@ class VoiceNode(Node):
         text = msg.data.strip()
         if not text:
             return
-        self.get_logger().info("Queue: %s...", text[:64])
+    self.get_logger().info(f"Queue: {text[:64]}...")
         self.queue.put(text)
 
     def cmd_cb(self, msg: String):
@@ -285,7 +278,7 @@ class VoiceNode(Node):
         elif cmd in ("abandon", "cancel", "flush"):
             self._abandon()
         else:
-            self.get_logger().warn("Unknown cmd: %s", cmd)
+            self.get_logger().warn(f"Unknown cmd: {cmd}")
 
     # Player control -------------------------------------------------------------
     def _interrupt(self):
@@ -296,7 +289,7 @@ class VoiceNode(Node):
                     self.paused = True
                     self.get_logger().info("Paused (interrupt).")
                 except Exception as exc:  # pragma: no cover - best effort
-                    self.get_logger().error("Interrupt failed: %s", exc)
+                    self.get_logger().error(f"Interrupt failed: {exc}")
 
     def _resume(self):
         with self.lock:
@@ -306,7 +299,7 @@ class VoiceNode(Node):
                     self.paused = False
                     self.get_logger().info("Resumed.")
                 except Exception as exc:  # pragma: no cover - best effort
-                    self.get_logger().error("Resume failed: %s", exc)
+                    self.get_logger().error(f"Resume failed: {exc}")
 
     def _abandon(self):
         with self.lock:
@@ -323,7 +316,7 @@ class VoiceNode(Node):
                         "Abandon: terminated current playback and flushed queue."
                     )
                 except Exception as exc:  # pragma: no cover - best effort
-                    self.get_logger().error("Abandon terminate failed: %s", exc)
+                    self.get_logger().error(f"Abandon terminate failed: {exc}")
 
     def _player_loop(self):
         while rclpy.ok():
@@ -366,7 +359,7 @@ class VoiceNode(Node):
                 rclpy.spin_once(self, timeout_sec=0.05)
 
         except Exception as exc:  # pragma: no cover - broad catch for logging
-            self.get_logger().error("Playback error: %s", exc)
+            self.get_logger().error(f"Playback error: {exc}")
         finally:
             with self.lock:
                 if self.current_proc:
@@ -403,8 +396,7 @@ class VoiceNode(Node):
                 return engine
             except Exception as exc:
                 self.get_logger().warn(
-                    "Auto TTS selection failed to init Piper: %s. Falling back to espeak.",
-                    exc,
+                    f"Auto TTS selection failed to init Piper: {exc}. Falling back to espeak."
                 )
                 requested = "espeak"
 
@@ -413,15 +405,13 @@ class VoiceNode(Node):
                 return PiperEngine(self.get_logger())
             except Exception as exc:
                 self.get_logger().error(
-                    "Failed to initialise Piper engine (%s); falling back to espeak.",
-                    exc,
+                    f"Failed to initialise Piper engine ({exc}); falling back to espeak."
                 )
                 requested = "espeak"
 
         if requested != "espeak":
             self.get_logger().warn(
-                "Unknown PSY_TTS_ENGINE value '%s'; defaulting to espeak.",
-                requested,
+                f"Unknown PSY_TTS_ENGINE value '{requested}'; defaulting to espeak."
             )
         return EspeakEngine(self.get_logger())
 
