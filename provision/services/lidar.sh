@@ -9,12 +9,19 @@ provision() {
   sudo apt-get install -y git
   mkdir -p "$SRC"
 
-  # Prefer sllidar_ros2, fallback rplidar_ros
-  if [ ! -d "$SRC/sllidar_ros2" ]; then
-    git clone https://github.com/Slamtec/sllidar_ros2 "$SRC/sllidar_ros2" || true
+  # Install HLS-LFCD2 driver (preferred via apt), fallback to source clone
+  if ! apt-cache show "ros-${ROS_DISTRO:-jazzy}-hls-lfcd-lds-driver" >/dev/null 2>&1; then
+    echo "[psy][lidar] Package ros-${ROS_DISTRO:-jazzy}-hls-lfcd-lds-driver not found in apt cache; will clone from source"
+  else
+    sudo apt-get install -y "ros-${ROS_DISTRO:-jazzy}-hls-lfcd-lds-driver" || true
   fi
-  if [ ! -d "$SRC/rplidar_ros" ]; then
-    git clone https://github.com/Slamtec/rplidar_ros "$SRC/rplidar_ros" || true
+  if ! ros2 pkg executables hls_lfcd_lds_driver >/dev/null 2>&1; then
+    [ -d "$SRC/hls_lfcd_lds_driver" ] || git clone https://github.com/ROBOTIS-GIT/hls_lfcd_lds_driver "$SRC/hls_lfcd_lds_driver" || true
+  fi
+
+  # If legacy ROS1 rplidar_ros exists from earlier runs, prevent colcon from building it
+  if [ -d "$SRC/rplidar_ros" ]; then
+    touch "$SRC/rplidar_ros/COLCON_IGNORE" || true
   fi
 
   (cd /opt/psyched && cli/psy build)
@@ -34,11 +41,13 @@ set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
 source /opt/psyched/ws/install/setup.bash
 
-if ros2 pkg executables sllidar_ros2 | grep -q sllidar_node; then
-  exec ros2 run sllidar_ros2 sllidar_node --ros-args -p serial_port:=/dev/lidar -p frame_id:=laser
-else
-  exec ros2 run rplidar_ros rplidar_composition --ros-args -p serial_port:=/dev/lidar -p frame_id:=laser
+# HLS-LFCD2 driver
+if ros2 pkg executables hls_lfcd_lds_driver | grep -q hlds_laser_publisher; then
+  exec ros2 run hls_lfcd_lds_driver hlds_laser_publisher --ros-args -p serial_port:=/dev/lidar -p frame_id:=laser
 fi
+
+echo "[psy][lidar] hls_lfcd_lds_driver not available; ensure package is installed or built" >&2
+exit 1
 LAUNCH
   sudo chmod +x /etc/psyched/lidar.launch.sh
 }
