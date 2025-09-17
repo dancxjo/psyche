@@ -162,48 +162,21 @@ case "$cmd" in
     esac
     ;;
   systemd)
-  say)
-    # Publish a message to voice topic
-    if [ $# -eq 0 ]; then
-      echo "Usage: psy say <text>" >&2
-      exit 1
-    fi
-    if ! command -v ros2 >/dev/null 2>&1; then
-      set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash 2>/dev/null || true; set -u
-    fi
-    if ! command -v ros2 >/dev/null 2>&1; then
-      echo "[psy] ERROR: ros2 CLI not found (install or source environment)." >&2
-      exit 2
-    fi
-    host_short="$(hostname -s)"
-    topic="/voice/${host_short}"
-    msg="$*"
-    # Escape for YAML inline string
-    msg_esc="${msg//\\/\\\\}"
-    msg_esc="${msg_esc//\"/\\\"}"
-    ros2 topic pub --once "$topic" std_msgs/String "{data: \"$msg_esc\"}" || {
-      echo "[psy] ERROR: failed to publish to $topic" >&2
-      exit 3
-    }
-    ;;
     sub="${1:-}"; shift || true
     case "$sub" in
       install) bash "$PROV/systemd/install_units.sh" ;;
       info)
-        # Show a quick summary, then optional logs for provided services
         echo "[psy] systemctl summary (filtered)"
         systemctl --no-pager | grep -i "psych" || true
         if [ $# -gt 0 ]; then
           for s in "$@"; do
             printf "\n[psy] recent logs for psyched@%s.service\n" "$s"
             sudo journalctl -u "psyched@${s}.service" -n 200 --no-pager -o short-precise || true
-            # Print last known status for additional context
             systemctl status "psyched@${s}.service" --no-pager -l | sed -n '1,5p' || true
           done
         fi
         ;;
       up)
-        # Prefer services with existing launchers; fallback to all installed unit files
         if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
           mapfile -t UNITS < <(for f in /etc/psyched/*.launch.sh; do [ -e "$f" ] || continue; b=$(basename "$f"); echo "psyched@${b%.launch.sh}.service"; done)
         else
@@ -232,5 +205,28 @@ case "$cmd" in
       *) usage; exit 1;;
     esac
     ;;
+  say)
+    # Publish a message to voice topic
+    if [ $# -eq 0 ]; then
+      echo "Usage: psy say <text>" >&2
+      exit 1
+    fi
+    if ! command -v ros2 >/dev/null 2>&1; then
+      set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash 2>/dev/null || true; set -u
+    fi
+    if ! command -v ros2 >/dev/null 2>&1; then
+      echo "[psy] ERROR: ros2 CLI not found (install or source environment)." >&2
+      exit 2
+    fi
+    host_short="$(hostname -s)"
+    topic="/voice/${host_short}"
+    msg="$*"
+    # Escape for YAML inline string
+    msg_esc="${msg//\\/\\\\}"
+    msg_esc="${msg_esc//\"/\\\"}"
+    ros2 topic pub --once "$topic" std_msgs/String "{data: \"$msg_esc\"}" || {
+      echo "[psy] ERROR: failed to publish to $topic" >&2
+      exit 3
+    }
   *) usage; exit 1;;
 esac
