@@ -18,6 +18,12 @@ RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}"
 
 echo "[setup_ros2] Starting ROS2 setup (workspace: ${WS_DIR})"
 
+# Behavior flags (export to control):
+# - PSY_SETUP_ROS2_REPO_ONLY=1 -> only configure ROS APT source, skip package installs
+# - PSY_SETUP_ROS2_SKIP_PROFILE=1 -> skip writing profile.d and bashrc modifications
+REPO_ONLY="${PSY_SETUP_ROS2_REPO_ONLY:-0}"
+SKIP_PROFILE="${PSY_SETUP_ROS2_SKIP_PROFILE:-0}"
+
 # Ensure we can run apt commands non-interactively
 export DEBIAN_FRONTEND=noninteractive
 
@@ -61,6 +67,12 @@ DEB_URL="https://github.com/ros-infrastructure/ros-apt-source/releases/download/
 echo "[setup_ros2] Downloading: ${DEB_URL}"
 curl -fsSL -o "${TMP_DEB}" "${DEB_URL}"
 sudo dpkg -i "${TMP_DEB}" || sudo apt-get -f install -y
+
+# If repo-only requested, stop after setting up the APT source
+if [ "${REPO_ONLY}" = "1" ]; then
+	echo "[setup_ros2] Repo-only mode: skipping ROS package installation"
+	exit 0
+fi
 
 # Install ROS packages (idempotent)
 sudo apt-get update -y
@@ -107,6 +119,7 @@ else
 fi
 
 # Create a profile.d file so all users source the workspace and get RMW env
+if [ "${SKIP_PROFILE}" != "1" ]; then
 echo "[setup_ros2] Writing global profile at ${PROFILE_D_FILE}"
 sudo tee "${PROFILE_D_FILE}" > /dev/null <<EOF
 # psyched global ROS2 workspace configuration
@@ -154,4 +167,5 @@ if [ -f '${PROFILE_D_FILE}' ]; then
 fi
 BASH_SRC"
 	fi
+fi
 fi

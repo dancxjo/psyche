@@ -21,7 +21,7 @@ ensure_deps() {
     export PSY_DEFER_APT=1
     common_apt_install piper alsa-utils
   # Try to get packaged voices if available (ignored if not found)
-    common_apt_install piper-voices
+        common_apt_install ?piper-voices
 }
 
 ensure_voice_model() {
