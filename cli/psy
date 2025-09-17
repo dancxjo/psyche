@@ -77,6 +77,8 @@ case "$cmd" in
         common_flush_apt_queue || true
         echo "[psy] Performing one workspace build after provisioning all services"
         bash "$SVCDIR/workspace.sh" build || true
+        echo "[psy] Installing systemd units and enabling those with launchers"
+        bash "$PROV/systemd/install_units.sh" || true
         ;;
       *) usage; exit 1;;
     esac

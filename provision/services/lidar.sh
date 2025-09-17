@@ -34,7 +34,7 @@ KERNEL=="ttyUSB*", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="
 RULE
   sudo udevadm control --reload-rules && sudo udevadm trigger || true
 
-  # launcher
+  # launcher with retry loop
   sudo mkdir -p /etc/psyched
   sudo tee /etc/psyched/lidar.launch.sh >/dev/null <<'LAUNCH'
 #!/usr/bin/env bash
@@ -42,13 +42,31 @@ set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
 source /opt/psyched/ws/install/setup.bash
 
-# HLS-LFCD2 driver
-if ros2 pkg executables hls_lfcd_lds_driver | grep -q hlds_laser_publisher; then
-  exec ros2 run hls_lfcd_lds_driver hlds_laser_publisher --ros-args -p serial_port:=/dev/lidar -p frame_id:=laser
-fi
+LOG=/tmp/lidar_driver.log
+PORT_DEFAULT=/dev/lidar
+PORT="${LIDAR_PORT:-$PORT_DEFAULT}"
 
-echo "[psy][lidar] hls_lfcd_lds_driver not available; ensure package is installed or built" >&2
-exit 1
+echo "[lidar] launcher started. Using port=$PORT" | tee -a "$LOG"
+while true; do
+  if [ ! -e "$PORT" ]; then
+    command -v udevadm >/dev/null 2>&1 && sudo udevadm settle || true
+    echo "[lidar] Waiting for $PORT ..." | tee -a "$LOG"
+    sleep 2
+    continue
+  fi
+  if ros2 pkg executables hls_lfcd_lds_driver | grep -q hlds_laser_publisher; then
+    echo "[lidar] Starting hlds_laser_publisher on $PORT" | tee -a "$LOG"
+    set +e
+    ros2 run hls_lfcd_lds_driver hlds_laser_publisher --ros-args -p serial_port:="$PORT" -p frame_id:=laser >> "$LOG" 2>&1
+    RC=$?
+    set -e
+    echo "[lidar] exited rc=$RC; restarting in 3s" | tee -a "$LOG"
+    sleep 3
+  else
+    echo "[lidar] hls_lfcd_lds_driver not available; retrying in 5s" | tee -a "$LOG"
+    sleep 5
+  fi
+done
 LAUNCH
   sudo chmod +x /etc/psyched/lidar.launch.sh
 }
