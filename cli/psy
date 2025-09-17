@@ -75,6 +75,7 @@ Usage:
   psy svc disable <name>       Disable a service for this host
   psy build                    colcon build (creates ws if needed)
   psy bringup nav              Launch nav2 stack (tmux/screen-less; use systemd)
+  psy bringup create           Launch iRobot Create base bringup (create_bringup create_1.launch)
   psy systemd install          Install per-service systemd units and enable configured ones
   psy systemd info [svc..]    Show systemd summary (and recent logs for named services)
   psy systemd up               Start all enabled service units now
@@ -256,6 +257,17 @@ case "$cmd" in
       nav)
         echo "[psy] 'psy bringup nav' is deprecated; use 'psy bring up nav'"
         "$0" bring up nav
+        ;;
+      create)
+        echo "[psy] launching Create base bringup (create_bringup create_1.launch)"
+        # Prefer dedicated bringup script if present (kept in provision/bringup)
+        if [ -x "$PROV/bringup/create.sh" ]; then
+          exec "$PROV/bringup/create.sh" "$@"
+        fi
+        # Fallback: manually source environments and launch
+        set +u; [ -f "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash" ] && source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"; set -u
+        set +u; [ -f "$WS/install/setup.bash" ] && source "$WS/install/setup.bash"; set -u
+        exec ros2 launch create_bringup create_1.launch "$@"
         ;;
       *) usage; exit 1;;
     esac
