@@ -7,8 +7,8 @@ services = [
   "ros",
   "workspace",
   "foot",      # Create base (libcreate fork)
-  "imu",       # mpu6050
-  "lidar",     # set driver in service script env or auto-detect
+#  "imu",       # mpu6050
+#  "lidar",     # set driver in service script env or auto-detect
 #  "camera",    # usb_cam
 #  "vision",    # object detection and tracking
   "mic",       # alsa setup only, optional ros audio later
