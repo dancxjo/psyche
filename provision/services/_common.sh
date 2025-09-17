@@ -14,6 +14,14 @@ export SRC="$PSY_WS/src"
 # Apt install queue (to combine all apt-get into one call at the end)
 export PSY_APT_QUEUE_FILE="${PSY_APT_QUEUE_FILE:-$PSY_ROOT/provision/.apt_queue}"
 export PSY_DEFER_APT="${PSY_DEFER_APT:-0}"
+export PSY_APT_UPDATED="${PSY_APT_UPDATED:-0}"
+
+common_apt_update_once() {
+  if [ "${PSY_APT_UPDATED:-0}" != "1" ]; then
+    sudo apt-get update -y || true
+    export PSY_APT_UPDATED=1
+  fi
+}
 
 common_safe_source_ros() {
   # Avoid nounset errors from ROS setup using AMENT_TRACE_SETUP_FILES
@@ -53,17 +61,63 @@ common_ensure_ws() {
 }
 
 common_apt_install() {
-  # If deferring, queue packages; otherwise install immediately
-  if [ "$PSY_DEFER_APT" = "1" ]; then
+  local required=()
+  local optional=()
+  local queue=()
+  local pkg name is_optional
+  local defer="${PSY_DEFER_APT:-0}"
+
+  for pkg in "$@"; do
+    [ -n "$pkg" ] || continue
+    name="$pkg"
+    is_optional=0
+    if [[ "$name" == \?* ]]; then
+      is_optional=1
+      name="${name#?}"
+    fi
+
+    if dpkg -s "$name" >/dev/null 2>&1; then
+      continue
+    fi
+
+    if [ "$defer" = "1" ]; then
+      if [ "$is_optional" -eq 1 ]; then
+        queue+=("?${name}")
+      else
+        queue+=("$name")
+      fi
+    else
+      if [ "$is_optional" -eq 1 ]; then
+        optional+=("$name")
+      else
+        required+=("$name")
+      fi
+    fi
+  done
+
+  if [ "$defer" = "1" ]; then
+    [ ${#queue[@]} -eq 0 ] && return 0
     mkdir -p "$(dirname "$PSY_APT_QUEUE_FILE")"
-    # shellcheck disable=SC2068
-    for pkg in $@; do
+    for pkg in "${queue[@]}"; do
       echo "$pkg" >> "$PSY_APT_QUEUE_FILE"
     done
-  else
-    sudo apt-get update -y || true
-    # shellcheck disable=SC2068
-    sudo apt-get install -y $@ || true
+    return 0
+  fi
+
+  if [ ${#required[@]} -eq 0 ] && [ ${#optional[@]} -eq 0 ]; then
+    return 0
+  fi
+
+  common_apt_update_once
+
+  if [ ${#required[@]} -gt 0 ]; then
+    sudo apt-get install -y "${required[@]}" || true
+  fi
+
+  if [ ${#optional[@]} -gt 0 ]; then
+    for pkg in "${optional[@]}"; do
+      sudo apt-get install -y "$pkg" || true
+    done
   fi
 }
 
@@ -85,7 +139,9 @@ common_flush_apt_queue() {
     fi
   done
   echo "[psy] Installing ${#REQUIRED[@]} required packages in one transaction"
-  sudo apt-get update -y || true
+  if [ ${#REQUIRED[@]} -gt 0 ] || [ ${#OPTIONAL[@]} -gt 0 ]; then
+    common_apt_update_once
+  fi
   if [ ${#REQUIRED[@]} -gt 0 ]; then
     sudo apt-get install -y "${REQUIRED[@]}" || true
   fi

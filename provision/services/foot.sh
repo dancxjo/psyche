@@ -42,16 +42,27 @@ set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/inst
 
 echo "[foot] launcher started. Using port=$PORT" | tee -a "$LOG"
 
+udev_settled=0
+waiting_logged=0
 while true; do
   # Wait for device symlink to appear
   if [ ! -e "$PORT" ]; then
-    # Settle udev and wait a bit
-    command -v udevadm >/dev/null 2>&1 && sudo udevadm settle || true
-    echo "[foot] Waiting for $PORT ..." | tee -a "$LOG"
+    if [ "$udev_settled" -eq 0 ]; then
+      if command -v udevadm >/dev/null 2>&1; then
+        sudo udevadm settle || true
+      fi
+      udev_settled=1
+    fi
+    if [ "$waiting_logged" -eq 0 ]; then
+      echo "[foot] Waiting for $PORT ..." | tee -a "$LOG"
+      waiting_logged=1
+    fi
     sleep 2
     continue
   fi
 
+  udev_settled=0
+  waiting_logged=0
   echo "[foot] Starting create_driver on $PORT" | tee -a "$LOG"
   set +e
   ros2 run create_driver create_driver_node --ros-args -p port:="$PORT" -r /odom:=/odom >> "$LOG" 2>&1
