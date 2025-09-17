@@ -266,7 +266,7 @@ class VoiceNode(Node):
         text = msg.data.strip()
         if not text:
             return
-    self.get_logger().info(f"Queue: {text[:64]}...")
+        self.get_logger().info(f"Queue: {text[:64]}...")
         self.queue.put(text)
 
     def cmd_cb(self, msg: String):
