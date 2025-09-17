@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="/opt/psyched"
 CFG="$ROOT/provision/hosts/$(hostname).toml"
+. "$(dirname "$0")/_common.sh" 2>/dev/null || true
 
 ros_toml() {
   awk -F'=' '/ros_distro/{gsub(/[ "]/ ,"",$2);print $2}' "$CFG" 2>/dev/null || true
@@ -10,32 +11,37 @@ get() { awk -F'=' -v k="$1" '$1~k{gsub(/[ "]/ ,"",$2);print $2}' "$CFG" 2>/dev/n
 
 provision() {
   ROS_DISTRO="$(ros_toml || echo jazzy)"
-  sudo apt-get update -y
-  sudo apt-get install -y curl gnupg lsb-release
-  sudo apt-get install -y software-properties-common
+  export PSY_DEFER_APT=1
+  # Queue essential tools
+  common_apt_install curl gnupg lsb-release software-properties-common
   # Core Python tooling (distutils is deprecated/absent on modern distros; rely on setuptools)
-  sudo apt-get install -y python3-pip python3-venv python3-numpy python3-dev python3-setuptools python3-rosdep ros-dev-tools
+  common_apt_install python3-pip python3-venv python3-numpy python3-dev python3-setuptools python3-rosdep ros-dev-tools
   # Optional NumPy headers package (may not exist on all distros)
-  sudo apt-get install -y python3-numpy-dev || true
+  common_apt_install python3-numpy-dev
   # Try distro colcon extensions; ignore if not found, we'll fallback to pip
-  sudo apt-get install -y python3-colcon-common-extensions || true
+  common_apt_install python3-colcon-common-extensions
   # Fallback: install colcon via pip if not present
   if ! command -v colcon >/dev/null 2>&1; then
     python3 -m pip install --upgrade --user pip wheel 'setuptools<80' || true
     python3 -m pip install --upgrade --user colcon-common-extensions colcon-ros colcon-mixin || true
   fi
   # Initialize rosdep globally (idempotent)
+  # Install queued packages now before using rosdep
+  common_flush_apt_queue || true
   sudo rosdep init 2>/dev/null || true
   rosdep update || true
   # ROS 2 base and CycloneDDS
-  sudo apt-get install -y "ros-${ROS_DISTRO}-ros-base" "ros-${ROS_DISTRO}-rmw-cyclonedds-cpp"
+  export PSY_DEFER_APT=1
+  common_apt_install "ros-${ROS_DISTRO}-ros-base" "ros-${ROS_DISTRO}-rmw-cyclonedds-cpp"
   # Nice to have packages
-  sudo apt-get install -y "ros-${ROS_DISTRO}-diagnostic-updater" \
-                          "ros-${ROS_DISTRO}-xacro" \
-                          "ros-${ROS_DISTRO}-image-transport" \
-                          "ros-${ROS_DISTRO}-image-transport-plugins" \
-                          "ros-${ROS_DISTRO}-nav2-bringup" \
-                          "ros-${ROS_DISTRO}-tf2-ros"
+  common_apt_install "ros-${ROS_DISTRO}-diagnostic-updater" \
+                     "ros-${ROS_DISTRO}-xacro" \
+                     "ros-${ROS_DISTRO}-image-transport" \
+                     "ros-${ROS_DISTRO}-image-transport-plugins" \
+                     "ros-${ROS_DISTRO}-nav2-bringup" \
+                     "ros-${ROS_DISTRO}-tf2-ros"
+  # Flush installs for ROS base and common tools
+  common_flush_apt_queue || true
   # Environment
   grep -q "RMW_IMPLEMENTATION" ~/.bashrc || {
     echo "export RMW_IMPLEMENTATION=$(get rmw || echo rmw_cyclonedds_cpp)" >> ~/.bashrc

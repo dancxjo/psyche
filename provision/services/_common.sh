@@ -10,6 +10,10 @@ export PSY_WS="${PSY_WS:-$PSY_ROOT/ws}"
 export WS="$PSY_WS"
 export SRC="$PSY_WS/src"
 
+# Apt install queue (to combine all apt-get into one call at the end)
+export PSY_APT_QUEUE_FILE="${PSY_APT_QUEUE_FILE:-$PSY_ROOT/provision/.apt_queue}"
+export PSY_DEFER_APT="${PSY_DEFER_APT:-0}"
+
 common_safe_source_ros() {
   # Avoid nounset errors from ROS setup using AMENT_TRACE_SETUP_FILES
   set +u
@@ -23,10 +27,31 @@ common_ensure_ws() {
 }
 
 common_apt_install() {
-  # Idempotent apt install with update; ignore failures per-package
+  # If deferring, queue packages; otherwise install immediately
+  if [ "$PSY_DEFER_APT" = "1" ]; then
+    mkdir -p "$(dirname "$PSY_APT_QUEUE_FILE")"
+    # shellcheck disable=SC2068
+    for pkg in $@; do
+      echo "$pkg" >> "$PSY_APT_QUEUE_FILE"
+    done
+  else
+    sudo apt-get update -y || true
+    # shellcheck disable=SC2068
+    sudo apt-get install -y $@ || true
+  fi
+}
+
+common_flush_apt_queue() {
+  [ -f "$PSY_APT_QUEUE_FILE" ] || { echo "[psy] No queued apt packages"; return 0; }
+  mapfile -t PKGS < <(sed '/^\s*$/d' "$PSY_APT_QUEUE_FILE" | sort -u)
+  if [ ${#PKGS[@]} -eq 0 ]; then
+    echo "[psy] Apt queue empty"
+    return 0
+  fi
+  echo "[psy] Installing ${#PKGS[@]} queued apt packages in one transaction"
   sudo apt-get update -y || true
-  # shellcheck disable=SC2068
-  sudo apt-get install -y $@ || true
+  sudo apt-get install -y "${PKGS[@]}" || true
+  rm -f "$PSY_APT_QUEUE_FILE" || true
 }
 
 common_clone_repo() {
@@ -68,7 +93,6 @@ $marker
 
 common_ensure_numpy() {
   if ! /usr/bin/python3 -c 'import numpy' >/dev/null 2>&1; then
-    common_apt_install python3-numpy python3-dev
-    sudo apt-get install -y python3-numpy-dev || true
+    common_apt_install python3-numpy python3-dev python3-numpy-dev
   fi
 }

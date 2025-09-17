@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 provision() {
-  sudo apt-get update -y
-  sudo apt-get install -y alsa-utils libasound2-dev
+  export PSY_DEFER_APT=1
+  common_apt_install alsa-utils libasound2-dev
   # Optional defaults can be set in /etc/asound.conf
 }
 case "${1:-provision}" in

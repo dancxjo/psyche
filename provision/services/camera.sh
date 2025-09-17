@@ -4,9 +4,10 @@ set -euo pipefail
 
 provision() {
   common_safe_source_ros || true
-  common_apt_install "ros-${ROS_DISTRO:-jazzy}-usb-cam"
-  # Prefer v4l-utils (modern name). Fall back to v4l2-utils if available on this distro.
-  sudo apt-get install -y v4l-utils || sudo apt-get install -y v4l2-utils || true
+    export PSY_DEFER_APT=1
+    common_apt_install "ros-${ROS_DISTRO:-jazzy}-usb-cam"
+    # v4l-utils may be named v4l2-utils on some systems; try both (queue both, one will succeed)
+    common_apt_install v4l-utils v4l2-utils
 
   common_install_launcher camera LAUNCH <<'LAUNCH'
 #!/usr/bin/env bash

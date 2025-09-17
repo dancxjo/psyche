@@ -6,6 +6,7 @@ SRC="$WS/src"
 
 provision() {
   common_safe_source_ros || true
+  export PSY_DEFER_APT=1
   common_apt_install git
   common_ensure_ws
 
@@ -13,7 +14,7 @@ provision() {
   if ! apt-cache show "ros-${ROS_DISTRO:-jazzy}-hls-lfcd-lds-driver" >/dev/null 2>&1; then
     echo "[psy][lidar] Package ros-${ROS_DISTRO:-jazzy}-hls-lfcd-lds-driver not found in apt cache; will clone from source"
   else
-    sudo apt-get install -y "ros-${ROS_DISTRO:-jazzy}-hls-lfcd-lds-driver" || true
+  common_apt_install "ros-${ROS_DISTRO:-jazzy}-hls-lfcd-lds-driver"
   fi
   if ! ros2 pkg executables hls_lfcd_lds_driver >/dev/null 2>&1; then
     common_clone_repo https://github.com/ROBOTIS-GIT/hls_lfcd_lds_driver "$SRC/hls_lfcd_lds_driver"

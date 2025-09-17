@@ -17,22 +17,25 @@ ensure_numpy() { common_ensure_numpy; }
 
 provision() {
   ensure_ws
-  sudo apt-get update -y
-  # Prefer distro colcon package name (python3-colcon-common-extensions), fallback to ros-dev-tools already installed by ros.sh
-  sudo apt-get install -y python3-colcon-common-extensions || true
+  # Defer apt installs to combine them later
+  export PSY_DEFER_APT=1
+  # Prefer distro colcon package name; fallback handled in ros.sh
+  common_apt_install python3-colcon-common-extensions
   # Ensure core C++ vision deps for packages like kinect_ros2
   # These provide cv_bridge headers and OpenCV C++ libs required at compile time
-  sudo apt-get install -y \
+  common_apt_install \
     ros-${ROS_DISTRO:-jazzy}-cv-bridge \
     ros-${ROS_DISTRO:-jazzy}-image-transport \
     ros-${ROS_DISTRO:-jazzy}-image-transport-plugins \
     ros-${ROS_DISTRO:-jazzy}-vision-msgs \
-    libopencv-dev || true
+    libopencv-dev
 }
 build() {
   safe_source_ros
   ensure_ws
   ensure_numpy
+  # Install any queued apt packages before building
+  common_flush_apt_queue || true
   # Resolve ROS package dependencies
   if command -v rosdep >/dev/null 2>&1; then
     echo "[psy] Resolving dependencies via rosdep"

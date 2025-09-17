@@ -16,11 +16,11 @@ PY_NODE_PATH="${ETC_DIR}/voice_node.py"
 LAUNCH_PATH="${ETC_DIR}/voice.launch.sh"
 
 ensure_deps() {
-  sudo apt-get update -y
   # piper for TTS, alsa-utils for aplay playback
-  sudo apt-get install -y piper alsa-utils || true
+    export PSY_DEFER_APT=1
+    common_apt_install piper alsa-utils
   # Try to get packaged voices if available (ignored if not found)
-  sudo apt-get install -y piper-voices || true
+    common_apt_install piper-voices
 }
 
 ensure_voice_model() {

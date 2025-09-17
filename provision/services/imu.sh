@@ -7,6 +7,7 @@ REPO_IMU="https://github.com/hiwad-aziz/ros2_mpu6050_driver.git"
 
 provision() {
   common_safe_source_ros || true
+  export PSY_DEFER_APT=1
   common_apt_install i2c-tools libi2c-dev
   sudo raspi-config nonint do_i2c 0 2>/dev/null || true
   grep -q "i2c-dev" /etc/modules || echo i2c-dev | sudo tee -a /etc/modules

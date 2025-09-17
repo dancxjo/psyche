@@ -13,14 +13,12 @@ provision() {
   common_clone_repo "$REPO_LIBCREATE" "$SRC/libcreate" "$BRANCH_LIBCREATE"
   common_clone_repo "$REPO_CREATE_ROBOT" "$SRC/create_robot"
   # udev for stable /dev/create
-  sudo tee /etc/udev/rules.d/70-create.rules >/dev/null <<'RULE'
+  common_write_udev_rules /etc/udev/rules.d/70-create.rules RULE <<'RULE'
 KERNEL=="ttyUSB*", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="create", MODE="0666"
 RULE
-  sudo udevadm control --reload-rules && sudo udevadm trigger || true
 
   # launcher for systemd (optional, placeholder)
-  sudo mkdir -p /etc/psyched
-  sudo tee /etc/psyched/foot.launch.sh >/dev/null <<'LAUNCH'
+  common_install_launcher foot LAUNCH <<'LAUNCH'
 #!/usr/bin/env bash
 set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
@@ -28,7 +26,6 @@ source /opt/psyched/ws/install/setup.bash
 # Adjust port to /dev/create if udev rule applies
 exec ros2 run create_driver create_driver_node --ros-args -p port:=/dev/create -r /odom:=/odom
 LAUNCH
-  sudo chmod +x /etc/psyched/foot.launch.sh
 }
 
 case "${1:-provision}" in

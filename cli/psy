@@ -6,6 +6,7 @@ PROV="$ROOT/provision"
 HOSTCFG_DIR="$PROV/hosts"
 SVCDIR="$PROV/services"
 WS="$ROOT/ws"
+. "$SVCDIR/_common.sh" 2>/dev/null || true
 
 usage() {
   cat <<USAGE
@@ -67,10 +68,13 @@ case "$cmd" in
         CFG="$(host_cfg "$HOST")"
         [ -f "$CFG" ] || { echo "No host config: $CFG" >&2; exit 1; }
         mapfile -t SERVICES < <(toml_get_array "$CFG" "services")
+        export PSY_DEFER_APT=1
         for s in "${SERVICES[@]}"; do
           echo "[psy] apply service: $s"
           bash "$SVCDIR/$s.sh" provision
         done
+        # Perform one apt-get install for all queued packages
+        common_flush_apt_queue || true
         echo "[psy] Performing one workspace build after provisioning all services"
         bash "$SVCDIR/workspace.sh" build || true
         ;;
@@ -121,6 +125,8 @@ case "$cmd" in
     ;;
   build)
     mkdir -p "$WS/src"
+    # If any packages were queued, install them now
+    common_flush_apt_queue || true
     bash "$SVCDIR/workspace.sh" build
     ;;
   bringup)

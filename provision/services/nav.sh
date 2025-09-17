@@ -3,9 +3,9 @@ set -euo pipefail
 
 provision() {
   set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
-  # Install nav2 bringup and slam_toolbox
-  sudo apt-get update -y
-  sudo apt-get install -y ros-${ROS_DISTRO:-jazzy}-nav2-bringup ros-${ROS_DISTRO:-jazzy}-slam-toolbox ros-${ROS_DISTRO:-jazzy}-tf2-ros
+  # Install nav2 bringup and slam_toolbox (queued)
+  export PSY_DEFER_APT=1
+  common_apt_install ros-${ROS_DISTRO:-jazzy}-nav2-bringup ros-${ROS_DISTRO:-jazzy}-slam-toolbox ros-${ROS_DISTRO:-jazzy}-tf2-ros
 
   sudo mkdir -p /etc/psyched
   sudo tee /etc/psyched/nav.launch.sh >/dev/null <<'LAUNCH'
