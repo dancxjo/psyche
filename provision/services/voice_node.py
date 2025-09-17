@@ -20,7 +20,24 @@ class PiperVoiceNode(Node):
         host = os.environ.get('PSY_HOST', '') or socket.gethostname().split('.')[0]
         self.base_topic = f'/voice/{host}'
 
-        self.model_path = os.environ.get('PSY_VOICE_MODEL', '/opt/psyched/voices/en_US-lessac-medium.onnx')
+        # Model selection with fallback list
+        # Primary model from PSY_VOICE_MODEL; additional fallbacks from PSY_VOICE_MODEL_FALLBACKS (colon-separated)
+    primary_model = os.environ.get('PSY_VOICE_MODEL', '/opt/psyched/voices/en_US-kyle-high.onnx')
+        fallback_list = os.environ.get('PSY_VOICE_MODEL_FALLBACKS', '').strip()
+        candidates = [primary_model]
+        if fallback_list:
+            candidates.extend([p for p in fallback_list.split(':') if p])
+        resolved_model = None
+        for cand in candidates:
+            if os.path.isfile(cand):
+                resolved_model = cand
+                break
+        if not resolved_model:
+            self.get_logger().warn(
+                f"No available voice model found among candidates: {candidates}. Using primary path anyway; synthesis may fail."
+            )
+            resolved_model = primary_model
+        self.model_path = resolved_model
         self.piper_bin = self._resolve_piper_bin()
 
         self.queue: 'queue.Queue[str]' = queue.Queue()

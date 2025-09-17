@@ -25,17 +25,30 @@ ensure_deps() {
 }
 
 ensure_voice_model() {
-  local model_name="${1:-en_US-lessac-medium}"
+    # Default male high-quality voice switched to en_US-kyle-high
+    local model_name="${1:-en_US-kyle-high}"
   local model_basename="$model_name"
   local onnx="${VOICES_DIR}/${model_basename}.onnx"
   local json="${VOICES_DIR}/${model_basename}.onnx.json"
+    local expected_sha="${PSY_VOICE_MODEL_SHA256:-}"  # Optional: expected SHA256 of the .onnx for integrity
 
   sudo mkdir -p "${VOICES_DIR}"
 
   # If already present, nothing to do
   if [ -f "$onnx" ] && [ -f "$json" ]; then
     echo "[voice] Using existing model: $onnx"
-    return 0
+        if [ -n "$expected_sha" ] && command -v sha256sum >/dev/null 2>&1; then
+            local have_sha
+            have_sha="$(sha256sum "$onnx" | awk '{print $1}')"
+            if [ "$have_sha" != "$expected_sha" ]; then
+                echo "[voice] WARNING: Existing model SHA256 mismatch (have=$have_sha expected=$expected_sha); re-downloading" >&2
+                sudo rm -f "$onnx" "$json" || true
+            else
+                return 0
+            fi
+        else
+            return 0
+        fi
   fi
 
     # Try to link or copy from common system voice directories if available
@@ -136,7 +149,19 @@ ensure_voice_model() {
     fi
 
   if [ -f "$onnx" ] && [ -f "$json" ]; then
-    echo "[voice] Model downloaded to $VOICES_DIR"
+        # Integrity verification if expected SHA given
+        if [ -n "$expected_sha" ] && command -v sha256sum >/dev/null 2>&1; then
+            have_sha="$(sha256sum "$onnx" | awk '{print $1}')"
+            if [ "$have_sha" != "$expected_sha" ]; then
+                echo "[voice] ERROR: Downloaded model SHA256 mismatch (have=$have_sha expected=$expected_sha)" >&2
+                echo "[voice] Removing corrupt model files." >&2
+                sudo rm -f "$onnx" "$json" || true
+            else
+                echo "[voice] Model downloaded & verified ($model_basename)"
+            fi
+        else
+            echo "[voice] Model downloaded to $VOICES_DIR"
+        fi
   else
         echo "[voice] WARNING: Could not obtain model files automatically." >&2
         echo "[voice] Hints:" >&2
@@ -407,7 +432,7 @@ if [ -z "${PSY_PIPER_BIN:-}" ]; then
 fi
 
 export PSY_PIPER_BIN
-export PSY_VOICE_MODEL="${PSY_VOICE_MODEL:-/opt/psyched/voices/en_US-lessac-medium.onnx}"
+export PSY_VOICE_MODEL="${PSY_VOICE_MODEL:-/opt/psyched/voices/en_US-kyle-high.onnx}"
 exec python3 /etc/psyched/voice_node.py
 LAUNCH
   sudo chmod +x "$LAUNCH_PATH"
@@ -415,9 +440,10 @@ LAUNCH
 
 provision() {
   ensure_deps
-  ensure_voice_model "${PSY_VOICE_MODEL_NAME:-en_US-lessac-medium}"
+    ensure_voice_model "${PSY_VOICE_MODEL_NAME:-en_US-kyle-high}"
   install_node
   echo "[voice] provisioned. Use: sudo systemctl start psyched@voice.service"
+        echo "[voice] Current model: ${PSY_VOICE_MODEL_NAME:-en_US-kyle-high} (override with PSY_VOICE_MODEL_NAME / PSY_VOICE_MODEL)"
 }
 
 case "${1:-provision}" in

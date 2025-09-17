@@ -26,8 +26,56 @@ Requirements:
 
 Model selection:
 
-- Default voice model path: `/opt/psyched/voices/en_US-lessac-medium.onnx`
-- Override by placing `PSY_VOICE_MODEL=/path/to/model.onnx` in `/etc/default/psyched-voice`.
+- Default model path: `/opt/psyched/voices/en_US-kyle-high.onnx` (male high-quality voice).
+- To use a high-quality male voice (example: `en_US-kyle-high`), set one of:
+  - At provisioning time (temporary):
+    ```bash
+    PSY_VOICE_MODEL_NAME=en_US-kyle-high /opt/psyched/provision/services/voice.sh provision
+    ```
+  - Persistent via `/etc/default/psyched-voice`:
+    ```bash
+    sudo tee /etc/default/psyched-voice >/dev/null <<'EOF'
+    # Primary male Piper model (high quality)
+    PSY_VOICE_MODEL=/opt/psyched/voices/en_US-kyle-high.onnx
+    # Optional: fallbacks (colon separated) – will pick first that exists
+    PSY_VOICE_MODEL_FALLBACKS=/opt/psyched/voices/en_US-ryan-high.onnx:/opt/psyched/voices/en_GB-southern_english_male-medium.onnx
+    # Optional integrity check (SHA256 of the .onnx file)
+    # PSY_VOICE_MODEL_SHA256=<sha256sum-of-en_US-kyle-high.onnx>
+    EOF
+    ```
+  - Then re-provision or restart service:
+    ```bash
+    sudo systemctl restart psyched@voice.service || /opt/psyched/provision/services/voice.sh provision
+    ```
+
+Supported environment variables:
+
+- `PSY_VOICE_MODEL_NAME`: Model basename (without path) fetched into `/opt/psyched/voices/<name>.onnx`.
+- `PSY_VOICE_MODEL`: Absolute path to model to load (overrides *_NAME at runtime).
+- `PSY_VOICE_MODEL_FALLBACKS`: Colon-separated list of alternative model paths the node will try if the primary does not exist.
+- `PSY_VOICE_MODEL_SHA256`: If set, provisioning verifies the `.onnx` file's SHA256 and re-downloads if mismatched.
+
+Finding a male voice:
+
+Common high-quality male English voices (choose one):
+
+- `en_US-kyle-high` (clear US male, high quality)
+- `en_US-ryan-high` (US male, high quality)
+- `en_GB-southern_english_male-medium` (UK male)
+
+You can list available voices from the upstream repository: https://github.com/rhasspy/piper-voices
+
+Manual download example (default male high-quality model):
+
+```bash
+sudo mkdir -p /opt/psyched/voices
+curl -fL -o /opt/psyched/voices/en_US-kyle-high.onnx \
+  https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/kyle/high/en_US-kyle-high.onnx
+curl -fL -o /opt/psyched/voices/en_US-kyle-high.onnx.json \
+  https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/kyle/high/en_US-kyle-high.onnx.json
+``` 
+
+If provisioning doesn't auto-download, set `PSY_VOICE_MODEL` as shown above after manual download.
 
 Systemd:
 
@@ -56,11 +104,13 @@ Offline or network-restricted environments:
 
 - Manual download from Hugging Face mirrors (example for `en_US-lessac-medium`):
 
+  Older example (previous default female/neutral voice):
+
   ```bash
   sudo mkdir -p /opt/psyched/voices
-  sudo curl -fL -o /opt/psyched/voices/en_US-lessac-medium.onnx \
+  curl -fL -o /opt/psyched/voices/en_US-lessac-medium.onnx \
     https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx
-  sudo curl -fL -o /opt/psyched/voices/en_US-lessac-medium.onnx.json \
+  curl -fL -o /opt/psyched/voices/en_US-lessac-medium.onnx.json \
     https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json
   ```
 
