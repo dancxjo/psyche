@@ -24,20 +24,10 @@ class PiperVoiceNode(Node):
         # Primary model from PSY_VOICE_MODEL; additional fallbacks from PSY_VOICE_MODEL_FALLBACKS (colon-separated)
         primary_model = os.environ.get('PSY_VOICE_MODEL', '/opt/psyched/voices/en_US-kyle-high.onnx')
         fallback_list = os.environ.get('PSY_VOICE_MODEL_FALLBACKS', '').strip()
-        candidates = [primary_model]
+        self.model_candidates = [primary_model]
         if fallback_list:
-            candidates.extend([p for p in fallback_list.split(':') if p])
-        resolved_model = None
-        for cand in candidates:
-            if os.path.isfile(cand):
-                resolved_model = cand
-                break
-        if not resolved_model:
-            self.get_logger().warn(
-                f"No available voice model found among candidates: {candidates}. Using primary path anyway; synthesis may fail."
-            )
-            resolved_model = primary_model
-        self.model_path = resolved_model
+            self.model_candidates.extend([p for p in fallback_list.split(':') if p])
+        self.model_path = self._resolve_model_path(initial=True)
         self.piper_bin = self._resolve_piper_bin()
 
         self.queue: 'queue.Queue[str]' = queue.Queue()
@@ -129,8 +119,13 @@ class PiperVoiceNode(Node):
         try:
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tf:
                 wav_path = tf.name
+            model_path = self._resolve_model_path()
+            if not model_path:
+                self.get_logger().error('No usable Piper model found; skipping utterance.')
+                return
+
             synth = subprocess.run(
-                [self.piper_bin, '-m', self.model_path, '-o', wav_path],
+                [self.piper_bin, '-m', model_path, '-o', wav_path],
                 input=text.encode('utf-8'),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -188,6 +183,27 @@ class PiperVoiceNode(Node):
                     os.unlink(wav_path)
                 except Exception:
                     pass
+
+    def _resolve_model_path(self, initial: bool = False) -> Optional[str]:
+        for candidate in self.model_candidates:
+            if not candidate:
+                continue
+            if os.path.isfile(candidate):
+                if candidate != self.model_path:
+                    self.get_logger().info(f'Using Piper model: {candidate}')
+                self.model_path = candidate
+                return candidate
+        if initial:
+            self.get_logger().warn(
+                f"No available voice model found among candidates: {self.model_candidates}."
+            )
+            self.model_path = None
+            return None
+        self.get_logger().error(
+            f"No Piper model files exist for candidates: {self.model_candidates}."
+        )
+        self.model_path = None
+        return None
 
     def _resolve_piper_bin(self) -> str:
         configured = os.environ.get('PSY_PIPER_BIN', '').strip()
