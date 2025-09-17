@@ -17,11 +17,11 @@ PY_NODE_PATH="${ETC_DIR}/voice_node.py"
 LAUNCH_PATH="${ETC_DIR}/voice.launch.sh"
 
 ensure_deps() {
-  # piper for TTS, alsa-utils for aplay playback
-    export PSY_DEFER_APT=1
-    common_apt_install piper alsa-utils
+  # Install Piper CLI engine (piper-tts) and ALSA playback tools
+  export PSY_DEFER_APT=1
+  common_apt_install piper-tts alsa-utils
   # Try to get packaged voices if available (ignored if not found)
-                common_apt_install ?piper-voices
+  common_apt_install ?piper-voices
 }
 
 ensure_voice_model() {
@@ -364,6 +364,49 @@ if [ -f /etc/default/psyched-voice ]; then
   source /etc/default/psyched-voice
 fi
 
+# Figure out which Piper binary to use (prefer CLI engine)
+if [ -n "${PSY_PIPER_BIN:-}" ]; then
+  if command -v "$PSY_PIPER_BIN" >/dev/null 2>&1; then
+    resolved="$(command -v "$PSY_PIPER_BIN")"
+    if [ -f "$resolved" ]; then
+      if grep -q "gi.require_version('Gtk'" "$resolved" 2>/dev/null; then
+        echo "[psyched-voice] Configured PSY_PIPER_BIN ($resolved) appears to be the GTK frontend; ignoring" >&2
+        PSY_PIPER_BIN=""
+      else
+        PSY_PIPER_BIN="$resolved"
+      fi
+    else
+      PSY_PIPER_BIN="$resolved"
+    fi
+  else
+    echo "[psyched-voice] Configured PSY_PIPER_BIN '$PSY_PIPER_BIN' not found; attempting auto-detect" >&2
+    PSY_PIPER_BIN=""
+  fi
+fi
+
+if [ -z "${PSY_PIPER_BIN:-}" ]; then
+  for candidate in piper-tts piper /usr/local/bin/piper; do
+    [ -n "$candidate" ] || continue
+    if command -v "$candidate" >/dev/null 2>&1; then
+      resolved="$(command -v "$candidate")"
+      if [ -f "$resolved" ]; then
+        if grep -q "gi.require_version('Gtk'" "$resolved" 2>/dev/null; then
+          continue
+        fi
+      fi
+      PSY_PIPER_BIN="$resolved"
+      break
+    fi
+  done
+fi
+
+if [ -z "${PSY_PIPER_BIN:-}" ]; then
+  echo "[psyched-voice] ERROR: Could not locate a Piper CLI binary (piper-tts)." >&2
+  echo "[psyched-voice] Install 'piper-tts' or make it available and set PSY_PIPER_BIN." >&2
+  exit 1
+fi
+
+export PSY_PIPER_BIN
 export PSY_VOICE_MODEL="${PSY_VOICE_MODEL:-/opt/psyched/voices/en_US-lessac-medium.onnx}"
 exec python3 /etc/psyched/voice_node.py
 LAUNCH

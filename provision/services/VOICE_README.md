@@ -22,6 +22,7 @@ Requirements:
 
 - ROS 2 (e.g., Jazzy) environment sourced.
 - Audio output via ALSA (`aplay`).
+- Piper CLI engine (`piper-tts`) available in `PATH` (provisioning installs it and auto-detects the binary; override with `PSY_PIPER_BIN` if needed).
 
 Model selection:
 
@@ -40,6 +41,12 @@ ros2 topic pub --once \
 ```
 
 Offline or network-restricted environments:
+
+- Install the Piper CLI engine first (prefer `piper-tts` package when available):
+
+  ```bash
+  sudo apt-get update && sudo apt-get install piper-tts
+  ```
 
 - Preferred: install packaged voices if available
 
@@ -71,4 +78,6 @@ If you use a different model, set `PSY_VOICE_MODEL_NAME` in the environment befo
 
 ```bash
 PSY_VOICE_MODEL=/opt/psyched/voices/<your-model>.onnx
+# Optional: point to a specific Piper binary (defaults to auto-detect)
+# PSY_PIPER_BIN=/usr/local/bin/piper
 ```

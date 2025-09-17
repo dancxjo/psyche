@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import threading
 import queue
+import shutil
 from typing import Optional
 
 import rclpy
@@ -20,6 +21,7 @@ class PiperVoiceNode(Node):
         self.base_topic = f'/voice/{host}'
 
         self.model_path = os.environ.get('PSY_VOICE_MODEL', '/opt/psyched/voices/en_US-lessac-medium.onnx')
+        self.piper_bin = self._resolve_piper_bin()
 
         self.queue: 'queue.Queue[str]' = queue.Queue()
         self.current_proc: Optional[subprocess.Popen] = None
@@ -37,7 +39,10 @@ class PiperVoiceNode(Node):
         self.player_thread = threading.Thread(target=self._player_loop, daemon=True)
         self.player_thread.start()
 
-        self.get_logger().info(f'PiperVoiceNode ready. Text: {self.base_topic} | Cmd: {self.base_topic}/cmd')
+        self.get_logger().info(
+            f'PiperVoiceNode ready. Text: {self.base_topic} | Cmd: {self.base_topic}/cmd | '
+            f'Piper: {self.piper_bin}'
+        )
 
     def text_cb(self, msg: String):
         text = msg.data.strip()
@@ -108,14 +113,17 @@ class PiperVoiceNode(Node):
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tf:
                 wav_path = tf.name
             synth = subprocess.run(
-                ['piper', '-m', self.model_path, '-o', wav_path],
+                [self.piper_bin, '-m', self.model_path, '-o', wav_path],
                 input=text.encode('utf-8'),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 check=False,
             )
             if synth.returncode != 0 or not os.path.exists(wav_path):
-                self.get_logger().error(f'piper synth failed rc={synth.returncode}: {synth.stderr.decode(errors="ignore")[:200]}')
+                self.get_logger().error(
+                    f'piper synth failed rc={synth.returncode}: '
+                    f'{synth.stderr.decode(errors="ignore")[:200]}'
+                )
                 return
 
             with self.lock:
@@ -163,6 +171,37 @@ class PiperVoiceNode(Node):
                     os.unlink(wav_path)
                 except Exception:
                     pass
+
+    def _resolve_piper_bin(self) -> str:
+        configured = os.environ.get('PSY_PIPER_BIN', '').strip()
+        candidates = []
+        if configured:
+            candidates.append(configured)
+        candidates.extend(['piper-tts', 'piper'])
+
+        examined = set()
+        for candidate in candidates:
+            if not candidate:
+                continue
+            resolved = shutil.which(candidate)
+            if resolved is None and os.path.isabs(candidate):
+                if os.access(candidate, os.X_OK):
+                    resolved = candidate
+            if not resolved or resolved in examined:
+                continue
+            examined.add(resolved)
+            try:
+                with open(resolved, 'rb') as handle:
+                    head = handle.read(4096)
+                if b"gi.require_version('Gtk'" in head:
+                    continue
+            except OSError:
+                pass
+            return resolved
+
+        raise RuntimeError(
+            "No Piper CLI binary found. Install 'piper-tts' or set PSY_PIPER_BIN to a valid executable."
+        )
 
 
 def main():
