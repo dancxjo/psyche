@@ -515,347 +515,92 @@ CFG
 }
 
 install_node() {
-    sudo mkdir -p "$ETC_DIR"
-    # Prefer installing Python node from repository if available
-    if [ -f "${ROOT}/provision/services/voice_node.py" ]; then
-        sudo install -m 0755 "${ROOT}/provision/services/voice_node.py" "$PY_NODE_PATH"
-    else
-        # Fallback: embed Python ROS2 node into /etc/psyched/voice_node.py
-    sudo tee "$PY_NODE_PATH" >/dev/null <<'PY'
-#!/usr/bin/env python3
-import os
-import signal
-import socket
-import subprocess
-import tempfile
-import threading
-import queue
-import shutil
-from typing import Optional
+  sudo mkdir -p "$ETC_DIR"
+  if [ -f "${ROOT}/provision/services/voice_node.py" ]; then
+    sudo install -m 0755 "${ROOT}/provision/services/voice_node.py" "$PY_NODE_PATH"
+  else
+    echo "[voice] ERROR: voice_node.py missing from repository; cannot install" >&2
+    return 1
+  fi
 
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String, Empty
-
-
-class PiperVoiceNode(Node):
-    def __init__(self):
-        super().__init__('piper_voice')
-        host = os.environ.get('PSY_HOST', '') or socket.gethostname().split('.')[0]
-        self.base_topic = f'/voice/{host}'
-
-        # Model selection (primary + fallbacks)
-        primary_model = os.environ.get('PSY_VOICE_MODEL', '/opt/psyched/voices/en_US-kyle-high.onnx')
-        fallback_list = os.environ.get('PSY_VOICE_MODEL_FALLBACKS', '').strip()
-        candidates = [primary_model]
-        if fallback_list:
-            candidates.extend([p for p in fallback_list.split(':') if p])
-        resolved_model = None
-        for cand in candidates:
-            if os.path.isfile(cand):
-                resolved_model = cand
-                break
-        if not resolved_model:
-            self.get_logger().warn(
-                f"No available voice model found among candidates: {candidates}. Using primary path; synthesis may fail." )
-            resolved_model = primary_model
-        self.model_path = resolved_model
-        self.piper_bin = self._resolve_piper_bin()
-
-        # Queue and player state
-        self.queue: 'queue.Queue[str]' = queue.Queue()
-        self.current_proc: Optional[subprocess.Popen] = None
-        self.current_wav: Optional[str] = None
-        self.paused = False
-        self.abandon_flag = False
-        self.lock = threading.RLock()
-
-        # Subscribers
-        self.create_subscription(String, self.base_topic, self.text_cb, 10)
-        self.create_subscription(String, f'{self.base_topic}/cmd', self.cmd_cb, 10)
-        self.create_subscription(Empty, f'{self.base_topic}/interrupt', lambda _: self._interrupt(), 10)
-        self.create_subscription(Empty, f'{self.base_topic}/resume', lambda _: self._resume(), 10)
-        self.create_subscription(Empty, f'{self.base_topic}/abandon', lambda _: self._abandon(), 10)
-
-        # Player thread
-        self.player_thread = threading.Thread(target=self._player_loop, daemon=True)
-        self.player_thread.start()
-
-        self.get_logger().info(
-            f'PiperVoiceNode ready. Text: {self.base_topic} | Cmd: {self.base_topic}/cmd | Piper: {self.piper_bin}'
-        )
-
-    # Callbacks
-    def text_cb(self, msg: String):
-        text = msg.data.strip()
-        if not text:
-            return
-        self.get_logger().info(f'Queue: {text[:64]}...')
-        self.queue.put(text)
-
-    def cmd_cb(self, msg: String):
-        cmd = msg.data.strip().lower()
-        if cmd in ('interrupt', 'pause', 'stop'):
-            self._interrupt()
-        elif cmd in ('resume', 'continue'):
-            self._resume()
-        elif cmd in ('abandon', 'cancel', 'flush'):
-            self._abandon()
-        else:
-            self.get_logger().warn(f'Unknown cmd: {cmd}')
-
-    # Control actions
-    def _interrupt(self):
-        with self.lock:
-            if self.current_proc and not self.paused:
-                try:
-                    os.kill(self.current_proc.pid, signal.SIGSTOP)
-                    self.paused = True
-                    self.get_logger().info('Paused (interrupt).')
-                except Exception as e:
-                    self.get_logger().error(f'Interrupt failed: {e}')
-
-    def _resume(self):
-        with self.lock:
-            if self.current_proc and self.paused:
-                try:
-                    os.kill(self.current_proc.pid, signal.SIGCONT)
-                    self.paused = False
-                    self.get_logger().info('Resumed.')
-                except Exception as e:
-                    self.get_logger().error(f'Resume failed: {e}')
-
-    def _abandon(self):
-        with self.lock:
-            self.abandon_flag = True
-            # Clear queue
-            try:
-                while True:
-                    self.queue.get_nowait()
-            except queue.Empty:
-                pass
-            # Terminate current playback
-            if self.current_proc:
-                try:
-                    self.current_proc.terminate()
-                    self.get_logger().info('Abandon: terminated current playback and flushed queue.')
-                except Exception as e:
-                    self.get_logger().error(f'Abandon terminate failed: {e}')
-
-    # Worker
-    def _player_loop(self):
-        while rclpy.ok():
-            try:
-                text = self.queue.get(timeout=0.2)
-            except queue.Empty:
-                continue
-            if text is None:
-                continue
-            self._speak_text(text)
-
-    def _speak_text(self, text: str):
-        wav_path = None
-        try:
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tf:
-                wav_path = tf.name
-            synth = subprocess.run(
-                [self.piper_bin, '-m', self.model_path, '-o', wav_path],
-                input=text.encode('utf-8'),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=False,
-            )
-            if synth.returncode != 0 or not os.path.exists(wav_path):
-                self.get_logger().error(
-                    f'piper synth failed rc={synth.returncode}: '
-                    f'{synth.stderr.decode(errors="ignore")[:200]}'
-                )
-                return
-
-            with self.lock:
-                self.current_wav = wav_path
-                self.current_proc = subprocess.Popen(['aplay', '-q', wav_path])
-                self.paused = False
-                self.abandon_flag = False
-
-            while True:
-                with self.lock:
-                    proc = self.current_proc
-                    abandon = self.abandon_flag
-                if proc is None:
-                    break
-                ret = proc.poll()
-                if ret is not None:
-                    break
-                if abandon:
-                    try:
-                        proc.terminate()
-                    except Exception:
-                        pass
-                    break
-                rclpy.spin_once(self, timeout_sec=0.05)
-
-        except Exception as e:
-            self.get_logger().error(f'Playback error: {e}')
-        finally:
-            with self.lock:
-                if self.current_proc:
-                    try:
-                        self.current_proc.wait(timeout=0.2)
-                    except Exception:
-                        try:
-                            self.current_proc.kill()
-                        except Exception:
-                            pass
-                self.current_proc = None
-                self.paused = False
-                self.abandon_flag = False
-                cw = self.current_wav
-                self.current_wav = None
-            if wav_path and os.path.exists(wav_path):
-                try:
-                    os.unlink(wav_path)
-                except Exception:
-                    pass
-
-    def _resolve_piper_bin(self) -> str:
-        configured = os.environ.get('PSY_PIPER_BIN', '').strip()
-        candidates = []
-        if configured:
-            candidates.append(configured)
-        candidates.extend(['piper-tts', 'piper'])
-        examined = set()
-        for candidate in candidates:
-            if not candidate:
-                continue
-            resolved = shutil.which(candidate)
-            if resolved is None and os.path.isabs(candidate) and os.access(candidate, os.X_OK):
-                resolved = candidate
-            if not resolved or resolved in examined:
-                continue
-            examined.add(resolved)
-            try:
-                with open(resolved, 'rb') as handle:
-                    head = handle.read(4096)
-                if b"gi.require_version('Gtk'" in head:
-                    continue
-            except OSError:
-                pass
-            return resolved
-        raise RuntimeError("No Piper CLI binary found. Install 'piper-tts' or set PSY_PIPER_BIN.")
-
-
-def main():
-    rclpy.init()
-    node = PiperVoiceNode()
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
-
-
-if __name__ == '__main__':
-    main()
-PY
-        sudo chmod +x "$PY_NODE_PATH"
-    fi
-
-  # Install launch wrapper
   sudo tee "$LAUNCH_PATH" >/dev/null <<'LAUNCH'
 #!/usr/bin/env bash
 set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
 
 if [ -f /etc/default/psyched-voice ]; then
-  set +u
-  # shellcheck disable=SC1091
   source /etc/default/psyched-voice
-  set -u
 fi
 
-engine="${PSY_TTS_ENGINE:-espeak}"
-engine="${engine,,}"
-case "$engine" in
-  "") engine="espeak" ;;
-  espeak-ng|espeakng) engine="espeak" ;;
-  espeak|piper|auto) : ;;
-  *)
-    echo "[psyched-voice] WARNING: Unknown PSY_TTS_ENGINE '$engine'; defaulting to espeak" >&2
-    engine="espeak"
-    ;;
-esac
+ENGINE="${PSY_TTS_ENGINE:-espeak}"
+ENGINE="${ENGINE,,}"
 
-detect_piper() {
-  local candidate resolved
-  for candidate in "${PSY_PIPER_BIN:-}" piper-tts piper /usr/local/bin/piper; do
-    [ -n "$candidate" ] || continue
-    if resolved="$(command -v "$candidate" 2>/dev/null)"; then
-      if [ -f "$resolved" ]; then
-        if LC_ALL=C grep -a -m1 "gi.require_version('Gtk'" "$resolved" >/dev/null 2>&1; then
+if [ "$ENGINE" = "auto" ]; then
+  if [ -z "${PSY_PIPER_BIN:-}" ]; then
+    for candidate in piper-tts piper /usr/local/bin/piper; do
+      [ -n "$candidate" ] || continue
+      if command -v "$candidate" >/dev/null 2>&1; then
+        resolved="$(command -v "$candidate")"
+        if [ -f "$resolved" ] && grep -q "gi.require_version('Gtk'" "$resolved" 2>/dev/null; then
           continue
         fi
+        PSY_PIPER_BIN="$resolved"
+        break
       fi
-      echo "$resolved"
-      return 0
-    fi
-  done
-  return 1
-}
-
-resolved_engine="$engine"
-resolved_piper=""
-case "$engine" in
-  auto)
-    if resolved_piper="$(detect_piper)"; then
-      resolved_engine="piper"
-    else
-      resolved_engine="espeak"
-    fi
-    ;;
-  piper)
-    if resolved_piper="$(detect_piper)"; then
-      resolved_engine="piper"
-    else
-      echo "[psyched-voice] WARNING: Piper engine requested but CLI not found; falling back to espeak" >&2
-      resolved_engine="espeak"
-    fi
-    ;;
-  espeak)
-    resolved_engine="espeak"
-    ;;
-esac
-
-if [ "$resolved_engine" = "piper" ]; then
-  export PSY_TTS_ENGINE="piper"
-  export PSY_PIPER_BIN="$resolved_piper"
-  if [ -z "${PSY_VOICE_MODEL:-}" ] && [ -n "${PSY_VOICE_MODEL_NAME:-}" ]; then
-    export PSY_VOICE_MODEL="/opt/psyched/voices/${PSY_VOICE_MODEL_NAME}.onnx"
+    done
   fi
-elif [ "$resolved_engine" = "espeak" ]; then
-  export PSY_TTS_ENGINE="espeak"
-  if [ -n "${PSY_ESPEAK_BIN:-}" ]; then
-    if ! command -v "$PSY_ESPEAK_BIN" >/dev/null 2>&1; then
-      echo "[psyched-voice] WARNING: Configured PSY_ESPEAK_BIN '$PSY_ESPEAK_BIN' not executable; ignoring" >&2
-      unset PSY_ESPEAK_BIN
-    fi
-  fi
-  if [ -z "${PSY_ESPEAK_BIN:-}" ]; then
-    if command -v espeak-ng >/dev/null 2>&1; then
-      export PSY_ESPEAK_BIN="$(command -v espeak-ng)"
-    else
-      echo "[psyched-voice] ERROR: espeak-ng binary not found in PATH" >&2
-      exit 1
-    fi
+  if [ -n "${PSY_PIPER_BIN:-}" ]; then
+    ENGINE="piper"
+  else
+    ENGINE="espeak"
   fi
 fi
 
+if [ "$ENGINE" = "piper" ]; then
+  if [ -n "${PSY_PIPER_BIN:-}" ]; then
+    resolved="$(command -v "$PSY_PIPER_BIN" 2>/dev/null || true)"
+    if [ -n "$resolved" ] && [ -f "$resolved" ] && grep -q "gi.require_version('Gtk'" "$resolved" 2>/dev/null; then
+      resolved=""
+    fi
+    if [ -n "$resolved" ]; then
+      PSY_PIPER_BIN="$resolved"
+    else
+      PSY_PIPER_BIN=""
+    fi
+  fi
+  if [ -z "${PSY_PIPER_BIN:-}" ]; then
+    for candidate in piper-tts piper /usr/local/bin/piper; do
+      [ -n "$candidate" ] || continue
+      if command -v "$candidate" >/dev/null 2>&1; then
+        resolved="$(command -v "$candidate")"
+        if [ -f "$resolved" ] && grep -q "gi.require_version('Gtk'" "$resolved" 2>/dev/null; then
+          continue
+        fi
+        PSY_PIPER_BIN="$resolved"
+        break
+      fi
+    done
+  fi
+  if [ -z "${PSY_PIPER_BIN:-}" ]; then
+    echo "[psyched-voice] Piper CLI not available; falling back to espeak" >&2
+    ENGINE="espeak"
+  fi
+fi
+
+if [ "$ENGINE" = "piper" ]; then
+  export PSY_PIPER_BIN
+  export PSY_VOICE_MODEL="${PSY_VOICE_MODEL:-/opt/psyched/voices/en_US-kyle-high.onnx}"
+else
+  unset PSY_PIPER_BIN
+fi
+
+export PSY_TTS_ENGINE="$ENGINE"
 exec python3 /etc/psyched/voice_node.py
 LAUNCH
   sudo chmod +x "$LAUNCH_PATH"
 }
+
+
 
 provision() {
     ensure_deps
