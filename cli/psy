@@ -21,6 +21,7 @@ Usage:
   psy systemd install          Install per-service systemd units and enable configured ones
   psy systemd up               Start all enabled service units now
   psy systemd down             Stop all service units
+  psy update                   Reinstall latest psyche from GitHub and re-apply
 USAGE
 }
 
@@ -49,6 +50,15 @@ toml_get_array() { # robust: extract quoted entries from an array, ignore commen
 
 cmd="${1:-}"; shift || true
 case "$cmd" in
+  update)
+    echo "[psy] Updating psyche (this may take 5-45 minutes). Do not cancel."
+    if [ -x "/opt/psyched/tools/install.sh" ]; then
+      sudo bash /opt/psyched/tools/install.sh
+    else
+      echo "[psy] ERROR: installer not found at /opt/psyched/tools/install.sh" >&2
+      exit 1
+    fi
+    ;;
   host)
     sub="${1:-}"; shift || true
     case "$sub" in
