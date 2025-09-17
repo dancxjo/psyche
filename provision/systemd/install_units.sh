@@ -24,7 +24,10 @@ Environment=RCUTILS_LOGGING_DIR=/var/log/ros
 # Avoid setup scripts tripping on unbound COLCON_TRACE under nounset
 Environment=AMENT_TRACE_SETUP_FILES=0
 Environment=COLCON_TRACE=
+Environment=XDG_RUNTIME_DIR=/run/user/%U
 # Prepare log directories before start
+ExecStartPre=/bin/mkdir -p /run/user/%U
+ExecStartPre=/bin/chmod 700 /run/user/%U
 ExecStartPre=/bin/mkdir -p /var/log/ros
 ExecStartPre=/bin/chmod 755 /var/log/ros
 ExecStartPre=/bin/mkdir -p /root/.ros
