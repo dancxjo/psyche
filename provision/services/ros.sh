@@ -13,7 +13,7 @@ provision() {
   sudo apt-get update -y
   sudo apt-get install -y curl gnupg lsb-release
   sudo apt-get install -y software-properties-common
-  sudo apt-get install -y python3-pip python3-venv ros-dev-tools
+  sudo apt-get install -y python3-pip python3-venv python3-numpy ros-dev-tools
   # Try distro colcon extensions; ignore if not found, we'll fallback to pip
   sudo apt-get install -y python3-colcon-common-extensions || true
   # Fallback: install colcon via pip if not present

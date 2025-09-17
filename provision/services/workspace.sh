@@ -15,6 +15,21 @@ ensure_ws() {
   touch "$WS/.colcon_keep"
 }
 
+ensure_numpy() {
+  # Ensure Python3 NumPy is available for rosidl_generator_py
+  if ! python3 -c 'import numpy' >/dev/null 2>&1; then
+    echo "[psy] Python NumPy not found; installing python3-numpy"
+    set +e
+    sudo apt-get update -y && sudo apt-get install -y python3-numpy
+    local rc=$?
+    set -e
+    if [ $rc -ne 0 ]; then
+      echo "[psy] apt install python3-numpy failed; trying pip --user"
+      python3 -m pip install --user numpy || true
+    fi
+  fi
+}
+
 provision() {
   ensure_ws
   sudo apt-get update -y
@@ -24,6 +39,7 @@ provision() {
 build() {
   safe_source_ros
   ensure_ws
+  ensure_numpy
   # Try symlink (editable) install first; if it fails (e.g., due to unsupported
   # --editable in setup.py paths), fall back to a regular build.
   local log="$WS/colcon_first_try.log"
