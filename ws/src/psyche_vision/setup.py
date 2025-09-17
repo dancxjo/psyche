@@ -18,7 +18,6 @@ setup(
     maintainer_email='psyche@robot.local',
     description='Object detection and tracking for psyche robot',
     license='MIT',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'object_detector = psyche_vision.object_detector:main',

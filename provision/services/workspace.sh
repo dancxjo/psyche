@@ -24,7 +24,21 @@ provision() {
 build() {
   safe_source_ros
   ensure_ws
-  (cd "$WS" && colcon build --symlink-install)
+  # Try symlink (editable) install first; if it fails (e.g., due to unsupported
+  # --editable in setup.py paths), fall back to a regular build.
+  local log="$WS/colcon_first_try.log"
+  set +e
+  (
+    cd "$WS" && colcon build --symlink-install
+  ) 2>&1 | tee "$log"
+  local rc=${PIPESTATUS[0]}
+  set -e
+  if [ $rc -ne 0 ]; then
+    echo "[psy] colcon --symlink-install failed (rc=$rc); falling back to non-symlink build"
+    (
+      cd "$WS" && colcon build
+    )
+  fi
 }
 
 case "${1:-provision}" in
