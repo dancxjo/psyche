@@ -6,6 +6,7 @@
 
 # Root paths
 export PSY_ROOT="${PSY_ROOT:-/opt/psyched}"
+export PSY_WS_REAL="${PSY_WS_REAL:-${PSY_ROOT%/}_ws}"
 export PSY_WS="${PSY_WS:-$PSY_ROOT/ws}"
 export WS="$PSY_WS"
 export SRC="$PSY_WS/src"
@@ -22,8 +23,33 @@ common_safe_source_ros() {
 }
 
 common_ensure_ws() {
-  mkdir -p "$SRC"
-  touch "$WS/.colcon_keep" 2>/dev/null || true
+  local real="${PSY_WS_REAL%/}"
+  local link="$PSY_WS"
+
+  # If legacy installs still have a real directory at $link, migrate it beside $PSY_ROOT
+  if [ -d "$link" ] && [ ! -L "$link" ] && [ "$link" != "$real" ]; then
+    mkdir -p "$(dirname "$real")"
+    if [ ! -e "$real" ] || [ -z "$(ls -A "$real" 2>/dev/null)" ]; then
+      rm -rf "$real" 2>/dev/null || true
+      mv "$link" "$real" 2>/dev/null || true
+    else
+      echo "[psy] Notice: workspace already exists at $real; leaving $link in place" >&2
+    fi
+  fi
+
+  mkdir -p "$real/src"
+  touch "$real/.colcon_keep" 2>/dev/null || true
+
+  if [ ! -e "$link" ]; then
+    ln -s "$real" "$link" 2>/dev/null || true
+  elif [ -L "$link" ]; then
+    :
+  elif [ "$link" = "$real" ]; then
+    :
+  else
+    rm -rf "$link" 2>/dev/null || true
+    ln -s "$real" "$link" 2>/dev/null || true
+  fi
 }
 
 common_apt_install() {

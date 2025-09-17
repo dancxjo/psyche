@@ -11,6 +11,7 @@ REPO_OWNER="dancxjo"
 REPO_NAME="psyche"
 BRANCH="main"
 DEST_DIR="/opt/psyched"
+WORKSPACE_TARGET="${PSY_WORKSPACE_TARGET:-${DEST_DIR%/}_ws}"
 
 ZIP_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/archive/refs/heads/${BRANCH}.zip"
 
@@ -102,11 +103,50 @@ PY
 
     cp -a "${TOPDIR}/." "${staged}/"
 
-    # Preserve existing workspace to keep build artifacts/cache
-    if [ -d "${DEST_DIR}/ws" ]; then
-        echo "[install] Preserving existing workspace: ${DEST_DIR}/ws"
+    # Ensure workspace lives beside DEST_DIR and is symlinked into place
+    real_ws="${WORKSPACE_TARGET%/}"
+    keep_inline=false
+
+    if [ -L "${DEST_DIR}/ws" ]; then
+        # Respect existing custom symlink target if present
+        link_target=$(readlink -f "${DEST_DIR}/ws" 2>/dev/null || true)
+        if [ -n "${link_target}" ]; then
+            real_ws="${link_target}"
+        fi
+    fi
+
+    if [ "${real_ws}" = "${DEST_DIR}/ws" ]; then
+        keep_inline=true
+    fi
+
+    if [ "${keep_inline}" = false ]; then
+        mkdir -p "$(dirname "${real_ws}")"
+        if [ -d "${DEST_DIR}/ws" ] && [ ! -L "${DEST_DIR}/ws" ]; then
+            echo "[install] Migrating workspace from ${DEST_DIR}/ws to ${real_ws}"
+            if [ ! -e "${real_ws}" ]; then
+                mv "${DEST_DIR}/ws" "${real_ws}" || true
+            else
+                echo "[install] Merging existing workspace into ${real_ws}"
+                mkdir -p "${real_ws}"
+                cp -a "${DEST_DIR}/ws/." "${real_ws}/" || true
+                rm -rf "${DEST_DIR}/ws" 2>/dev/null || true
+            fi
+        fi
+
+        mkdir -p "${real_ws}/src"
+        touch "${real_ws}/.colcon_keep" 2>/dev/null || true
+
         rm -rf "${staged}/ws" 2>/dev/null || true
-        cp -a "${DEST_DIR}/ws" "${staged}/" || true
+        ln -s "${real_ws}" "${staged}/ws" || true
+    else
+        if [ -d "${DEST_DIR}/ws" ]; then
+            echo "[install] Preserving inline workspace at ${DEST_DIR}/ws"
+            rm -rf "${staged}/ws" 2>/dev/null || true
+            cp -a "${DEST_DIR}/ws" "${staged}/" || true
+        else
+            mkdir -p "${staged}/ws/src"
+            touch "${staged}/ws/.colcon_keep" 2>/dev/null || true
+        fi
     fi
 
     # Swap into place atomically

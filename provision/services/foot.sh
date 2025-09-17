@@ -14,7 +14,12 @@ provision() {
   common_clone_repo "$REPO_CREATE_ROBOT" "$SRC/create_robot"
   # udev for stable /dev/create
   common_write_udev_rules /etc/udev/rules.d/70-create.rules RULE <<'RULE'
+# FTDI FT232 (common on some Create cables)
 KERNEL=="ttyUSB*", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="create", MODE="0666"
+# Prolific PL2303 classic
+KERNEL=="ttyUSB*", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="create", MODE="0666"
+# Prolific PL2303 (newer variants, e.g. 23c3 observed in the field)
+KERNEL=="ttyUSB*", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="23c3", SYMLINK+="create", MODE="0666"
 RULE
 
   # launcher for systemd with resilient retry loop
