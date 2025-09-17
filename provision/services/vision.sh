@@ -32,8 +32,7 @@ provision() {
   fi
   # Note: psyche_vision package is committed to the repo in ws/src/
 
-  # Build the workspace
-  (cd /opt/psyched && cli/psy build)
+  # Build deferred: a single workspace build will run after provisioning
 
   # Create systemd launcher
   sudo mkdir -p /etc/psyched

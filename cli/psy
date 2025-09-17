@@ -71,6 +71,8 @@ case "$cmd" in
           echo "[psy] apply service: $s"
           bash "$SVCDIR/$s.sh" provision
         done
+        echo "[psy] Performing one workspace build after provisioning all services"
+        bash "$SVCDIR/workspace.sh" build || true
         ;;
       *) usage; exit 1;;
     esac

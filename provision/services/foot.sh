@@ -11,7 +11,6 @@ provision() {
   mkdir -p "$SRC"
   [ -d "$SRC/libcreate" ] || git clone --branch "$BRANCH_LIBCREATE" "$REPO_LIBCREATE" "$SRC/libcreate"
   [ -d "$SRC/create_robot" ] || git clone "$REPO_CREATE_ROBOT" "$SRC/create_robot"
-  (cd /opt/psyched && cli/psy build)
   # udev for stable /dev/create
   sudo tee /etc/udev/rules.d/70-create.rules >/dev/null <<'RULE'
 KERNEL=="ttyUSB*", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="create", MODE="0666"

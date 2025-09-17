@@ -24,7 +24,7 @@ provision() {
     touch "$SRC/rplidar_ros/COLCON_IGNORE" || true
   fi
 
-  (cd /opt/psyched && cli/psy build)
+  # Build will be triggered once after all services provision sources
 
   # udev rule for stable symlink
   sudo tee /etc/udev/rules.d/70-lidar.rules >/dev/null <<'RULE'
