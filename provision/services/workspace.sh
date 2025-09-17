@@ -72,6 +72,18 @@ build() {
         if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
           set +e; sudo rosdep init 2>/dev/null || true; set -e
         fi
+        # Ensure rosdep config is readable for non-root users
+        if [ -d /etc/ros/rosdep ]; then
+          sudo chown -R root:root /etc/ros/rosdep 2>/dev/null || true
+          sudo chmod 755 /etc/ros/rosdep 2>/dev/null || true
+        fi
+        if [ -d /etc/ros/rosdep/sources.list.d ]; then
+          sudo chmod 755 /etc/ros/rosdep/sources.list.d 2>/dev/null || true
+        fi
+        if [ -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
+          sudo chown root:root /etc/ros/rosdep/sources.list.d/20-default.list 2>/dev/null || true
+          sudo chmod 644 /etc/ros/rosdep/sources.list.d/20-default.list 2>/dev/null || true
+        fi
         rosdep update || true
         (
           cd "$WS" && rosdep install --from-paths src --ignore-src -r -y || true
