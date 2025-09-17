@@ -28,16 +28,23 @@ host_cfg() { echo "${HOSTCFG_DIR}/${1}.toml"; }
 
 get_host() { echo "${1:-$(hostname)}"; }
 
-toml_get_array() { # naive: extract array entries line-by-line
+toml_get_array() { # robust: extract quoted entries from an array, ignore comments
   # arg1=file arg2=key
   awk -v k="$2" '
     BEGIN{ inarr=0 }
-    $0 ~ "^[[:space:]]*"k"[[:space:]]*=" { inarr=1; next }
+    $0 ~ "^[[:space:]]*"k"[[:space:]]*=" { inarr=1 }
     inarr {
-      if ($0 ~ /\]/) { inarr=0; exit }
-      gsub(/[" ,\[\]]/, "", $0)
-      if (length($0)>0) print $0
-    }' "$1"
+      line=$0
+      # strip comments
+      sub(/#.*/, "", line)
+      # find quoted strings and print each
+      while (match(line, /"([^"]+)"/, m)) {
+        print m[1]
+        line=substr(line, RSTART+RLENGTH)
+      }
+      if ($0 ~ /\]/) { exit }
+    }
+  ' "$1"
 }
 
 cmd="${1:-}"; shift || true
