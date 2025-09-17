@@ -44,7 +44,7 @@ find_cli_piper() {
     [ -n "$candidate" ] || continue
     if resolved="$(command -v "$candidate" 2>/dev/null)"; then
       if [ -f "$resolved" ]; then
-        if LC_ALL=C grep -a -m1 "gi.require_version('Gtk'" "$resolved" >/dev/null 2>&1; then
+        if LC_ALL=C grep -a -m1 -E "gi.require_version\(['\"]Gtk" "$resolved" >/dev/null 2>&1; then
           continue
         fi
       fi
@@ -566,7 +566,7 @@ if [ "$ENGINE" = "auto" ]; then
       [ -n "$candidate" ] || continue
       if command -v "$candidate" >/dev/null 2>&1; then
         resolved="$(command -v "$candidate")"
-        if [ -f "$resolved" ] && grep -q "gi.require_version('Gtk'" "$resolved" 2>/dev/null; then
+        if [ -f "$resolved" ] && grep -qE "gi.require_version\(['\"]Gtk" "$resolved" 2>/dev/null; then
           continue
         fi
         PSY_PIPER_BIN="$resolved"
@@ -584,7 +584,7 @@ fi
 if [ "$ENGINE" = "piper" ]; then
   if [ -n "${PSY_PIPER_BIN:-}" ]; then
     resolved="$(command -v "$PSY_PIPER_BIN" 2>/dev/null || true)"
-    if [ -n "$resolved" ] && [ -f "$resolved" ] && grep -q "gi.require_version('Gtk'" "$resolved" 2>/dev/null; then
+    if [ -n "$resolved" ] && [ -f "$resolved" ] && grep -qE "gi.require_version\(['\"]Gtk" "$resolved" 2>/dev/null; then
       resolved=""
     fi
     if [ -n "$resolved" ]; then
@@ -598,7 +598,7 @@ if [ "$ENGINE" = "piper" ]; then
       [ -n "$candidate" ] || continue
       if command -v "$candidate" >/dev/null 2>&1; then
         resolved="$(command -v "$candidate")"
-        if [ -f "$resolved" ] && grep -q "gi.require_version('Gtk'" "$resolved" 2>/dev/null; then
+        if [ -f "$resolved" ] && grep -qE "gi.require_version\(['\"]Gtk" "$resolved" 2>/dev/null; then
           continue
         fi
         PSY_PIPER_BIN="$resolved"

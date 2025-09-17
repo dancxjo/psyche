@@ -94,6 +94,10 @@ class PiperEngine(TTSEngine):
         candidates.extend(["piper-tts", "piper"])
 
         examined = set()
+        gtk_markers = (
+            b"gi.require_version('Gtk'",
+            b'gi.require_version("Gtk"',
+        )
         for candidate in candidates:
             if not candidate:
                 continue
@@ -106,7 +110,7 @@ class PiperEngine(TTSEngine):
             try:
                 with open(resolved, "rb") as handle:
                     head = handle.read(4096)
-                if b"gi.require_version('Gtk'" in head:
+                if any(marker in head for marker in gtk_markers):
                     continue
             except OSError:
                 pass
@@ -117,13 +121,15 @@ class PiperEngine(TTSEngine):
         )
 
     def _resolve_model_path(self, initial: bool = False) -> Optional[str]:
+        current_path = getattr(self, "model_path", None)
         for candidate in self.model_candidates:
             if not candidate:
                 continue
             if os.path.isfile(candidate):
-                if candidate != self.model_path:
+                if candidate != current_path:
                     self._logger.info(f"Using Piper model: {candidate}")
                 self.model_path = candidate
+                current_path = candidate
                 return candidate
 
         search_dirs: List[str] = []
