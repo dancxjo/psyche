@@ -2,19 +2,23 @@
 set -euo pipefail
 . "$(dirname "$0")/_common.sh" 2>/dev/null || true
 
-# voice.sh — Provision Piper TTS + ROS2 node and systemd launcher
+# voice.sh — Provision voice service (Piper or eSpeak) + ROS2 node and systemd launcher
 # Features:
 # - Subscribes to /voice/$HOSTNAME for text (std_msgs/String)
 # - Queueing of utterances
 # - Control via /voice/$HOSTNAME/cmd (std_msgs/String): interrupt|resume|abandon
 #   and convenience topics /voice/$HOSTNAME/{interrupt,resume,abandon}
-# - Uses piper to synthesize WAV and aplay for audio output
+# - Pluggable TTS backends (Piper, espeak-ng) with aplay playback
 
 ROOT="/opt/psyched"
 ETC_DIR="/etc/psyched"
 VOICES_DIR="${ROOT}/voices"
 PY_NODE_PATH="${ETC_DIR}/voice_node.py"
 LAUNCH_PATH="${ETC_DIR}/voice.launch.sh"
+
+# Resolve requested TTS engine early (lowercase for comparisons)
+TTS_ENGINE_RAW="${PSY_TTS_ENGINE:-espeak}"
+TTS_ENGINE="${TTS_ENGINE_RAW,,}"
 
 find_cli_piper() {
   local candidate resolved
@@ -34,15 +38,25 @@ find_cli_piper() {
 }
 
 ensure_deps() {
-  # Install Piper CLI engine (piper-tts) and ALSA playback tools
   export PSY_DEFER_APT=1
-  common_apt_install piper-tts alsa-utils
-  # Try to get packaged voices if available (ignored if not found)
-  common_apt_install ?piper-voices
 
-  if ! find_cli_piper piper-tts piper /usr/local/bin/piper >/dev/null 2>&1; then
-    install_piper_cli_fallback || echo "[voice] WARNING: Piper CLI fallback install failed; voice service may not start" >&2
-  fi
+  # Core runtime dependencies for all engines
+  common_apt_install alsa-utils espeak-ng espeak-ng-data
+
+  case "$TTS_ENGINE" in
+    piper|auto)
+      # Piper CLI engine (if available) plus optional packaged voices
+      common_apt_install piper-tts
+      common_apt_install ?piper-voices
+
+      if ! find_cli_piper piper-tts piper /usr/local/bin/piper >/dev/null 2>&1; then
+        install_piper_cli_fallback || echo "[voice] WARNING: Piper CLI fallback install failed; Piper engine may be unavailable" >&2
+      fi
+      ;;
+    espeak|*)
+      : # espeak-ng already covered above
+      ;;
+  esac
 }
 
 install_piper_cli_fallback() {
