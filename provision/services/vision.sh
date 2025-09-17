@@ -17,6 +17,19 @@ provision() {
 
   # Vision package should already exist in workspace, just ensure structure
   mkdir -p "$SRC"
+  # Clone additional vision-related repos if not already present
+  [ -d "$SRC/ros2_shared" ] || git clone https://github.com/ptrmu/ros2_shared.git "$SRC/ros2_shared" || true
+  [ -d "$SRC/kinect_ros2" ] || git clone --branch frame_correction https://github.com/bribribriambriguy/kinect_ros2.git "$SRC/kinect_ros2" || true
+  [ -d "$SRC/libfreenect" ] || git clone https://github.com/OpenKinect/libfreenect "$SRC/libfreenect" || true
+
+  # Best-effort build of libfreenect (non-ROS dep used by kinect stack)
+  if [ -d "$SRC/libfreenect" ]; then
+    (
+      cd "$SRC/libfreenect"
+      mkdir -p build && cd build
+      cmake -L .. && make -j"$(nproc)" && sudo make install || true
+    )
+  fi
   # Note: psyche_vision package is committed to the repo in ws/src/
 
   # Build the workspace
