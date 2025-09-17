@@ -10,6 +10,7 @@ services = [
   "imu",       # mpu6050
   "lidar",     # set driver in service script env or auto-detect
   "camera",    # usb_cam
+  "vision",    # object detection and tracking
   "mic",       # alsa setup only, optional ros audio later
   "gps",       # u-blox7 via nmea_navsat_driver
   "robot",     # robot_state_publisher from URDF
