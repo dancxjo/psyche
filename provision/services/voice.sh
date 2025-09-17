@@ -21,7 +21,7 @@ ensure_deps() {
     export PSY_DEFER_APT=1
     common_apt_install piper alsa-utils
   # Try to get packaged voices if available (ignored if not found)
-        common_apt_install ?piper-voices
+                common_apt_install ?piper-voices
 }
 
 ensure_voice_model() {
@@ -38,36 +38,111 @@ ensure_voice_model() {
     return 0
   fi
 
-  # Try to symlink from system voice directory if available
-  local sysdir="/usr/share/piper-voices"
-  if [ -d "$sysdir" ]; then
-    local found_onnx
-    found_onnx="$(find "$sysdir" -type f -name "${model_basename}.onnx" 2>/dev/null | head -n1 || true)"
-    local found_json
-    found_json="$(find "$sysdir" -type f -name "${model_basename}.onnx.json" 2>/dev/null | head -n1 || true)"
-    if [ -n "$found_onnx" ] && [ -n "$found_json" ]; then
-      echo "[voice] Linking model from $sysdir"
-      sudo ln -sf "$found_onnx" "$onnx"
-      sudo ln -sf "$found_json" "$json"
-      return 0
-    fi
-  fi
+    # Try to link or copy from common system voice directories if available
+    local sysdirs=(
+        "/usr/share/piper-voices"
+        "/usr/local/share/piper-voices"
+        "/usr/share/tts/piper"
+        "/usr/share/voices/piper"
+    )
+    for sysdir in "${sysdirs[@]}"; do
+        if [ -d "$sysdir" ]; then
+            local found_onnx
+            found_onnx="$(find "$sysdir" -type f -name "${model_basename}.onnx" 2>/dev/null | head -n1 || true)"
+            local found_json
+            found_json="$(find "$sysdir" -type f -name "${model_basename}.onnx.json" 2>/dev/null | head -n1 || true)"
+            if [ -n "$found_onnx" ] && [ -n "$found_json" ]; then
+                echo "[voice] Linking model from $sysdir"
+                sudo ln -sf "$found_onnx" "$onnx"
+                sudo ln -sf "$found_json" "$json"
+                return 0
+            fi
+        fi
+    done
 
-  # Fallback: attempt to download model from GitHub (best effort)
-  echo "[voice] Attempting to download voice model $model_basename"
-  local baseurl="https://github.com/rhasspy/piper/releases/download/v1.2.0"
-  if command -v curl >/dev/null 2>&1; then
-    sudo curl -fsSL -o "$onnx" "${baseurl}/${model_basename}.onnx" || true
-    sudo curl -fsSL -o "$json" "${baseurl}/${model_basename}.onnx.json" || true
-  elif command -v wget >/dev/null 2>&1; then
-    sudo wget -q -O "$onnx" "${baseurl}/${model_basename}.onnx" || true
-    sudo wget -q -O "$json" "${baseurl}/${model_basename}.onnx.json" || true
-  fi
+    # If a local tarball cache exists, extract it
+    local cache_dirs=("${VOICES_DIR}" "/opt/psyched/cache/voices" "/opt/psyched/voices/cache")
+    for cdir in "${cache_dirs[@]}"; do
+        if [ -f "$cdir/${model_basename}.tar.gz" ]; then
+            echo "[voice] Extracting cached tarball: $cdir/${model_basename}.tar.gz"
+            sudo tar -xzf "$cdir/${model_basename}.tar.gz" -C "$VOICES_DIR" || true
+            if [ -f "$onnx" ] && [ -f "$json" ]; then
+                echo "[voice] Model extracted from local cache"
+                return 0
+            fi
+        fi
+    done
+
+    # Construct possible mirrors/URLs
+    # Prefer Hugging Face piper-voices main branch layout:
+    #   https://huggingface.co/rhasspy/piper-voices/resolve/main/<lang>/<locale>/<voice>/<quality>/<basename>.*
+    local lang_locale="${model_basename%%-*}"           # en_US
+    local voice_rest="${model_basename#*-}"            # lessac-medium
+    local voice_name="${voice_rest%%-*}"               # lessac
+    local quality="${voice_rest#*-}"                   # medium
+    local lang_prefix="${lang_locale%%_*}"             # en
+
+    # Mirrors
+    local HF_BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main"
+    local HF_URL_ONNX="${HF_BASE}/${lang_prefix}/${lang_locale}/${voice_name}/${quality}/${model_basename}.onnx"
+    local HF_URL_JSON="${HF_BASE}/${lang_prefix}/${lang_locale}/${voice_name}/${quality}/${model_basename}.onnx.json"
+
+    # Some distributions ship .tar.gz bundles in GitHub releases (piper-voices)
+    local GH_VOICES_REL="https://github.com/rhasspy/piper-voices/releases/download/v1.0.0/${model_basename}.tar.gz"
+    local GH_PIPER_REL_DIR="https://github.com/rhasspy/piper/releases/download"
+    # Try a few known release tags that included direct files/tarballs (best-effort)
+    local GH_PIPER_URLS=(
+        "${GH_PIPER_REL_DIR}/v1.2.0/${model_basename}.tar.gz"
+        "${GH_PIPER_REL_DIR}/2023.11.14/${model_basename}.tar.gz"
+    )
+
+    echo "[voice] Attempting to obtain voice model ${model_basename} (multiple mirrors)"
+
+    # Helper: fetch function with curl/wget and retries
+    _fetch() {
+        local url="$1" out="$2"
+        if command -v curl >/dev/null 2>&1; then
+            sudo curl -fL --retry 3 --connect-timeout 15 -o "$out" "$url" 2>/dev/null || return 1
+            return 0
+        elif command -v wget >/dev/null 2>&1; then
+            sudo wget -q -O "$out" "$url" || return 1
+            return 0
+        else
+            return 1
+        fi
+    }
+
+    # Try Hugging Face direct files
+    if [ ! -f "$onnx" ] || [ ! -f "$json" ]; then
+        echo "[voice] Trying Hugging Face (direct files)"
+        _fetch "$HF_URL_ONNX" "$onnx" || true
+        _fetch "$HF_URL_JSON" "$json" || true
+    fi
+
+    # If still missing, try tarballs from GitHub mirrors and extract
+    if [ ! -f "$onnx" ] || [ ! -f "$json" ]; then
+        tmp_tar="${VOICES_DIR}/${model_basename}.tar.gz"
+        echo "[voice] Trying GitHub tarball(s)"
+        _fetch "$GH_VOICES_REL" "$tmp_tar" || true
+        if [ ! -s "$tmp_tar" ]; then
+            for u in "${GH_PIPER_URLS[@]}"; do
+                _fetch "$u" "$tmp_tar" && break || true
+            done
+        fi
+        if [ -s "$tmp_tar" ]; then
+            sudo tar -xzf "$tmp_tar" -C "$VOICES_DIR" || true
+            sudo rm -f "$tmp_tar" || true
+        fi
+    fi
 
   if [ -f "$onnx" ] && [ -f "$json" ]; then
     echo "[voice] Model downloaded to $VOICES_DIR"
   else
-    echo "[voice] WARNING: Could not obtain model files automatically. Install piper-voices or place model at: $onnx and $json" >&2
+        echo "[voice] WARNING: Could not obtain model files automatically." >&2
+        echo "[voice] Hints:" >&2
+        echo "[voice]  - If apt is available: sudo apt-get install piper-voices (then re-run)" >&2
+        echo "[voice]  - Offline: place ${model_basename}.tar.gz in one of: ${cache_dirs[*]} and re-run" >&2
+        echo "[voice]  - Manual: download from Hugging Face and copy to: $onnx and $json" >&2
   fi
 }
 

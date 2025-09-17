@@ -38,3 +38,37 @@ Quick test:
 ros2 topic pub --once \
   /voice/$(hostname -s) std_msgs/String '{data: "Hello from Psyche"}'
 ```
+
+Offline or network-restricted environments:
+
+- Preferred: install packaged voices if available
+
+  ```bash
+  sudo apt-get update && sudo apt-get install piper-voices
+  ```
+
+- Manual download from Hugging Face mirrors (example for `en_US-lessac-medium`):
+
+  ```bash
+  sudo mkdir -p /opt/psyched/voices
+  sudo curl -fL -o /opt/psyched/voices/en_US-lessac-medium.onnx \
+    https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx
+  sudo curl -fL -o /opt/psyched/voices/en_US-lessac-medium.onnx.json \
+    https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json
+  ```
+
+- Alternatively, download a tarball and place it in a cache directory and re-run provisioning:
+
+  ```bash
+  mkdir -p /opt/psyched/voices
+  curl -fL -o /opt/psyched/voices/en_US-lessac-medium.tar.gz \
+    https://github.com/rhasspy/piper-voices/releases/download/v1.0.0/en_US-lessac-medium.tar.gz
+  # then re-run
+  /opt/psyched/cli/psy svc enable voice && /opt/psyched/cli/psy host apply
+  ```
+
+If you use a different model, set `PSY_VOICE_MODEL_NAME` in the environment before provisioning or create `/etc/default/psyched-voice` with:
+
+```bash
+PSY_VOICE_MODEL=/opt/psyched/voices/<your-model>.onnx
+```
