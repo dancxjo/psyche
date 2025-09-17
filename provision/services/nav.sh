@@ -11,6 +11,10 @@ provision() {
   common_install_launcher nav LAUNCH <<'LAUNCH'
 #!/usr/bin/env bash
 set -e
+# Ensure sane env for logging under systemd
+export HOME="${HOME:-/root}"
+export ROS_LOG_DIR="${ROS_LOG_DIR:-/var/log/ros}"
+export RCUTILS_LOGGING_DIR="${RCUTILS_LOGGING_DIR:-/var/log/ros}"
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
 set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
 

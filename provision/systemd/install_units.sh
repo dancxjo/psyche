@@ -17,6 +17,17 @@ Type=simple
 # Base environment
 Environment=ROS_DISTRO=jazzy
 Environment=PYTHONUNBUFFERED=1
+# Ensure a HOME and logging directory to avoid rcl logging errors under systemd
+Environment=HOME=/root
+Environment=ROS_LOG_DIR=/var/log/ros
+Environment=RCUTILS_LOGGING_DIR=/var/log/ros
+# Avoid setup scripts tripping on unbound COLCON_TRACE under nounset
+Environment=AMENT_TRACE_SETUP_FILES=0
+Environment=COLCON_TRACE=
+# Prepare log directories before start
+ExecStartPre=/bin/mkdir -p /var/log/ros
+ExecStartPre=/bin/chmod 755 /var/log/ros
+ExecStartPre=/bin/mkdir -p /root/.ros
 # NOTE: The following two lines are substituted after heredoc
 # Environment=RMW_IMPLEMENTATION=__RMW__
 # Environment=ROS_DOMAIN_ID=__DOMAIN__
