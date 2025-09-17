@@ -12,6 +12,27 @@ provision() {
   grep -q "i2c-dev" /etc/modules || echo i2c-dev | sudo tee -a /etc/modules
   mkdir -p "$SRC"
   [ -d "$SRC/ros2_mpu6050_driver" ] || git clone "$REPO_IMU" "$SRC/ros2_mpu6050_driver"
+  # Patch missing <array> include for GCC 13 (std::array incomplete type)
+  HDR="$SRC/ros2_mpu6050_driver/include/mpu6050driver/mpu6050sensor.h"
+  if [ -f "$HDR" ]; then
+    if ! grep -qE '^#include <array>' "$HDR"; then
+      echo "[psy][imu] Patching $HDR to include <array>"
+      # Insert after the first block of includes
+      awk '
+        BEGIN{inserted=0}
+        /^#include/ {
+          print
+          last_include=NR
+          next
+        }
+        NR==last_include+1 && inserted==0 {
+          print "#include <array>"
+          inserted=1
+        }
+        {print}
+      ' "$HDR" > "$HDR.tmp" && mv "$HDR.tmp" "$HDR"
+    fi
+  fi
   (cd /opt/psyched && cli/psy build)
   # systemd unit launcher
   sudo mkdir -p /etc/psyched
