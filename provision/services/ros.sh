@@ -13,7 +13,14 @@ provision() {
   sudo apt-get update -y
   sudo apt-get install -y curl gnupg lsb-release
   sudo apt-get install -y software-properties-common
-  sudo apt-get install -y python3-pip python3-venv python3-colcon-common-extensions ros-dev-tools
+  sudo apt-get install -y python3-pip python3-venv ros-dev-tools
+  # Try distro colcon extensions; ignore if not found, we'll fallback to pip
+  sudo apt-get install -y python3-colcon-common-extensions || true
+  # Fallback: install colcon via pip if not present
+  if ! command -v colcon >/dev/null 2>&1; then
+    python3 -m pip install --upgrade --user pip wheel 'setuptools<80' || true
+    python3 -m pip install --upgrade --user colcon-common-extensions colcon-ros colcon-mixin || true
+  fi
   # ROS 2 base and CycloneDDS
   sudo apt-get install -y "ros-${ROS_DISTRO}-ros-base" "ros-${ROS_DISTRO}-rmw-cyclonedds-cpp"
   # Nice to have packages
