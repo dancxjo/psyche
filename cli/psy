@@ -13,6 +13,7 @@ usage() {
 psy — psycheOS host/service manager
 
 Usage:
+  psy systemd info [svc..]    Show systemd summary (and recent logs for named services)
   psy host apply [<host>]      Apply host's service set (defaults to $(hostname))
   psy svc list                 List available services
   psy svc enable <name>        Enable a service for this host
@@ -79,6 +80,19 @@ case "$cmd" in
         bash "$SVCDIR/workspace.sh" build || true
         echo "[psy] Installing systemd units and enabling those with launchers"
         bash "$PROV/systemd/install_units.sh" || true
+        # Start all services that have launchers present, regardless of enablement status
+        echo "[psy] Starting services with launchers in /etc/psyched"
+        if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
+          mapfile -t START_SVCS < <(for f in /etc/psyched/*.launch.sh; do [ -e "$f" ] || continue; b=$(basename "$f"); echo "${b%.launch.sh}"; done)
+          if [ ${#START_SVCS[@]} -gt 0 ]; then
+            for s in "${START_SVCS[@]}"; do
+              echo "  -> sudo systemctl start psyched@${s}.service"
+              sudo systemctl start "psyched@${s}.service" || true
+            done
+          fi
+        else
+          echo "[psy] No launchers found at /etc/psyched/*.launch.sh yet"
+        fi
         ;;
       *) usage; exit 1;;
     esac
@@ -147,10 +161,25 @@ case "$cmd" in
     sub="${1:-}"; shift || true
     case "$sub" in
       install) bash "$PROV/systemd/install_units.sh" ;;
+      info)
+        # Show a quick summary, then optional logs for provided services
+        echo "[psy] systemctl summary (filtered)"
+        systemctl --no-pager | grep -i "psych" || true
+        if [ $# -gt 0 ]; then
+          for s in "$@"; do
+            echo "\n[psy] recent logs for psyched@${s}.service"
+            sudo journalctl -u "psyched@${s}.service" -n 200 --no-pager -o short-precise || true
+          done
+        fi
+        ;;
       up)
-        # Start all installed psyched@<name>.service units (skip the template @.service)
-        mapfile -t UNITS < <(systemctl list-unit-files 'psyched@*.service' --no-legend \
-          | awk '$1 ~ /^psyched@.+\.service$/ {print $1}')
+        # Prefer services with existing launchers; fallback to all installed unit files
+        if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
+          mapfile -t UNITS < <(for f in /etc/psyched/*.launch.sh; do [ -e "$f" ] || continue; b=$(basename "$f"); echo "psyched@${b%.launch.sh}.service"; done)
+        else
+          mapfile -t UNITS < <(systemctl list-unit-files 'psyched@*.service' --no-legend \
+            | awk '$1 ~ /^psyched@.+\.service$/ {print $1}')
+        fi
         if [ ${#UNITS[@]} -eq 0 ]; then
           echo "[psy] No psyched@*.service unit files installed"
         else
@@ -158,8 +187,12 @@ case "$cmd" in
         fi
         ;;
       down)
-        mapfile -t UNITS < <(systemctl list-units 'psyched@*.service' --no-legend \
-          | awk '$1 ~ /^psyched@.+\.service$/ {print $1}')
+        if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
+          mapfile -t UNITS < <(for f in /etc/psyched/*.launch.sh; do [ -e "$f" ] || continue; b=$(basename "$f"); echo "psyched@${b%.launch.sh}.service"; done)
+        else
+          mapfile -t UNITS < <(systemctl list-units 'psyched@*.service' --no-legend \
+            | awk '$1 ~ /^psyched@.+\.service$/ {print $1}')
+        fi
         if [ ${#UNITS[@]} -eq 0 ]; then
           echo "[psy] No running psyched@*.service units"
         else
