@@ -79,6 +79,7 @@ Usage:
 
 Helper:
   psh say <text>               Convenience wrapper to publish to /voice/$(hostname -s)
+  psh bearing <deg>            Publish /cmd_vel Twist to rotate toward the bearing
 USAGE
 }
 
@@ -257,6 +258,204 @@ case "$cmd" in
         ;;
       *) usage; exit 1;;
     esac
+    ;;
+  bearing)
+    # Publish a geometry_msgs/msg/Twist command that mirrors the proportional
+    # turning logic in psyche_vision/object_controller.py.
+    gain="${PSH_BEARING_GAIN:-2.0}"
+    max_ang="${PSH_BEARING_MAX_ANGULAR:-0.5}"
+    tolerance="${PSH_BEARING_TOLERANCE:-2.0}"
+    topic="${PSH_BEARING_TOPIC:-/cmd_vel}"
+    dry_run=0
+    bearing_arg=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -g|--gain)
+          [ $# -ge 2 ] || { echo "[psy][bearing] ERROR: --gain requires a value" >&2; exit 1; }
+          gain="$2"
+          shift 2
+          ;;
+        -m|--max)
+          [ $# -ge 2 ] || { echo "[psy][bearing] ERROR: --max requires a value" >&2; exit 1; }
+          max_ang="$2"
+          shift 2
+          ;;
+        -t|--tolerance)
+          [ $# -ge 2 ] || { echo "[psy][bearing] ERROR: --tolerance requires a value" >&2; exit 1; }
+          tolerance="$2"
+          shift 2
+          ;;
+        --topic)
+          [ $# -ge 2 ] || { echo "[psy][bearing] ERROR: --topic requires a name" >&2; exit 1; }
+          topic="$2"
+          shift 2
+          ;;
+        --dry-run)
+          dry_run=1
+          shift
+          ;;
+        -h|--help)
+          cat <<'HELP'
+Usage: psy bearing [options] <bearing_degrees>
+
+Options:
+  -g, --gain <float>         Override proportional gain (default PSH_BEARING_GAIN or 2.0)
+  -m, --max <float>          Override max angular velocity in rad/s (default PSH_BEARING_MAX_ANGULAR or 0.5)
+  -t, --tolerance <float>    Override deadzone tolerance in degrees (default PSH_BEARING_TOLERANCE or 2.0)
+      --topic <name>         Publish to a different Twist topic (default PSH_BEARING_TOPIC or /cmd_vel)
+      --dry-run              Print the computed command without invoking ros2
+HELP
+          exit 0
+          ;;
+        --)
+          shift
+          while [ $# -gt 0 ]; do
+            if [ -n "$bearing_arg" ]; then
+              echo "[psy][bearing] ERROR: multiple bearing values provided ($bearing_arg, $1)" >&2
+              exit 1
+            fi
+            bearing_arg="$1"
+            shift
+          done
+          ;;
+        -* )
+          if [ -z "$bearing_arg" ] && [[ "$1" =~ ^-?[0-9]+([.][0-9]+)?$ ]]; then
+            bearing_arg="$1"
+            shift
+          else
+            echo "[psy][bearing] ERROR: unknown option $1" >&2
+            exit 1
+          fi
+          ;;
+        *)
+          if [ -n "$bearing_arg" ]; then
+            echo "[psy][bearing] ERROR: multiple bearing values provided ($bearing_arg, $1)" >&2
+            exit 1
+          fi
+          bearing_arg="$1"
+          shift
+          ;;
+      esac
+    done
+    if [ -z "$bearing_arg" ]; then
+      echo "[psy][bearing] ERROR: bearing degrees argument is required." >&2
+      exit 1
+    fi
+
+    if ! calc_output="$(python3 - "$bearing_arg" "$gain" "$max_ang" "$tolerance" <<'PY'
+import math
+import sys
+
+PREFIX = "[psy][bearing]"
+
+def fail(message: str) -> None:
+    print(f"{PREFIX} ERROR: {message}", file=sys.stderr)
+    sys.exit(2)
+
+if len(sys.argv) < 5:
+    fail("internal argument parsing error (missing computation parameters).")
+
+try:
+    bearing = float(sys.argv[1])
+except ValueError:
+    fail("bearing must be a valid number of degrees.")
+except IndexError:
+    fail("bearing argument missing.")
+
+try:
+    gain = float(sys.argv[2])
+    max_ang = float(sys.argv[3])
+    tolerance = float(sys.argv[4])
+except ValueError:
+    fail("gain, max angular velocity, and tolerance must be numeric.")
+
+if math.isnan(bearing) or math.isinf(bearing):
+    fail("bearing must be finite.")
+
+for label, value, allow_zero in (
+    ("proportional gain", gain, False),
+    ("max angular velocity", max_ang, False),
+    ("angle tolerance", tolerance, True),
+):
+    if math.isnan(value) or math.isinf(value):
+        fail(f"{label} must be finite.")
+    if allow_zero:
+        if value < 0.0:
+            fail(f"{label} must be greater than or equal to zero.")
+    else:
+        if value <= 0.0:
+            fail(f"{label} must be greater than zero.")
+
+within_tol = abs(bearing) < tolerance
+raw = 0.0
+clamped = False
+if within_tol:
+    value = 0.0
+else:
+    raw = gain * math.radians(bearing)
+    value = raw
+    if value > max_ang:
+        value = max_ang
+        clamped = True
+    elif value < -max_ang:
+        value = -max_ang
+        clamped = True
+
+if abs(value) < 1e-9:
+    value = 0.0
+
+print(f"{value:.6f}")
+print(f"{bearing:.6f}")
+print("1" if within_tol else "0")
+print("1" if clamped else "0")
+print(f"{raw:.6f}")
+PY
+)"; then
+      status=$?
+      exit $status
+    fi
+
+    mapfile -t _calc <<< "$calc_output"
+    angular="${_calc[0]:-0}"
+    bearing_fmt="${_calc[1]:-0}"
+    within_tol="${_calc[2]:-0}"
+    clamped="${_calc[3]:-0}"
+
+    printf -v bearing_disp "%.2f" "$bearing_fmt"
+    printf -v angular_disp "%.6f" "$angular"
+    printf -v tol_disp "%.2f" "$tolerance"
+    printf -v gain_disp "%.2f" "$gain"
+    printf -v max_disp "%.2f" "$max_ang"
+
+    if [ "$within_tol" = "1" ]; then
+      echo "[psy][bearing] bearing=${bearing_disp}° within tolerance ${tol_disp}° — publishing stop command to ${topic} (angular.z=${angular_disp})"
+    else
+      if [ "$clamped" = "1" ]; then
+        echo "[psy][bearing] bearing=${bearing_disp}° -> angular.z=${angular_disp} rad/s (clamped to ±${max_disp} rad/s; gain=${gain_disp}) on ${topic}"
+      else
+        echo "[psy][bearing] bearing=${bearing_disp}° -> angular.z=${angular_disp} rad/s (gain=${gain_disp}, max=${max_disp}) on ${topic}"
+      fi
+    fi
+
+    printf -v twist_msg "{linear: {x: 0.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: %s}}" "$angular_disp"
+
+    if [ "$dry_run" = "1" ]; then
+      echo "[psy][bearing] Dry run requested; not publishing to ${topic}"
+      exit 0
+    fi
+
+    if ! command -v ros2 >/dev/null 2>&1; then
+      set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash 2>/dev/null || true; set -u
+    fi
+    if ! command -v ros2 >/dev/null 2>&1; then
+      echo "[psy][bearing] ERROR: ros2 CLI not found (install or source environment)." >&2
+      exit 2
+    fi
+
+    ros2 topic pub --once "$topic" geometry_msgs/msg/Twist "$twist_msg" || {
+      echo "[psy][bearing] ERROR: failed to publish Twist message on ${topic}" >&2
+      exit 3
+    }
     ;;
   say)
     # Publish a message to voice topic

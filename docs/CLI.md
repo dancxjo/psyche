@@ -58,6 +58,20 @@ credentials when prompted.
   `ros2 topic pub --once` CLI. The command auto-sources `/opt/ros/<distro>/setup.bash`
   if the ROS environment is not already in the shell.
 
+## `psy bearing <degrees>`
+- Computes the proportional angular velocity that the vision controller would use
+  for the supplied bearing and publishes a single `geometry_msgs/msg/Twist` on
+  `/cmd_vel` (configurable via `--topic`).
+- Mirrors the defaults from `psyche_vision/object_controller.py`:
+  gain of `2.0`, maximum angular velocity of `0.5` rad/s, and a ±`2°` deadzone.
+- Options allow quick experimentation: `--gain`, `--max`, `--tolerance`,
+  `--topic`, and `--dry-run` (print without publishing).
+- Environment variables provide persistent overrides:
+  `PSH_BEARING_GAIN`, `PSH_BEARING_MAX_ANGULAR`, `PSH_BEARING_TOLERANCE`, and
+  `PSH_BEARING_TOPIC`.
+- Example: `psh bearing 15` prints the computed command and publishes the
+  matching Twist to `/cmd_vel` so the base rotates right.
+
 ## Helper Scripts
 
 Two helper utilities ship alongside the CLI:
