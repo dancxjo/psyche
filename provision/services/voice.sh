@@ -16,6 +16,23 @@ VOICES_DIR="${ROOT}/voices"
 PY_NODE_PATH="${ETC_DIR}/voice_node.py"
 LAUNCH_PATH="${ETC_DIR}/voice.launch.sh"
 
+find_cli_piper() {
+  local candidate resolved
+  for candidate in "$@"; do
+    [ -n "$candidate" ] || continue
+    if resolved="$(command -v "$candidate" 2>/dev/null)"; then
+      if [ -f "$resolved" ]; then
+        if LC_ALL=C grep -a -m1 "gi.require_version('Gtk'" "$resolved" >/dev/null 2>&1; then
+          continue
+        fi
+      fi
+      echo "$resolved"
+      return 0
+    fi
+  done
+  return 1
+}
+
 ensure_deps() {
   # Install Piper CLI engine (piper-tts) and ALSA playback tools
   export PSY_DEFER_APT=1
@@ -23,7 +40,7 @@ ensure_deps() {
   # Try to get packaged voices if available (ignored if not found)
   common_apt_install ?piper-voices
 
-  if ! command -v piper-tts >/dev/null 2>&1 && ! command -v piper >/dev/null 2>&1; then
+  if ! find_cli_piper piper-tts piper /usr/local/bin/piper >/dev/null 2>&1; then
     install_piper_cli_fallback || echo "[voice] WARNING: Piper CLI fallback install failed; voice service may not start" >&2
   fi
 }
