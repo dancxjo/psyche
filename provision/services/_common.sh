@@ -115,3 +115,10 @@ common_ensure_numpy() {
     common_apt_install python3-numpy python3-dev '?python3-numpy-dev'
   fi
 }
+
+common_enable_ccache() {
+  # Queue ccache install and set CCACHE_DIR
+  common_apt_install ccache
+  export CCACHE_DIR="${CCACHE_DIR:-$PSY_ROOT/.ccache}"
+  mkdir -p "$CCACHE_DIR" 2>/dev/null || true
+}
