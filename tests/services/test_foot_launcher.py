@@ -30,8 +30,18 @@ def test_launcher_executes_create_bringup() -> None:
     snippet = _read_launcher_snippet()
 
     # Given the launcher snippet captured from the provision script
-    # When we look for the ros2 launch invocation
-    # Then it should launch the create_bringup create_1 launch file by default
-    assert "exec ros2 launch" in snippet
-    assert 'CREATE_LAUNCH_PACKAGE="${CREATE_LAUNCH_PACKAGE:-create_bringup}"' in snippet
-    assert 'CREATE_LAUNCH_FILE="${CREATE_LAUNCH_FILE:-create_1.launch}"' in snippet
+    # When we look for the delegated entrypoint
+    # Then it should execute the shared bringup script for the Create base
+    assert "exec /opt/psyched/provision/bringup/create.sh" in snippet
+
+
+def test_create_bringup_defaults() -> None:
+    """The shared bringup script should keep the expected default launch args."""
+
+    repo_root = Path(__file__).resolve().parents[2]
+    script_path = repo_root / "provision" / "bringup" / "create.sh"
+    script_text = script_path.read_text(encoding="utf-8")
+
+    assert 'CREATE_LAUNCH_PACKAGE="${CREATE_LAUNCH_PACKAGE:-create_bringup}"' in script_text
+    assert 'CREATE_LAUNCH_FILE="${CREATE_LAUNCH_FILE:-create_1.launch}"' in script_text
+    assert "exec ros2 launch" in script_text

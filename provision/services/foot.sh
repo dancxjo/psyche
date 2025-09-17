@@ -27,28 +27,8 @@ RULE
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Source ROS 2 underlay and the psyched overlay when available. We relax nounset
-# around the sourcing steps because the setup files rely on expected shell
-# variables that may be undefined otherwise.
-set +u; [ -f "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash" ] && source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"; set -u
-set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
-
-# Allow operators to override the launch entrypoint if necessary while keeping
-# the default behavior aligned with manual bringup instructions.
-CREATE_LAUNCH_PACKAGE="${CREATE_LAUNCH_PACKAGE:-create_bringup}"
-CREATE_LAUNCH_FILE="${CREATE_LAUNCH_FILE:-create_1.launch}"
-CREATE_LAUNCH_ARGS="${CREATE_LAUNCH_ARGS:-}"
-
-read -r -a extra_launch_args <<<"${CREATE_LAUNCH_ARGS}"
-if [ ${#extra_launch_args[@]} -eq 1 ] && [ -z "${extra_launch_args[0]}" ]; then
-  extra_launch_args=()
-fi
-
-if [ "${FOOT_DEBUG:-0}" != "0" ]; then
-  echo "[foot] exec ros2 launch ${CREATE_LAUNCH_PACKAGE} ${CREATE_LAUNCH_FILE} ${extra_launch_args[*]}" >&2
-fi
-
-exec ros2 launch "${CREATE_LAUNCH_PACKAGE}" "${CREATE_LAUNCH_FILE}" "${extra_launch_args[@]}"
+# Delegate to the shared bringup script so manual and service launches stay aligned.
+exec /opt/psyched/provision/bringup/create.sh "$@"
 LAUNCH
 }
 
