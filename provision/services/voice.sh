@@ -17,7 +17,7 @@ PY_NODE_PATH="${ETC_DIR}/voice_node.py"
 LAUNCH_PATH="${ETC_DIR}/voice.launch.sh"
 
 # Resolve requested TTS engine early (lowercase for comparisons)
-TTS_ENGINE_RAW="${PSY_TTS_ENGINE:-espeak}"
+TTS_ENGINE_RAW="${PSY_TTS_ENGINE:-piper}"
 TTS_ENGINE="${TTS_ENGINE_RAW,,}"
 case "$TTS_ENGINE" in
   "" )
@@ -119,13 +119,35 @@ ensure_deps() {
 
 install_piper_cli_fallback() {
   # Fetch a prebuilt Piper CLI release when apt packages are unavailable.
-  local arch suffix tmp_dir tar_path version url dest dest_tmp bin_path final_dir wrapper
+  local arch suffix tmp_dir tar_path dest dest_tmp bin_path final_dir wrapper
+  local -a asset_candidates url_candidates
 
   arch="$(dpkg --print-architecture 2>/dev/null || uname -m || echo unknown)"
   case "$arch" in
-    amd64|x86_64) suffix="x86_64" ;;
-    arm64|aarch64) suffix="aarch64" ;;
-    armhf|armv7l) suffix="armv7l" ;;
+    amd64|x86_64)
+      suffix="x86_64"
+      asset_candidates=(
+        "piper_linux_x86_64.tar.gz"
+        "piper_x86_64.tar.gz"
+        "piper_linux_amd64.tar.gz"
+      )
+      ;;
+    arm64|aarch64)
+      suffix="aarch64"
+      asset_candidates=(
+        "piper_linux_aarch64.tar.gz"
+        "piper_aarch64.tar.gz"
+        "piper_linux_arm64.tar.gz"
+      )
+      ;;
+    armhf|armv7l)
+      suffix="armv7l"
+      asset_candidates=(
+        "piper_linux_armv7l.tar.gz"
+        "piper_armv7l.tar.gz"
+        "piper_linux_armhf.tar.gz"
+      )
+      ;;
     *)
       echo "[voice] WARNING: Unsupported architecture '$arch' for Piper prebuilt binaries" >&2
       return 1
@@ -134,13 +156,7 @@ install_piper_cli_fallback() {
 
   tmp_dir="$(mktemp -d 2>/dev/null || echo /tmp/piper.$$)"
   tar_path="${tmp_dir}/piper.tar.gz"
-  local downloaded=0 asset version_clean arch_candidates=() candidate asset_url fetch_tool
-
-  case "$suffix" in
-    x86_64) arch_candidates=("x86_64" "amd64") ;;
-    aarch64) arch_candidates=("aarch64" "arm64") ;;
-    armv7l) arch_candidates=("armv7l" "armhf" "armv7") ;;
-  esac
+  local downloaded=0 asset asset_url fetch_tool
 
   if command -v curl >/dev/null 2>&1; then
     fetch_tool="curl"
@@ -152,31 +168,36 @@ install_piper_cli_fallback() {
     return 1
   fi
 
-  for version in "${PSY_PIPER_VERSION:-v1.3.0}" v1.2.0 2023.11.14 2023.06.05; do
-    version_clean="${version#v}"
-    for arch_tag in "${arch_candidates[@]}"; do
-      for asset in \
-        "piper_${version_clean}_linux_${arch_tag}.tar.gz" \
-        "piper_linux_${arch_tag}.tar.gz" \
-        "piper_${version_clean}_${arch_tag}.tar.gz" \
-        "piper_${arch_tag}.tar.gz"; do
-        candidate="${asset}"
-        [[ -n "$candidate" ]] || continue
-        asset_url="https://github.com/rhasspy/piper/releases/download/${version}/${candidate}"
-        echo "[voice] Attempting Piper CLI download: ${asset_url}"
-        if [ "$fetch_tool" = "curl" ]; then
-          if curl -fL --retry 3 --connect-timeout 20 -o "$tar_path" "$asset_url"; then
-            downloaded=1
-            break 3
-          fi
-        else
-          if wget -q -O "$tar_path" "$asset_url"; then
-            downloaded=1
-            break 3
-          fi
-        fi
-      done
-    done
+  url_candidates=()
+  for asset in "${asset_candidates[@]}"; do
+    [ -n "$asset" ] || continue
+    url_candidates+=(
+      "https://github.com/rhasspy/piper/releases/latest/download/${asset}"
+    )
+    if [ -n "${PSY_PIPER_VERSION:-}" ]; then
+      url_candidates+=("https://github.com/rhasspy/piper/releases/download/${PSY_PIPER_VERSION}/${asset}")
+    fi
+    url_candidates+=(
+      "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/${asset}"
+      "https://github.com/rhasspy/piper/releases/download/2023.11.14/${asset}"
+      "https://github.com/rhasspy/piper/releases/download/v1.2.0/${asset}"
+    )
+  done
+
+  for asset_url in "${url_candidates[@]}"; do
+    [ -n "$asset_url" ] || continue
+    echo "[voice] Attempting Piper CLI download: ${asset_url}"
+    if [ "$fetch_tool" = "curl" ]; then
+      if curl -fL --retry 3 --connect-timeout 20 -o "$tar_path" "$asset_url"; then
+        downloaded=1
+        break
+      fi
+    else
+      if wget -q -O "$tar_path" "$asset_url"; then
+        downloaded=1
+        break
+      fi
+    fi
   done
 
   if [ "$downloaded" -ne 1 ] || [ ! -s "$tar_path" ]; then
@@ -424,7 +445,7 @@ select_voice_model() {
         PSY_INTERNAL_CANDIDATES="$PSY_VOICE_MODEL_NAME"
         return 0
     fi
-    local alias_list="${PSY_VOICE_MODEL_ALIAS:-en_male_default}" # default alias changed
+    local alias_list="${PSY_VOICE_MODEL_ALIAS:-en_male_high}" # default alias emphasises high-quality male voice
     local final_candidates=()
     IFS=',' read -r -a alias_arr <<<"$alias_list"
     for a in "${alias_arr[@]}"; do
@@ -472,14 +493,18 @@ write_default_config() {
     if [ ! -f "$config" ]; then
         if [ "$engine" = "piper" ]; then
             local fallback_line=""
+            local model_line=""
             if [ -n "$fallback_paths" ]; then
                 fallback_line="PSY_VOICE_MODEL_FALLBACKS=${fallback_paths}"
             fi
+            if [ -n "$effective_model" ]; then
+                model_line="PSY_VOICE_MODEL=/opt/psyched/voices/${effective_model}.onnx"
+            fi
             sudo tee "$config" >/dev/null <<CFG
 # Auto-generated by voice.sh provision on $(date -u +%Y-%m-%dT%H:%M:%SZ)
-# Primary Piper model (selected via alias: ${PSY_VOICE_MODEL_ALIAS:-en_male_default})
+# Primary Piper model (selected via alias: ${PSY_VOICE_MODEL_ALIAS:-en_male_high})
 PSY_TTS_ENGINE=piper
-PSY_VOICE_MODEL=/opt/psyched/voices/${effective_model}.onnx
+${model_line}
 ${fallback_line}
 # Optional integrity check (SHA256 of the .onnx file)
 # PSY_VOICE_MODEL_SHA256=<sha256sum>
@@ -606,6 +631,13 @@ provision() {
     ensure_deps
 
     resolve_tts_engine
+
+    export PSY_TTS_ENGINE="$RESOLVED_ENGINE"
+    if [ -n "$RESOLVED_PIPER_BIN" ]; then
+        export PSY_PIPER_BIN="$RESOLVED_PIPER_BIN"
+    else
+        unset PSY_PIPER_BIN || true
+    fi
 
     local effective=""
     local fallback_paths=""

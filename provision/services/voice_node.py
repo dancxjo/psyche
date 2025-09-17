@@ -382,9 +382,9 @@ class VoiceNode(Node):
 
     # Engine selection -----------------------------------------------------------
     def _select_engine(self) -> TTSEngine:
-        requested = os.environ.get("PSY_TTS_ENGINE", "espeak").strip().lower()
+        requested = os.environ.get("PSY_TTS_ENGINE", "piper").strip().lower()
         if not requested:
-            requested = "espeak"
+            requested = "piper"
 
         if requested in ("espeak-ng", "espeakng"):
             requested = "espeak"
