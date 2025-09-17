@@ -239,7 +239,7 @@ class EspeakEngine(TTSEngine):
 
 class VoiceNode(Node):
     def __init__(self):
-        super().__init__("piper_voice")
+        super().__init__("psy_voice")
         host = os.environ.get("PSY_HOST", "") or socket.gethostname().split(".")[0]
         self.base_topic = f"/voice/{host}"
 
@@ -391,6 +391,9 @@ class VoiceNode(Node):
     def _select_engine(self) -> TTSEngine:
         requested = os.environ.get("PSY_TTS_ENGINE", "espeak").strip().lower()
         if not requested:
+            requested = "espeak"
+
+        if requested in ("espeak-ng", "espeakng"):
             requested = "espeak"
 
         if requested == "auto":
