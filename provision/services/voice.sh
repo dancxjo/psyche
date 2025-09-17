@@ -249,7 +249,7 @@ install_node() {
         sudo install -m 0755 "${ROOT}/provision/services/voice_node.py" "$PY_NODE_PATH"
     else
         # Fallback: embed Python ROS2 node into /etc/psyched/voice_node.py
-        sudo tee "$PY_NODE_PATH" >/dev/null <<'PY'
+    sudo tee "$PY_NODE_PATH" >/dev/null <<'PY'
 #!/usr/bin/env python3
 import os
 import signal
@@ -258,6 +258,7 @@ import subprocess
 import tempfile
 import threading
 import queue
+import shutil
 from typing import Optional
 
 import rclpy
@@ -268,12 +269,26 @@ from std_msgs.msg import String, Empty
 class PiperVoiceNode(Node):
     def __init__(self):
         super().__init__('piper_voice')
-        # Determine host segment for topic
         host = os.environ.get('PSY_HOST', '') or socket.gethostname().split('.')[0]
         self.base_topic = f'/voice/{host}'
 
-        # Config
-        self.model_path = os.environ.get('PSY_VOICE_MODEL', '/opt/psyched/voices/en_US-lessac-medium.onnx')
+        # Model selection (primary + fallbacks)
+        primary_model = os.environ.get('PSY_VOICE_MODEL', '/opt/psyched/voices/en_US-kyle-high.onnx')
+        fallback_list = os.environ.get('PSY_VOICE_MODEL_FALLBACKS', '').strip()
+        candidates = [primary_model]
+        if fallback_list:
+            candidates.extend([p for p in fallback_list.split(':') if p])
+        resolved_model = None
+        for cand in candidates:
+            if os.path.isfile(cand):
+                resolved_model = cand
+                break
+        if not resolved_model:
+            self.get_logger().warn(
+                f"No available voice model found among candidates: {candidates}. Using primary path; synthesis may fail." )
+            resolved_model = primary_model
+        self.model_path = resolved_model
+        self.piper_bin = self._resolve_piper_bin()
 
         # Queue and player state
         self.queue: 'queue.Queue[str]' = queue.Queue()
@@ -286,7 +301,6 @@ class PiperVoiceNode(Node):
         # Subscribers
         self.create_subscription(String, self.base_topic, self.text_cb, 10)
         self.create_subscription(String, f'{self.base_topic}/cmd', self.cmd_cb, 10)
-        # Convenience: accept empty messages on individual topics
         self.create_subscription(Empty, f'{self.base_topic}/interrupt', lambda _: self._interrupt(), 10)
         self.create_subscription(Empty, f'{self.base_topic}/resume', lambda _: self._resume(), 10)
         self.create_subscription(Empty, f'{self.base_topic}/abandon', lambda _: self._abandon(), 10)
@@ -295,7 +309,9 @@ class PiperVoiceNode(Node):
         self.player_thread = threading.Thread(target=self._player_loop, daemon=True)
         self.player_thread.start()
 
-        self.get_logger().info(f'PiperVoiceNode ready. Text: {self.base_topic} | Cmd: {self.base_topic}/cmd')
+        self.get_logger().info(
+            f'PiperVoiceNode ready. Text: {self.base_topic} | Cmd: {self.base_topic}/cmd | Piper: {self.piper_bin}'
+        )
 
     # Callbacks
     def text_cb(self, msg: String):
@@ -366,30 +382,30 @@ class PiperVoiceNode(Node):
             self._speak_text(text)
 
     def _speak_text(self, text: str):
-        # Synthesize to temp wav using piper
         wav_path = None
         try:
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tf:
                 wav_path = tf.name
             synth = subprocess.run(
-                ['piper', '-m', self.model_path, '-o', wav_path],
+                [self.piper_bin, '-m', self.model_path, '-o', wav_path],
                 input=text.encode('utf-8'),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 check=False,
             )
             if synth.returncode != 0 or not os.path.exists(wav_path):
-                self.get_logger().error(f'piper synth failed rc={synth.returncode}: {synth.stderr.decode(errors="ignore")[:200]}')
+                self.get_logger().error(
+                    f'piper synth failed rc={synth.returncode}: '
+                    f'{synth.stderr.decode(errors="ignore")[:200]}'
+                )
                 return
 
-            # Play via aplay
             with self.lock:
                 self.current_wav = wav_path
                 self.current_proc = subprocess.Popen(['aplay', '-q', wav_path])
                 self.paused = False
                 self.abandon_flag = False
 
-            # Monitor playback
             while True:
                 with self.lock:
                     proc = self.current_proc
@@ -429,6 +445,32 @@ class PiperVoiceNode(Node):
                     os.unlink(wav_path)
                 except Exception:
                     pass
+
+    def _resolve_piper_bin(self) -> str:
+        configured = os.environ.get('PSY_PIPER_BIN', '').strip()
+        candidates = []
+        if configured:
+            candidates.append(configured)
+        candidates.extend(['piper-tts', 'piper'])
+        examined = set()
+        for candidate in candidates:
+            if not candidate:
+                continue
+            resolved = shutil.which(candidate)
+            if resolved is None and os.path.isabs(candidate) and os.access(candidate, os.X_OK):
+                resolved = candidate
+            if not resolved or resolved in examined:
+                continue
+            examined.add(resolved)
+            try:
+                with open(resolved, 'rb') as handle:
+                    head = handle.read(4096)
+                if b"gi.require_version('Gtk'" in head:
+                    continue
+            except OSError:
+                pass
+            return resolved
+        raise RuntimeError("No Piper CLI binary found. Install 'piper-tts' or set PSY_PIPER_BIN.")
 
 
 def main():

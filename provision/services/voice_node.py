@@ -22,7 +22,7 @@ class PiperVoiceNode(Node):
 
         # Model selection with fallback list
         # Primary model from PSY_VOICE_MODEL; additional fallbacks from PSY_VOICE_MODEL_FALLBACKS (colon-separated)
-    primary_model = os.environ.get('PSY_VOICE_MODEL', '/opt/psyched/voices/en_US-kyle-high.onnx')
+        primary_model = os.environ.get('PSY_VOICE_MODEL', '/opt/psyched/voices/en_US-kyle-high.onnx')
         fallback_list = os.environ.get('PSY_VOICE_MODEL_FALLBACKS', '').strip()
         candidates = [primary_model]
         if fallback_list:
