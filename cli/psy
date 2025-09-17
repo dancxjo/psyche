@@ -148,8 +148,9 @@ case "$cmd" in
     case "$sub" in
       install) bash "$PROV/systemd/install_units.sh" ;;
       up)
-        # Start all installed psyched@<name>.service units.
-        mapfile -t UNITS < <(systemctl list-unit-files 'psyched@*.service' --no-legend | awk '{print $1}')
+        # Start all installed psyched@<name>.service units (skip the template @.service)
+        mapfile -t UNITS < <(systemctl list-unit-files 'psyched@*.service' --no-legend \
+          | awk '$1 ~ /^psyched@.+\.service$/ {print $1}')
         if [ ${#UNITS[@]} -eq 0 ]; then
           echo "[psy] No psyched@*.service unit files installed"
         else
@@ -157,7 +158,8 @@ case "$cmd" in
         fi
         ;;
       down)
-        mapfile -t UNITS < <(systemctl list-units 'psyched@*.service' --no-legend | awk '{print $1}')
+        mapfile -t UNITS < <(systemctl list-units 'psyched@*.service' --no-legend \
+          | awk '$1 ~ /^psyched@.+\.service$/ {print $1}')
         if [ ${#UNITS[@]} -eq 0 ]; then
           echo "[psy] No running psyched@*.service units"
         else
