@@ -18,9 +18,9 @@ ensure_ws() {
 ensure_numpy() {
   # Ensure Python3 NumPy is available for rosidl_generator_py
   if ! /usr/bin/python3 -c 'import numpy' >/dev/null 2>&1; then
-    echo "[psy] Python NumPy not found; installing python3-numpy"
+    echo "[psy] Python NumPy not found; installing python3-numpy and headers"
     sudo apt-get update -y || true
-    sudo apt-get install -y python3-numpy || true
+    sudo apt-get install -y python3-numpy python3-numpy-dev python3-dev || true
   fi
 }
 
@@ -48,11 +48,14 @@ build() {
     echo "[psy] rosdep not found; skipping dependency resolution"
   fi
   (
+    # Try to obtain NumPy include dir to help CMake
+    INC_DIR="$((/usr/bin/python3 -c 'import numpy as np; import sys; print(np.get_include())' 2>/dev/null) || true)"
     cd "$WS" && colcon build \
       --cmake-args \
         -DPython3_EXECUTABLE=/usr/bin/python3 \
         -DPYTHON_EXECUTABLE=/usr/bin/python3 \
-        -DPython3_FIND_VIRTUALENV=NEVER
+        -DPython3_FIND_VIRTUALENV=NEVER \
+        ${INC_DIR:+-DPython3_NumPy_INCLUDE_DIRS=$INC_DIR}
   )
 }
 
