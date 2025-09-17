@@ -5,7 +5,7 @@ SRC="$WS/src"
 REPO_IMU="https://github.com/hiwad-aziz/ros2_mpu6050_driver.git"
 
 provision() {
-  source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true
+  set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
   sudo apt-get update -y
   sudo apt-get install -y i2c-tools libi2c-dev
   sudo raspi-config nonint do_i2c 0 2>/dev/null || true
@@ -18,7 +18,7 @@ provision() {
   sudo tee /etc/psyched/imu.launch.sh >/dev/null <<'LAUNCH'
 #!/usr/bin/env bash
 set -e
-source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash
+set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
 source /opt/psyched/ws/install/setup.bash
 exec ros2 run mpu6050_driver mpu6050_node --ros-args -p i2c_bus:=1 -p i2c_address:=0x68 -r imu/data:=/imu
 LAUNCH

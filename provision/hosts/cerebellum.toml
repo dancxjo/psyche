@@ -11,5 +11,7 @@ services = [
   "lidar",     # set driver in service script env or auto-detect
   "camera",    # usb_cam
   "mic",       # alsa setup only, optional ros audio later
-  "gps"        # u-blox7 via nmea_navsat_driver
+  "gps",       # u-blox7 via nmea_navsat_driver
+  "robot",     # robot_state_publisher from URDF
+  "nav"        # nav2 + slam_toolbox
 ]

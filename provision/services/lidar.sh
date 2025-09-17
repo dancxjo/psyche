@@ -4,7 +4,7 @@ WS="/opt/psyched/ws"
 SRC="$WS/src"
 
 provision() {
-  source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true
+  set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
   sudo apt-get update -y
   sudo apt-get install -y git
   mkdir -p "$SRC"
@@ -31,7 +31,7 @@ RULE
   sudo tee /etc/psyched/lidar.launch.sh >/dev/null <<'LAUNCH'
 #!/usr/bin/env bash
 set -e
-source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash
+set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
 source /opt/psyched/ws/install/setup.bash
 
 if ros2 pkg executables sllidar_ros2 | grep -q sllidar_node; then

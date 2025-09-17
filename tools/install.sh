@@ -140,9 +140,9 @@ run_bootstrap() {
         fi
     fi
 
-    echo "Running bootstrap script from ${BOOTSTRAP}..."
-    # Run the bootstrap script with bash from the repository root
-    (cd "${DEST_DIR}" && bash "${BOOTSTRAP}")
+    echo "Running bootstrap script from ${BOOTSTRAP} (apply mode)..."
+    # Run the bootstrap script with bash from the repository root in apply mode
+    (cd "${DEST_DIR}" && bash "${BOOTSTRAP}" --apply)
 }
 
 download

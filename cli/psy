@@ -118,8 +118,23 @@ case "$cmd" in
     sub="${1:-}"; shift || true
     case "$sub" in
       install) bash "$PROV/systemd/install_units.sh" ;;
-      up)      sudo systemctl start 'psyched@*' ;;
-      down)    sudo systemctl stop  'psyched@*' ;;
+      up)
+        # Start all installed psyched@<name>.service units.
+        mapfile -t UNITS < <(systemctl list-unit-files 'psyched@*.service' --no-legend | awk '{print $1}')
+        if [ ${#UNITS[@]} -eq 0 ]; then
+          echo "[psy] No psyched@*.service unit files installed"
+        else
+          sudo systemctl start "${UNITS[@]}" || true
+        fi
+        ;;
+      down)
+        mapfile -t UNITS < <(systemctl list-units 'psyched@*.service' --no-legend | awk '{print $1}')
+        if [ ${#UNITS[@]} -eq 0 ]; then
+          echo "[psy] No running psyched@*.service units"
+        else
+          sudo systemctl stop "${UNITS[@]}" || true
+        fi
+        ;;
       *) usage; exit 1;;
     esac
     ;;
