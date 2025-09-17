@@ -62,6 +62,12 @@ def _stub_rclpy_modules(monkeypatch):
             def create_subscription(self, *_args, **_kwargs):  # pragma: no cover
                 return None
 
+            def create_publisher(self, *_args, **_kwargs):  # pragma: no cover - new for conversation pub
+                class _Pub:
+                    def publish(self, *_a, **_k):
+                        return None
+                return _Pub()
+
         node_stub.Node = _DummyNode
         monkeypatch.setitem(sys.modules, "rclpy.node", node_stub)
 

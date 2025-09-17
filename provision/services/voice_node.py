@@ -15,6 +15,17 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Empty, String
 
+# Conversation message (optional) ------------------------------------------------
+# The Conversation interface lives in psyche_interfaces/msg/Conversation.msg with fields:
+#   string speaker
+#   string message
+#   builtin_interfaces/Time at
+# This import may fail during lightweight tests without the interface package; we degrade gracefully.
+try:  # pragma: no cover - import environment dependent
+    from psyche_interfaces.msg import Conversation  # type: ignore
+except Exception:  # pragma: no cover - best effort fallback when interfaces absent
+    Conversation = None  # type: ignore
+
 
 class TTSEngine:
     """Abstract interface for synthesizing speech to a WAV file."""
@@ -248,6 +259,7 @@ class VoiceNode(Node):
         super().__init__("psy_voice")
         host = os.environ.get("PSY_HOST", "") or socket.gethostname().split(".")[0]
         self.base_topic = f"/voice/{host}"
+        self.speaker_id = os.environ.get("PSY_VOICE_SPEAKER", host)
 
         self.engine = self._select_engine()
 
@@ -263,6 +275,17 @@ class VoiceNode(Node):
         self.create_subscription(Empty, f"{self.base_topic}/interrupt", lambda _: self._interrupt(), 10)
         self.create_subscription(Empty, f"{self.base_topic}/resume", lambda _: self._resume(), 10)
         self.create_subscription(Empty, f"{self.base_topic}/abandon", lambda _: self._abandon(), 10)
+
+        # Optional conversation publisher for downstream logging / chat context.
+        # Only created if Conversation message type available.
+        if Conversation is not None:  # pragma: no branch - simple guard
+            try:
+                self.conversation_pub = self.create_publisher(Conversation, "/conversation", 10)
+            except Exception as exc:  # pragma: no cover - defensive
+                self.get_logger().warn(f"Failed to create conversation publisher: {exc}")
+                self.conversation_pub = None  # type: ignore
+        else:
+            self.conversation_pub = None  # type: ignore
 
         self.player_thread = threading.Thread(target=self._player_loop, daemon=True)
         self.player_thread.start()
@@ -340,6 +363,7 @@ class VoiceNode(Node):
 
     def _speak_text(self, text: str):
         wav_path: Optional[str] = None
+        completed_ok = False  # Track whether playback finished without abandon/termination.
         try:
             wav_path = self.engine.synthesize(text)
             if not wav_path or not os.path.exists(wav_path):
@@ -359,6 +383,8 @@ class VoiceNode(Node):
                     break
                 ret = proc.poll()
                 if ret is not None:
+                    # Process exited naturally (success if rc == 0)
+                    completed_ok = (ret == 0) and (not abandon)
                     break
                 if abandon:
                     try:
@@ -389,6 +415,21 @@ class VoiceNode(Node):
                     os.unlink(wav_path)
                 except Exception:
                     pass
+
+            # Publish conversation event after successful playback completion.
+            if completed_ok and self.conversation_pub is not None:
+                try:
+                    msg = Conversation()  # type: ignore
+                    # Some test environments may not have a real clock (stub returns None); guard.
+                    try:
+                        msg.at = self.get_clock().now().to_msg()  # type: ignore[attr-defined]
+                    except Exception:  # pragma: no cover - fallback
+                        pass
+                    msg.speaker = self.speaker_id  # type: ignore[attr-defined]
+                    msg.message = text  # type: ignore[attr-defined]
+                    self.conversation_pub.publish(msg)  # type: ignore[union-attr]
+                except Exception as exc:  # pragma: no cover - defensive
+                    self.get_logger().warn(f"Failed to publish conversation message: {exc}")
 
     # Engine selection -----------------------------------------------------------
     def _select_engine(self) -> TTSEngine:
