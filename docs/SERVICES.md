@@ -115,7 +115,8 @@ them repeatedly is safe.
   prepare audio capture for future nodes.
 
 ## `nav2.sh` and Bringup Configs
-- `provision/bringup/nav2.sh` is invoked by `psy bringup nav` for ad-hoc testing.
+- `provision/bringup/nav2.sh` is launched through `psy bring up nav`
+  (previously `psy bringup nav`).
 - Configuration files:
   - `provision/bringup/nav2_params.yaml` - Nav2 behaviour tree and planner
     settings.

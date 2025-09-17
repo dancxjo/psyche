@@ -33,22 +33,38 @@ resynchronises the machine with the desired configuration.
 - Delegates to `provision/services/workspace.sh build`, which sources ROS,
   resolves dependencies via `rosdep`, enables `ccache`, and runs `colcon build`.
 
+## `psy bring ...`
+- `psy bring up [svc ..]` - Starts the named services through their
+  `psyched@<svc>.service` units. When no services are supplied it auto-discovers
+  launch scripts in `/etc/psyched` (falling back to installed units).
+- `psy bring down [svc ..]` - Stops the selected services (or all discovered).
+- `psy bring restart [svc ..]` - Convenience wrapper that restarts the chosen
+  services in place.
+- `psy bring status [svc ..]` - Prints the first few lines of
+  `systemctl status` for each service, making it easy to spot failing units.
+
+These subcommands share the same discovery logic as `psy systemd up/down`, so
+either interface may be used interchangeably.
+
 ## `psy bringup nav`
-- Convenience launcher for manual navigation testing.
-- Sources ROS if needed, then starts `provision/bringup/nav2.sh`, which launches
-  `slam_toolbox` (online sync mode) and the Nav2 bringup launch file using the
-  parameters under `provision/bringup/`.
+- Backwards-compatible shim that now shells out to `psy bring up nav`, emitting
+  a deprecation notice. Nav still launches via the systemd-managed
+  `nav.launch.sh`.
 
 ## `psy systemd ...`
 - `psy systemd install` - Installs or refreshes the templated `psyched@.service`
   unit and enables services for which launchers exist.
 - `psy systemd info [svc ...]` - Lists installed `psyched@` units and, when
   service names are supplied, prints recent journalctl output plus the first few
-  lines of `systemctl status` for each.
-- `psy systemd up` - Starts all services that have launch scripts in
-  `/etc/psyched`. Falls back to querying `systemctl list-unit-files` if no
-  launchers are detected.
-- `psy systemd down` - Stops all running `psyched@*.service` units.
+  lines of `systemctl status` for each. Also available via `psy debug` (see
+  below).
+- `psy systemd up` / `down` - Share their service discovery with `psy bring`, so
+  they accept optional service names and otherwise act on all available units.
+
+## `psy debug [svc ..]`
+- Shortcut for `psy systemd info`, combining a filtered `systemctl` summary
+  with recent `journalctl` output and a brief status snippet for each supplied
+  service.
 
 All systemd operations shell out to `sudo systemctl`; expect to supply sudo
 credentials when prompted.

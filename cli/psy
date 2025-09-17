@@ -64,7 +64,11 @@ usage() {
 psy — psycheOS host/service manager
 
 Usage:
-  psy systemd info [svc..]    Show systemd summary (and recent logs for named services)
+  psy bring up [svc..]        Start named services via systemd (defaults to all)
+  psy bring down [svc..]      Stop named services via systemd (defaults to all)
+  psy bring restart [svc..]   Restart named services via systemd (defaults to all)
+  psy bring status [svc..]    Show brief status for named services (defaults to all)
+  psy debug [svc..]           Show systemd summary plus recent logs
   psy host apply [<host>]      Apply host's service set (defaults to $(hostname))
   psy svc list                 List available services
   psy svc enable <name>        Enable a service for this host
@@ -72,6 +76,7 @@ Usage:
   psy build                    colcon build (creates ws if needed)
   psy bringup nav              Launch nav2 stack (tmux/screen-less; use systemd)
   psy systemd install          Install per-service systemd units and enable configured ones
+  psy systemd info [svc..]    Show systemd summary (and recent logs for named services)
   psy systemd up               Start all enabled service units now
   psy systemd down             Stop all service units
   psy update                   Reinstall latest psyche from GitHub and re-apply
@@ -81,6 +86,48 @@ Helper:
   psh say <text>               Convenience wrapper to publish to /voice/$(hostname -s)
   psh bearing <deg>            Publish /cmd_vel Twist to rotate toward the bearing
 USAGE
+}
+
+list_launch_services() {
+  if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
+    for f in /etc/psyched/*.launch.sh; do
+      [ -e "$f" ] || continue
+      local base
+      base="$(basename "$f")"
+      printf '%s\n' "${base%.launch.sh}"
+    done
+    return 0
+  fi
+  return 1
+}
+
+resolve_service_names() {
+  if [ $# -gt 0 ]; then
+    for svc in "$@"; do
+      [ -n "$svc" ] || continue
+      printf '%s\n' "$svc"
+    done
+    return 0
+  fi
+
+  if list_launch_services; then
+    return 0
+  fi
+
+  systemctl list-unit-files 'psyched@*.service' --no-legend 2>/dev/null \
+    | awk '$1 ~ /^psyched@.+\.service$/ { sub(/^psyched@/, "", $1); sub(/\.service$/, "", $1); if (!seen[$1]++) print $1 }'
+}
+
+systemd_info() {
+  echo "[psy] systemctl summary (filtered)"
+  systemctl --no-pager | grep -i "psych" || true
+  if [ $# -gt 0 ]; then
+    for s in "$@"; do
+      printf "\n[psy] recent logs for psyched@%s.service\n" "$s"
+      sudo journalctl -u "psyched@${s}.service" -n 200 --no-pager -o short-precise || true
+      systemctl status "psyched@${s}.service" --no-pager -l | sed -n '1,5p' || true
+    done
+  fi
 }
 
 host_cfg() { echo "${HOSTCFG_DIR}/${1}.toml"; }
@@ -204,15 +251,71 @@ case "$cmd" in
     bash "$SVCDIR/workspace.sh" build
     ;;
   bringup)
-    if ! command -v ros2 >/dev/null 2>&1; then
-      set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
-    fi
     sub="${1:-}"; shift || true
     case "$sub" in
       nav)
-        bash "$PROV/bringup/nav2.sh"
+        echo "[psy] 'psy bringup nav' is deprecated; use 'psy bring up nav'"
+        "$0" bring up nav
         ;;
       *) usage; exit 1;;
+    esac
+    ;;
+  bring)
+    action="${1:-}"; shift || true
+    case "$action" in
+      up|start)
+        mapfile -t SERVICES < <(resolve_service_names "$@")
+        if [ ${#SERVICES[@]} -eq 0 ]; then
+          echo "[psy] No services found to start"
+        else
+          UNITS=()
+          for svc in "${SERVICES[@]}"; do
+            UNITS+=("psyched@${svc}.service")
+          done
+          echo "[psy] Starting services: ${SERVICES[*]}"
+          sudo systemctl start "${UNITS[@]}" || true
+        fi
+        ;;
+      down|stop)
+        mapfile -t SERVICES < <(resolve_service_names "$@")
+        if [ ${#SERVICES[@]} -eq 0 ]; then
+          echo "[psy] No services found to stop"
+        else
+          UNITS=()
+          for svc in "${SERVICES[@]}"; do
+            UNITS+=("psyched@${svc}.service")
+          done
+          echo "[psy] Stopping services: ${SERVICES[*]}"
+          sudo systemctl stop "${UNITS[@]}" || true
+        fi
+        ;;
+      restart)
+        mapfile -t SERVICES < <(resolve_service_names "$@")
+        if [ ${#SERVICES[@]} -eq 0 ]; then
+          echo "[psy] No services found to restart"
+        else
+          UNITS=()
+          for svc in "${SERVICES[@]}"; do
+            UNITS+=("psyched@${svc}.service")
+          done
+          echo "[psy] Restarting services: ${SERVICES[*]}"
+          sudo systemctl restart "${UNITS[@]}" || true
+        fi
+        ;;
+      status)
+        mapfile -t SERVICES < <(resolve_service_names "$@")
+        if [ ${#SERVICES[@]} -eq 0 ]; then
+          echo "[psy] No services found"
+        else
+          for svc in "${SERVICES[@]}"; do
+            systemctl status "psyched@${svc}.service" --no-pager -l | sed -n '1,5p' || true
+          done
+        fi
+        ;;
+      *)
+        usage
+        exit 1
+        ;;
     esac
     ;;
   systemd)
@@ -220,44 +323,37 @@ case "$cmd" in
     case "$sub" in
       install) bash "$PROV/systemd/install_units.sh" ;;
       info)
-        echo "[psy] systemctl summary (filtered)"
-        systemctl --no-pager | grep -i "psych" || true
-        if [ $# -gt 0 ]; then
-          for s in "$@"; do
-            printf "\n[psy] recent logs for psyched@%s.service\n" "$s"
-            sudo journalctl -u "psyched@${s}.service" -n 200 --no-pager -o short-precise || true
-            systemctl status "psyched@${s}.service" --no-pager -l | sed -n '1,5p' || true
-          done
-        fi
+        systemd_info "$@"
         ;;
       up)
-        if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
-          mapfile -t UNITS < <(for f in /etc/psyched/*.launch.sh; do [ -e "$f" ] || continue; b=$(basename "$f"); echo "psyched@${b%.launch.sh}.service"; done)
-        else
-          mapfile -t UNITS < <(systemctl list-unit-files 'psyched@*.service' --no-legend \
-            | awk '$1 ~ /^psyched@.+\.service$/ {print $1}')
-        fi
-        if [ ${#UNITS[@]} -eq 0 ]; then
+        mapfile -t SERVICES < <(resolve_service_names "$@")
+        if [ ${#SERVICES[@]} -eq 0 ]; then
           echo "[psy] No psyched@*.service unit files installed"
         else
+          UNITS=()
+          for svc in "${SERVICES[@]}"; do
+            UNITS+=("psyched@${svc}.service")
+          done
           sudo systemctl start "${UNITS[@]}" || true
         fi
         ;;
       down)
-        if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
-          mapfile -t UNITS < <(for f in /etc/psyched/*.launch.sh; do [ -e "$f" ] || continue; b=$(basename "$f"); echo "psyched@${b%.launch.sh}.service"; done)
-        else
-          mapfile -t UNITS < <(systemctl list-units 'psyched@*.service' --no-legend \
-            | awk '$1 ~ /^psyched@.+\.service$/ {print $1}')
-        fi
-        if [ ${#UNITS[@]} -eq 0 ]; then
+        mapfile -t SERVICES < <(resolve_service_names "$@")
+        if [ ${#SERVICES[@]} -eq 0 ]; then
           echo "[psy] No running psyched@*.service units"
         else
+          UNITS=()
+          for svc in "${SERVICES[@]}"; do
+            UNITS+=("psyched@${svc}.service")
+          done
           sudo systemctl stop "${UNITS[@]}" || true
         fi
         ;;
       *) usage; exit 1;;
     esac
+    ;;
+  debug)
+    systemd_info "$@"
     ;;
   bearing)
     # Publish a geometry_msgs/msg/Twist command that mirrors the proportional
