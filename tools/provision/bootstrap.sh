@@ -132,6 +132,7 @@ if [ ! -d "${ROOT}" ]; then
 fi
 
 CLI="${ROOT}/cli/psy"
+CLI_ALT="${ROOT}/cli/psh"
 HOSTCFG_DIR="${ROOT}/provision/hosts"
 SVCDIR="${ROOT}/provision/services"
 SYSTEMD_INSTALL="${ROOT}/provision/systemd/install_units.sh"
@@ -153,6 +154,7 @@ echo "[bootstrap] KISS bootstrap start (root=${ROOT}, host=${HOST}, apply=${APPL
 
 # Ensure executables
 if [ -f "${CLI}" ]; then chmod +x "${CLI}" || true; fi
+if [ -f "${CLI_ALT}" ]; then chmod +x "${CLI_ALT}" || true; fi
 if [ -d "${ROOT}/provision" ]; then
   find "${ROOT}/provision" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 fi
@@ -162,6 +164,11 @@ if [ -f "${CLI}" ]; then
 	if [ ! -L "/usr/bin/psy" ] || [ "$(readlink -f /usr/bin/psy 2>/dev/null || true)" != "${CLI}" ]; then
 		echo "[bootstrap] Linking ${CLI} -> /usr/bin/psy"
 		sudo ln -sf "${CLI}" /usr/bin/psy || true
+	fi
+	# Also link psh as a synonym
+	if [ ! -L "/usr/bin/psh" ] || [ "$(readlink -f /usr/bin/psh 2>/dev/null || true)" != "${CLI}" ]; then
+		echo "[bootstrap] Linking ${CLI} -> /usr/bin/psh"
+		sudo ln -sf "${CLI}" /usr/bin/psh || true
 	fi
 fi
 
