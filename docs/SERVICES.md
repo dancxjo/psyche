@@ -122,8 +122,19 @@ them repeatedly is safe.
   `psy-ai-stack` Docker network.
 
 ## `mic.sh`
-- Installs ALSA utilities and headers. Does not create a launcher; intended to
-  prepare audio capture for future nodes.
+- Installs ALSA utilities and headers to enable audio capture.
+- A companion runtime node `mic_node.py` (installed separately when needed)
+  publishes voice activity detection (VAD) boolean frames on
+  `/voice/<hostname>/vad` (`std_msgs/Bool`).
+- Environment overrides for the node:
+  - `PSY_MIC_SAMPLE_RATE` (default 16000)
+  - `PSY_MIC_FRAME_MS` (10|20|30, default 20)
+  - `PSY_MIC_VAD_AGGRESSIVE` (0-3, webrtcvad aggressiveness, default 2)
+  - `PSY_MIC_VAD_PUBLISH_HZ` (max Boolean publish rate, default derived from frame)
+  - `PSY_MIC_DEVICE` (ALSA device, default `default`)
+  - `PSY_MIC_DISABLE_AUDIO` (if set, uses a synthetic silence source for tests)
+  - Falls back to an internal energy threshold detector if `webrtcvad` is not
+    available.
 
 ## `nav2.sh` and Bringup Configs
 - `provision/bringup/nav2.sh` is launched through `psy bring up nav`
