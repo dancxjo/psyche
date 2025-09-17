@@ -17,7 +17,7 @@ ensure_ws() {
 
 ensure_numpy() {
   # Ensure Python3 NumPy is available for rosidl_generator_py
-  if ! python3 -c 'import numpy' >/dev/null 2>&1; then
+  if ! /usr/bin/python3 -c 'import numpy' >/dev/null 2>&1; then
     echo "[psy] Python NumPy not found; installing python3-numpy"
     sudo apt-get update -y || true
     sudo apt-get install -y python3-numpy || true
@@ -48,7 +48,11 @@ build() {
     echo "[psy] rosdep not found; skipping dependency resolution"
   fi
   (
-    cd "$WS" && colcon build
+    cd "$WS" && colcon build \
+      --cmake-args \
+        -DPython3_EXECUTABLE=/usr/bin/python3 \
+        -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+        -DPython3_FIND_VIRTUALENV=NEVER
   )
 }
 
