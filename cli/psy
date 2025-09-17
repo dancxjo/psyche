@@ -24,6 +24,10 @@ Usage:
   psy systemd up               Start all enabled service units now
   psy systemd down             Stop all service units
   psy update                   Reinstall latest psyche from GitHub and re-apply
+  psy say <text>               Publish text to /voice/$(hostname -s)
+
+Helper:
+  psh say <text>               Convenience wrapper to publish to /voice/$(hostname -s)
 USAGE
 }
 
@@ -158,6 +162,30 @@ case "$cmd" in
     esac
     ;;
   systemd)
+  say)
+    # Publish a message to voice topic
+    if [ $# -eq 0 ]; then
+      echo "Usage: psy say <text>" >&2
+      exit 1
+    fi
+    if ! command -v ros2 >/dev/null 2>&1; then
+      set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash 2>/dev/null || true; set -u
+    fi
+    if ! command -v ros2 >/dev/null 2>&1; then
+      echo "[psy] ERROR: ros2 CLI not found (install or source environment)." >&2
+      exit 2
+    fi
+    host_short="$(hostname -s)"
+    topic="/voice/${host_short}"
+    msg="$*"
+    # Escape for YAML inline string
+    msg_esc="${msg//\\/\\\\}"
+    msg_esc="${msg_esc//\"/\\\"}"
+    ros2 topic pub --once "$topic" std_msgs/String "{data: \"$msg_esc\"}" || {
+      echo "[psy] ERROR: failed to publish to $topic" >&2
+      exit 3
+    }
+    ;;
     sub="${1:-}"; shift || true
     case "$sub" in
       install) bash "$PROV/systemd/install_units.sh" ;;
