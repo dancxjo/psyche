@@ -13,7 +13,9 @@ provision() {
     ros-${ROS_DISTRO:-jazzy}-image-transport \
     ros-${ROS_DISTRO:-jazzy}-vision-msgs \
     python3-opencv \
-    python3-numpy
+    python3-numpy \
+    libusb-1.0-0-dev \
+    pkg-config
 
   # Vision package should already exist in workspace, just ensure structure
   mkdir -p "$SRC"
@@ -21,13 +23,18 @@ provision() {
   [ -d "$SRC/ros2_shared" ] || git clone https://github.com/ptrmu/ros2_shared.git "$SRC/ros2_shared" || true
   [ -d "$SRC/kinect_ros2" ] || git clone --branch frame_correction https://github.com/bribribriambriguy/kinect_ros2.git "$SRC/kinect_ros2" || true
   [ -d "$SRC/libfreenect" ] || git clone https://github.com/OpenKinect/libfreenect "$SRC/libfreenect" || true
+  # Prevent colcon from attempting to build non-ROS libfreenect; we build/install it manually below
+  [ -d "$SRC/libfreenect" ] && touch "$SRC/libfreenect/COLCON_IGNORE" || true
 
   # Best-effort build of libfreenect (non-ROS dep used by kinect stack)
   if [ -d "$SRC/libfreenect" ]; then
     (
       cd "$SRC/libfreenect"
       mkdir -p build && cd build
-      cmake -L .. && make -j"$(nproc)" && sudo make install || true
+      cmake -DBUILD_EXAMPLES=OFF -DBUILD_FAKENECT=OFF -DBUILD_PYTHON=OFF .. && \
+        make -j"$(nproc)" && \
+        sudo make install && \
+        sudo ldconfig || true
     )
   fi
   # Note: psyche_vision package is committed to the repo in ws/src/
