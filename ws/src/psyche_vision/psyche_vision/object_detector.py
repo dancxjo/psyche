@@ -6,8 +6,9 @@ Detects objects in camera images and publishes target poses.
 
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, PointStamped
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
@@ -24,7 +25,8 @@ class ObjectDetector(Node):
         self.declare_parameter('target_color_upper', [10, 255, 255])  # HSV upper bound
         self.declare_parameter('min_area', 500)  # Minimum contour area
         self.declare_parameter('image_center_x', 640)  # Image width / 2
-        self.declare_parameter('camera_fov_degrees', 60.0)  # Camera field of view
+    self.declare_parameter('camera_fov_degrees', 60.0)  # Camera field of view
+    self.declare_parameter('publish_target_point', True)  # Also publish /target_point
         
         # Initialize CV bridge
         self.bridge = CvBridge()
@@ -40,6 +42,13 @@ class ObjectDetector(Node):
         self.target_pub = self.create_publisher(
             PoseStamped, 
             '/target_pose', 
+            10
+        )
+
+        # Optional /target_point publisher (normalized [0..1] image coords)
+        self.point_pub = self.create_publisher(
+            PointStamped,
+            '/target_point',
             10
         )
         
@@ -59,7 +68,7 @@ class ObjectDetector(Node):
             cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
             
             # Detect object
-            target_x, confidence = self.detect_object(cv_image)
+            target_x, target_y, confidence = self.detect_object(cv_image)
             
             if target_x is not None:
                 # Compute bearing angle
@@ -67,6 +76,10 @@ class ObjectDetector(Node):
                 
                 # Publish target pose
                 self.publish_target_pose(bearing, confidence, msg.header.stamp)
+
+                # Optionally publish normalized point
+                if self.get_parameter('publish_target_point').value:
+                    self.publish_target_point(target_x, target_y, cv_image.shape[1], cv_image.shape[0], msg)
                 
                 self.get_logger().info(f'Target detected: x={target_x}, bearing={bearing:.2f}°, conf={confidence:.2f}')
             else:
@@ -101,7 +114,7 @@ class ObjectDetector(Node):
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         if not contours:
-            return None, 0.0
+            return None, None, 0.0
         
         # Find largest contour that meets minimum area requirement
         largest_contour = None
@@ -114,24 +127,24 @@ class ObjectDetector(Node):
                 largest_contour = contour
         
         if largest_contour is None:
-            return None, 0.0
+            return None, None, 0.0
         
         # Get centroid of largest contour
         M = cv2.moments(largest_contour)
         if M['m00'] == 0:
-            return None, 0.0
+            return None, None, 0.0
         
         cx = int(M['m10'] / M['m00'])
         cy = int(M['m01'] / M['m00'])
         
         # Publish debug image
-        self.publish_debug_image(image, mask, largest_contour, cx, cy)
+    self.publish_debug_image(image, mask, largest_contour, cx, cy)
         
         # Confidence based on relative size
         image_area = image.shape[0] * image.shape[1]
         confidence = min(1.0, largest_area / (image_area * 0.1))
         
-        return cx, confidence
+    return cx, cy, confidence
     
     def compute_bearing(self, target_x, image_width):
         """
@@ -143,7 +156,7 @@ class ObjectDetector(Node):
         
         # Update image center if needed
         if image_center_x != image_width // 2:
-            self.set_parameters([rclpy.Parameter('image_center_x', value=image_width // 2)])
+            self.set_parameters([Parameter('image_center_x', value=image_width // 2)])
             image_center_x = image_width // 2
         
         # Convert pixel offset to angle
@@ -164,6 +177,19 @@ class ObjectDetector(Node):
         pose_msg.pose.position.z = confidence
         
         self.target_pub.publish(pose_msg)
+
+    def publish_target_point(self, cx_px, cy_px, width, height, src_msg):
+        """Publish normalized target point in image coordinates [0..1]."""
+        try:
+            pt = PointStamped()
+            pt.header = src_msg.header
+            # Normalize to [0..1]
+            pt.point.x = float(cx_px) / float(width)
+            pt.point.y = float(cy_px) / float(height)
+            pt.point.z = 0.0
+            self.point_pub.publish(pt)
+        except Exception as e:
+            self.get_logger().warn(f'Failed to publish /target_point: {e}')
     
     def publish_debug_image(self, original, mask, contour, cx, cy):
         """Publish debug visualization."""

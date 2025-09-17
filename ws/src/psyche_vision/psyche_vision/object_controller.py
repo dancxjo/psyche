@@ -6,7 +6,7 @@ Subscribes to target poses and publishes cmd_vel to center the object.
 
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped, Twist
+from geometry_msgs.msg import PoseStamped, Twist, PointStamped
 import numpy as np
 import time
 
@@ -23,6 +23,9 @@ class ObjectController(Node):
         self.declare_parameter('angle_tolerance_degrees', 2.0)  # Deadzone
         self.declare_parameter('min_confidence', 0.3)  # Minimum confidence to act
         self.declare_parameter('timeout_seconds', 2.0)  # Stop if no target for this long
+    self.declare_parameter('image_width', 1280)  # pixels; used with /target_point
+    self.declare_parameter('camera_fov_degrees', 60.0)  # FOV for pixel->angle
+    self.declare_parameter('use_target_point', True)  # prefer /target_point over /target_pose
         
         # State
         self.last_target_time = None
@@ -34,6 +37,14 @@ class ObjectController(Node):
             PoseStamped,
             '/target_pose',
             self.target_callback,
+            10
+        )
+
+        # Optional subscription to normalized /target_point
+        self.point_sub = self.create_subscription(
+            PointStamped,
+            '/target_point',
+            self.point_callback,
             10
         )
         
@@ -55,6 +66,28 @@ class ObjectController(Node):
         self.current_target_angle = np.degrees(bearing_radians)
         self.current_confidence = msg.pose.position.z
         self.last_target_time = time.time()
+    def point_callback(self, msg: PointStamped):
+        """Process incoming normalized target point messages."""
+        try:
+            if not self.get_parameter('use_target_point').value:
+                return
+            # msg.point.x, msg.point.y are normalized [0..1]
+            img_w = float(self.get_parameter('image_width').value)
+            fov_deg = float(self.get_parameter('camera_fov_degrees').value)
+            x_norm = float(msg.point.x)
+            # Convert normalized x to pixel coordinate
+            x_px = x_norm * img_w
+            pixel_offset = x_px - (img_w / 2.0)
+            pixels_per_degree = img_w / fov_deg if fov_deg > 1e-6 else img_w / 60.0
+            bearing_deg = pixel_offset / pixels_per_degree
+            self.current_target_angle = bearing_deg
+            # Confidence unknown here; default to 0.5 unless caller encodes >0 in z
+            zval = float(msg.point.z)
+            self.current_confidence = zval if zval > 0.0 else 0.5
+            self.last_target_time = time.time()
+        except Exception as e:
+            self.get_logger().warn(f'/target_point handling failed: {e}')
+
         
         self.get_logger().debug(
             f'Target update: angle={self.current_target_angle:.2f}°, '

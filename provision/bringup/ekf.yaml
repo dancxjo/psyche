@@ -1,0 +1,161 @@
+# robot_localization EKF config for fusing odom, IMU, and GPS into base_link -> odom
+# Minimal, safe defaults. Tune as needed for your platform.
+
+frequency: 30.0
+sensor_timeout: 0.2
+
+two_d_mode: false
+publish_tf: true
+map_frame: map
+odom_frame: odom
+base_link_frame: base_link
+world_frame: odom
+
+# Odometry (wheel / visual odometry)
+# message type: nav_msgs/Odometry
+odom0: /odom
+odom0_config: [
+  true,
+  true,
+  false,
+  false,
+  false,
+  true,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  true,
+]
+odom0_differential: false
+odom0_relative: false
+
+# IMU
+# message type: sensor_msgs/Imu
+imu0: /imu/data
+imu0_config: [
+  false,
+  false,
+  false,
+  true,
+  true,
+  true,
+  false,
+  false,
+  false,
+  true,
+  true,
+  true,
+  false,
+  false,
+  false,
+]
+imu0_differential: false
+imu0_remove_gravitational_acceleration: true
+
+# GPS
+# message type: sensor_msgs/NavSatFix
+# If using navsat_transform_node, fuse its odometry output instead
+navsat0: /gps/fix
+navsat0_config: [
+  true,
+  true,
+  true,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+]
+navsat0_differential: false
+
+# Process noise (Q) - conservative
+process_noise_covariance: [
+  0.05,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0.05,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0.2,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0.05,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0.05,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0.1,
+]
+
+# Initial estimate error (P) - loose
+initial_estimate_covariance: [
+  1,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+]
