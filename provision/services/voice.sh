@@ -25,8 +25,8 @@ ensure_deps() {
 }
 
 ensure_voice_model() {
-    # Default male high-quality voice switched to en_US-kyle-high
-    local model_name="${1:-en_US-kyle-high}"
+        # Attempt to obtain a specific model (basename e.g. en_US-kyle-high)
+        local model_name="${1:-en_US-kyle-high}"
   local model_basename="$model_name"
   local onnx="${VOICES_DIR}/${model_basename}.onnx"
   local json="${VOICES_DIR}/${model_basename}.onnx.json"
@@ -35,7 +35,7 @@ ensure_voice_model() {
   sudo mkdir -p "${VOICES_DIR}"
 
   # If already present, nothing to do
-  if [ -f "$onnx" ] && [ -f "$json" ]; then
+    if [ -f "$onnx" ] && [ -f "$json" ]; then
     echo "[voice] Using existing model: $onnx"
         if [ -n "$expected_sha" ] && command -v sha256sum >/dev/null 2>&1; then
             local have_sha
@@ -148,7 +148,7 @@ ensure_voice_model() {
         fi
     fi
 
-  if [ -f "$onnx" ] && [ -f "$json" ]; then
+    if [ -f "$onnx" ] && [ -f "$json" ]; then
         # Integrity verification if expected SHA given
         if [ -n "$expected_sha" ] && command -v sha256sum >/dev/null 2>&1; then
             have_sha="$(sha256sum "$onnx" | awk '{print $1}')"
@@ -168,7 +168,78 @@ ensure_voice_model() {
         echo "[voice]  - If apt is available: sudo apt-get install piper-voices (then re-run)" >&2
         echo "[voice]  - Offline: place ${model_basename}.tar.gz in one of: ${cache_dirs[*]} and re-run" >&2
         echo "[voice]  - Manual: download from Hugging Face and copy to: $onnx and $json" >&2
-  fi
+    fi
+
+    # Return success if files present
+    if [ -f "$onnx" ] && [ -f "$json" ]; then
+        return 0
+    fi
+    return 1
+}
+
+# Map friendly alias to ordered candidate list (colon separated)
+voice_alias_candidates() {
+    local alias="$1"
+    case "$alias" in
+        en_male_high|male_en|en_us_male)
+            echo "en_US-kyle-high:en_US-ryan-high:en_GB-southern_english_male-medium:en_US-lessac-medium" ;;
+        en_female_high|female_en)
+            echo "en_US-amy-high:en_US-lessac-medium" ;;
+        minimal|small)
+            echo "en_US-lessac-medium:en_US-kyle-high" ;;
+        *)
+            # Unknown alias; treat as direct model name
+            echo "$alias" ;;
+    esac
+}
+
+# Select a voice model when PSY_VOICE_MODEL_NAME not explicitly set
+select_voice_model() {
+    if [ -n "${PSY_VOICE_MODEL_NAME:-}" ]; then
+        echo "$PSY_VOICE_MODEL_NAME"
+        return 0
+    fi
+    local alias_list="${PSY_VOICE_MODEL_ALIAS:-en_male_high}"  # allow comma-separated aliases
+    local final_candidates=()
+    IFS=',' read -r -a alias_arr <<<"$alias_list"
+    for a in "${alias_arr[@]}"; do
+        local cands
+        cands="$(voice_alias_candidates "$a")"
+        IFS=':' read -r -a tmpc <<<"$cands"
+        for c in "${tmpc[@]}"; do
+            # de-duplicate while preserving order
+            local already=0
+            for existing in "${final_candidates[@]}"; do
+                [ "$existing" = "$c" ] && already=1 && break
+            done
+            [ $already -eq 0 ] && final_candidates+=("$c")
+        done
+    done
+    # Fallback absolute default if list somehow empty
+    [ ${#final_candidates[@]} -eq 0 ] && final_candidates+=("en_US-kyle-high")
+    echo "${final_candidates[0]}"  # primary candidate returned; full list used later for fallback download attempts
+    PSY_INTERNAL_CANDIDATES="${final_candidates[*]}"
+}
+
+attempt_candidates_download() {
+    local chosen primary ok=1
+    # If internal candidate list exported by select_voice_model we reuse; else build from chosen only
+    local list
+    if [ -n "${PSY_INTERNAL_CANDIDATES:-}" ]; then
+        list="$PSY_INTERNAL_CANDIDATES"
+    else
+        list="$1"
+    fi
+    for cand in $list; do
+        echo "[voice] Ensuring voice model candidate: $cand"
+        if ensure_voice_model "$cand"; then
+            echo "[voice] Selected model: $cand"
+            export PSY_EFFECTIVE_MODEL_NAME="$cand"
+            return 0
+        fi
+    done
+    echo "[voice] ERROR: All candidate voice models failed to download or verify." >&2
+    return 1
 }
 
 install_node() {
@@ -439,11 +510,48 @@ LAUNCH
 }
 
 provision() {
-  ensure_deps
-    ensure_voice_model "${PSY_VOICE_MODEL_NAME:-en_US-kyle-high}"
-  install_node
-  echo "[voice] provisioned. Use: sudo systemctl start psyched@voice.service"
-        echo "[voice] Current model: ${PSY_VOICE_MODEL_NAME:-en_US-kyle-high} (override with PSY_VOICE_MODEL_NAME / PSY_VOICE_MODEL)"
+    ensure_deps
+
+    # Determine model selection
+    local chosen
+    chosen="$(select_voice_model)"
+    export PSY_VOICE_MODEL_NAME="${PSY_EFFECTIVE_MODEL_NAME:-$chosen}"
+
+    # Attempt to download primary/fallback candidates
+    attempt_candidates_download "$PSY_VOICE_MODEL_NAME" || true
+    # If a candidate succeeded, PSY_EFFECTIVE_MODEL_NAME set
+    local effective="${PSY_EFFECTIVE_MODEL_NAME:-$PSY_VOICE_MODEL_NAME}"
+
+    install_node
+
+    # Auto-generate default config if missing
+    if [ ! -f /etc/default/psyched-voice ]; then
+        echo "[voice] Creating /etc/default/psyched-voice with selected model and fallbacks"
+        local fallback_line=""
+        if [ -n "${PSY_INTERNAL_CANDIDATES:-}" ]; then
+            # remove primary from list and build fallback env var
+            local fb=()
+            for c in $PSY_INTERNAL_CANDIDATES; do
+                [ "$c" = "$effective" ] && continue
+                fb+=("/opt/psyched/voices/${c}.onnx")
+            done
+            if [ ${#fb[@]} -gt 0 ]; then
+                fallback_line="PSY_VOICE_MODEL_FALLBACKS=$(IFS=:; echo "${fb[*]}")"
+            fi
+        fi
+        sudo tee /etc/default/psyched-voice >/dev/null <<CFG
+# Auto-generated by voice.sh provision on $(date -u +%Y-%m-%dT%H:%M:%SZ)
+# Primary Piper model
+PSY_VOICE_MODEL=/opt/psyched/voices/${effective}.onnx
+# Fallback models (first existing used)
+${fallback_line}
+# Example: verify integrity (uncomment and set correct hash)
+# PSY_VOICE_MODEL_SHA256=<sha256sum>
+CFG
+    fi
+
+    echo "[voice] provisioned. Use: sudo systemctl start psyched@voice.service"
+    echo "[voice] Effective model: ${effective} (override with PSY_VOICE_MODEL_NAME or PSY_VOICE_MODEL; alias via PSY_VOICE_MODEL_ALIAS)"
 }
 
 case "${1:-provision}" in

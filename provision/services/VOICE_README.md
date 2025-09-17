@@ -26,7 +26,26 @@ Requirements:
 
 Model selection:
 
-- Default model path: `/opt/psyched/voices/en_US-kyle-high.onnx` (male high-quality voice).
+- Default behavior now performs alias-based auto-selection when `PSY_VOICE_MODEL_NAME` is not set.
+  - Alias `en_male_high` (default) expands to ordered candidates:
+    `en_US-kyle-high`, `en_US-ryan-high`, `en_GB-southern_english_male-medium`, `en_US-lessac-medium`.
+  - The provisioning script attempts each candidate until one successfully downloads or already exists.
+  - A generated `/etc/default/psyched-voice` file pins the effective model and records fallbacks (first existing is used at runtime via the node's fallback logic).
+
+- To force a specific model explicitly, set `PSY_VOICE_MODEL_NAME=<basename>` before provisioning, or set `PSY_VOICE_MODEL` in `/etc/default/psyched-voice`.
+
+Available built-in aliases (can be comma-separated in `PSY_VOICE_MODEL_ALIAS` to merge lists):
+
+| Alias | Candidate Order |
+|-------|-----------------|
+| `en_male_high` (default) | kyle-high → ryan-high → southern_english_male-medium → lessac-medium |
+| `en_female_high` | amy-high → lessac-medium |
+| `minimal` / `small` | lessac-medium → kyle-high |
+
+Example forcing alias list (merged, de-duplicated in order):
+```bash
+PSY_VOICE_MODEL_ALIAS="en_female_high,en_male_high" /opt/psyched/provision/services/voice.sh provision
+```
 - To use a high-quality male voice (example: `en_US-kyle-high`), set one of:
   - At provisioning time (temporary):
     ```bash
@@ -50,10 +69,11 @@ Model selection:
 
 Supported environment variables:
 
-- `PSY_VOICE_MODEL_NAME`: Model basename (without path) fetched into `/opt/psyched/voices/<name>.onnx`.
-- `PSY_VOICE_MODEL`: Absolute path to model to load (overrides *_NAME at runtime).
-- `PSY_VOICE_MODEL_FALLBACKS`: Colon-separated list of alternative model paths the node will try if the primary does not exist.
-- `PSY_VOICE_MODEL_SHA256`: If set, provisioning verifies the `.onnx` file's SHA256 and re-downloads if mismatched.
+- `PSY_VOICE_MODEL_NAME`: Concrete model basename (skips alias auto-selection if set).
+- `PSY_VOICE_MODEL_ALIAS`: Comma-separated alias names producing ordered candidate list (default: `en_male_high`).
+- `PSY_VOICE_MODEL`: Absolute path to primary model for runtime (overrides *_NAME and alias resolution at execution time).
+- `PSY_VOICE_MODEL_FALLBACKS`: Colon-separated model paths; the node picks the first existing file (auto-generated if using alias selection).
+- `PSY_VOICE_MODEL_SHA256`: If set during provisioning, verifies the downloaded `.onnx` integrity.
 
 Finding a male voice:
 
@@ -65,7 +85,7 @@ Common high-quality male English voices (choose one):
 
 You can list available voices from the upstream repository: https://github.com/rhasspy/piper-voices
 
-Manual download example (default male high-quality model):
+Manual download example (default first candidate of `en_male_high` alias):
 
 ```bash
 sudo mkdir -p /opt/psyched/voices
