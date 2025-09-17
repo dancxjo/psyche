@@ -7,7 +7,7 @@ BRANCH_LIBCREATE="fix-std-string"
 REPO_CREATE_ROBOT="https://github.com/autonomylab/create_robot.git"
 
 provision() {
-  source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true
+  set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
   mkdir -p "$SRC"
   [ -d "$SRC/libcreate" ] || git clone --branch "$BRANCH_LIBCREATE" "$REPO_LIBCREATE" "$SRC/libcreate"
   [ -d "$SRC/create_robot" ] || git clone "$REPO_CREATE_ROBOT" "$SRC/create_robot"
@@ -23,7 +23,7 @@ RULE
   sudo tee /etc/psyched/foot.launch.sh >/dev/null <<'LAUNCH'
 #!/usr/bin/env bash
 set -e
-source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash
+set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
 source /opt/psyched/ws/install/setup.bash
 # Adjust port to /dev/create if udev rule applies
 exec ros2 run create_driver create_driver_node --ros-args -p port:=/dev/create -r /odom:=/odom

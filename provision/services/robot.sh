@@ -4,7 +4,7 @@ ROOT="/opt/psyched"
 URDF_DIR="${ROOT}/provision/robot"
 
 provision() {
-  source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true
+  set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
   sudo mkdir -p "${URDF_DIR}"
 
   # Minimal URDF for Create base + laser + imu frames

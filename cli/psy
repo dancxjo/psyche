@@ -112,7 +112,9 @@ case "$cmd" in
     bash "$SVCDIR/workspace.sh" build
     ;;
   bringup)
-    which ros2 >/dev/null 2>&1 || source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true
+    if ! command -v ros2 >/dev/null 2>&1; then
+      set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
+    fi
     sub="${1:-}"; shift || true
     case "$sub" in
       nav)

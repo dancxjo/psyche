@@ -37,9 +37,13 @@ provision() {
   grep -q "ROS_DOMAIN_ID" ~/.bashrc || {
     echo "export ROS_DOMAIN_ID=$(get domain_id || echo 42)" >> ~/.bashrc
   }
-  grep -q "/opt/ros/${ROS_DISTRO}/setup.bash" ~/.bashrc || {
-    echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc
-  }
+  # Replace any existing plain source lines with a safe wrapper, else append wrapper
+  SAFE_LINE='set +u; [ -f "/opt/ros/'"${ROS_DISTRO}"'/setup.bash" ] && source "/opt/ros/'"${ROS_DISTRO}"'/setup.bash"; set -u'
+  if grep -qE '^\s*source\s+/opt/ros/'"${ROS_DISTRO}"'/setup.bash' ~/.bashrc; then
+    sed -i "s#^\s*source\s\+/opt/ros/${ROS_DISTRO}/setup.bash.*#${SAFE_LINE}#" ~/.bashrc || true
+  else
+    grep -q "/opt/ros/${ROS_DISTRO}/setup.bash" ~/.bashrc || echo "$SAFE_LINE" >> ~/.bashrc
+  fi
 }
 
 case "${1:-provision}" in
