@@ -96,6 +96,12 @@ fi
 BASH_SRC"
     fi
   fi
+
+  # Also add sourcing to the current user's ~/.bashrc in case /etc/bash.bashrc isn't reloaded
+  if ! grep -Fq '/etc/profile.d/psyched_env.sh' "$HOME/.bashrc" 2>/dev/null; then
+    echo "# Source psyched global env" >> "$HOME/.bashrc"
+    echo "if [ -f '/etc/profile.d/psyched_env.sh' ]; then . '/etc/profile.d/psyched_env.sh'; fi" >> "$HOME/.bashrc"
+  fi
 }
 
 case "${1:-provision}" in
