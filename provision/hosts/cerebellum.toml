@@ -15,4 +15,5 @@ services = [
   "gps",       # u-blox7 via nmea_navsat_driver
   "robot",     # robot_state_publisher from URDF
   "nav"        # nav2 + slam_toolbox
+  , "voice"     # piper tts voice service
 ]

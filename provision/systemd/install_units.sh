@@ -19,7 +19,7 @@ WantedBy=multi-user.target
 UNIT
 
 # Enable units for services that have launchers
-for s in imu lidar camera gps foot robot nav; do
+for s in imu lidar camera gps foot robot nav voice; do
   if [ -x "/etc/psyched/${s}.launch.sh" ]; then
     sudo systemctl enable "psyched@${s}.service"
   fi
