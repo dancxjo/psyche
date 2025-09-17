@@ -62,9 +62,11 @@ class PiperEngine(TTSEngine):
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as handle:
             wav_path = handle.name
 
+        # Append newline so CLI engines flush the final token read from stdin.
+        payload = text if text.endswith("\n") else f"{text}\n"
         proc = subprocess.run(
             [self.piper_bin, "-m", model_path, "-o", wav_path],
-            input=text.encode("utf-8"),
+            input=payload.encode("utf-8"),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=False,
@@ -195,9 +197,11 @@ class EspeakEngine(TTSEngine):
             cmd.extend(["-p", self.pitch])
         cmd.extend(self.extra_args)
 
+        # Append newline so CLI engines flush the final token read from stdin.
+        payload = text if text.endswith("\n") else f"{text}\n"
         proc = subprocess.run(
             cmd,
-            input=text.encode("utf-8"),
+            input=payload.encode("utf-8"),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=False,
