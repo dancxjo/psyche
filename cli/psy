@@ -8,6 +8,57 @@ SVCDIR="$PROV/services"
 WS="$ROOT/ws"
 . "$SVCDIR/_common.sh" 2>/dev/null || true
 
+# Merge helper: consolidate legacy /opt/ros2_ws into $WS and replace with symlink.
+# Idempotent: if /opt/ros2_ws is already a symlink pointing at $WS, nothing happens.
+merge_legacy_workspace() {
+  LEGACY="/opt/ros2_ws"
+  TARGET="$WS"
+  # Already a symlink pointing to target? Done.
+  if [ -L "$LEGACY" ]; then
+    local dest
+    dest="$(readlink -f "$LEGACY" 2>/dev/null || true)"
+    if [ "$dest" = "$TARGET" ]; then
+      return 0
+    else
+      echo "[psy][merge] NOTE: $LEGACY is a symlink to $dest (not $TARGET). Skipping auto-merge." >&2
+      return 0
+    fi
+  fi
+  # If legacy doesn't exist, nothing to do.
+  [ -e "$LEGACY" ] || return 0
+  # Ensure target src exists.
+  mkdir -p "$TARGET/src"
+  if [ -d "$LEGACY/src" ]; then
+    echo "[psy][merge] Consolidating packages from $LEGACY/src into $TARGET/src"
+    for pkg in "$LEGACY"/src/*; do
+      [ -d "$pkg" ] || continue
+      name="$(basename "$pkg")"
+      if [ -e "$TARGET/src/$name" ]; then
+        echo "[psy][merge]   - skip existing $name"
+      else
+        echo "[psy][merge]   - move $name"
+        mv "$pkg" "$TARGET/src/" 2>/dev/null || {
+          echo "[psy][merge]   ! WARN: could not move $name (permissions?)" >&2
+        }
+      fi
+    done
+  fi
+  # Backup legacy directory and replace with symlink (only if still a real dir)
+  if [ ! -L "$LEGACY" ]; then
+    ts="$(date +%Y%m%d-%H%M%S)"
+    backup="${LEGACY}.bak.${ts}"
+    echo "[psy][merge] Backing up $LEGACY to $backup and creating symlink -> $TARGET"
+    mv "$LEGACY" "$backup" 2>/dev/null || {
+      echo "[psy][merge] WARN: failed to rename $LEGACY (permissions?) - aborting symlink step" >&2
+      return 0
+    }
+    ln -s "$TARGET" "$LEGACY" 2>/dev/null || {
+      echo "[psy][merge] ERROR: failed to create symlink $LEGACY -> $TARGET" >&2
+      return 1
+    }
+  fi
+}
+
 usage() {
   cat <<USAGE
 psy — psycheOS host/service manager
@@ -145,6 +196,8 @@ case "$cmd" in
     ;;
   build)
     mkdir -p "$WS/src"
+    # Perform one-time merge of legacy /opt/ros2_ws if present
+    merge_legacy_workspace || true
     # If any packages were queued, install them now
     common_flush_apt_queue || true
     bash "$SVCDIR/workspace.sh" build
