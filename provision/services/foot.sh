@@ -31,9 +31,9 @@ if [ -f /etc/default/psyched-foot ]; then
   PORT="${CREATE_PORT:-$PORT}"
 fi
 
-# Source ROS and workspace overlays if present
+# Source ROS and workspace overlays if present (guard nounset)
 set +u; [ -f "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash" ] && source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"; set -u
-[ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash || true
+set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
 
 echo "[foot] launcher started. Using port=$PORT" | tee -a "$LOG"
 

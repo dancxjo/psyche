@@ -12,7 +12,7 @@ provision() {
 #!/usr/bin/env bash
 set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
-source /opt/psyched/ws/install/setup.bash || true
+set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
 
 # Run slam_toolbox (sync mode) and Nav2; assumes robot_state_publisher running
 ros2 launch slam_toolbox online_sync_launch.py slam_params_file:=/opt/psyched/provision/bringup/slam_params.yaml >/tmp/slam_toolbox.log 2>&1 &

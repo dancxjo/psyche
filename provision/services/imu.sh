@@ -40,7 +40,7 @@ provision() {
 #!/usr/bin/env bash
 set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
-source /opt/psyched/ws/install/setup.bash
+set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
 exec ros2 run mpu6050_driver mpu6050_node --ros-args -p i2c_bus:=1 -p i2c_address:=0x68 -r imu/data:=/imu
 LAUNCH
   sudo chmod +x /etc/psyched/imu.launch.sh

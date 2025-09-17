@@ -40,7 +40,7 @@ RULE
 #!/usr/bin/env bash
 set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
-source /opt/psyched/ws/install/setup.bash
+set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
 
 LOG=/tmp/lidar_driver.log
 PORT_DEFAULT=/dev/lidar

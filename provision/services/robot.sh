@@ -38,6 +38,7 @@ URDF
 #!/usr/bin/env bash
 set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
+set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
 exec ros2 run robot_state_publisher robot_state_publisher /opt/psyched/provision/robot/robot.urdf
 LAUNCH
   sudo chmod +x /etc/psyched/robot.launch.sh

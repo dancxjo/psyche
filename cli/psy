@@ -167,8 +167,10 @@ case "$cmd" in
         systemctl --no-pager | grep -i "psych" || true
         if [ $# -gt 0 ]; then
           for s in "$@"; do
-            echo "\n[psy] recent logs for psyched@${s}.service"
+            printf "\n[psy] recent logs for psyched@%s.service\n" "$s"
             sudo journalctl -u "psyched@${s}.service" -n 200 --no-pager -o short-precise || true
+            # Print last known status for additional context
+            systemctl status "psyched@${s}.service" --no-pager -l | sed -n '1,5p' || true
           done
         fi
         ;;
