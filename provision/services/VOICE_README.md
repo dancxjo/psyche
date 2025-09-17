@@ -1,153 +1,104 @@
-# Voice Service (Piper TTS)
+This service provides text-to-speech for your robot. It now defaults to the
+reliable, lightweight [espeak-ng](https://github.com/espeak-ng/espeak-ng)
+engine so the voice service works immediately after provisioning, while still
+supporting the higher-quality [Piper](https://github.com/rhasspy/piper) CLI when
+it is available.
 
-This service provides text-to-speech for your robot using [Piper](https://github.com/rhasspy/piper).
+## ROS 2 topics
 
-Topics (assuming host is `$(hostname -s)`):
+Assuming the host name is `$(hostname -s)`:
 
-- Text: `/voice/$(hostname -s)` (std_msgs/String)
-- Command: `/voice/$(hostname -s)/cmd` (std_msgs/String)
-  - Values: `interrupt|resume|abandon` (aliases: `pause|stop`, `continue`, `cancel|flush`)
-- Convenience control topics (std_msgs/Empty):
+- Text input: `/voice/$(hostname -s)` (`std_msgs/String`)
+- Command input: `/voice/$(hostname -s)/cmd` (`std_msgs/String`)
+  - Accepted values: `interrupt|resume|abandon` (aliases: `pause|stop`,
+    `continue`, `cancel|flush`)
+- Convenience controls (`std_msgs/Empty`):
   - `/voice/$(hostname -s)/interrupt`
   - `/voice/$(hostname -s)/resume`
   - `/voice/$(hostname -s)/abandon`
 
-Behavior:
+New utterances are queued while one is speaking. `interrupt` pauses the current
+playback so it can be resumed; `abandon` stops playback and clears the queue
+before the next message is spoken.
 
-- New texts are queued while one is speaking.
-- `interrupt` pauses current playback and allows `resume` to continue.
-- `abandon` stops current playback and clears the queue; new text speaks immediately.
+## Engine selection
 
-Requirements:
+Provisioning writes `/etc/default/psyched-voice` to capture the selected engine
+and its configuration. At runtime the launch script honours
+`PSY_TTS_ENGINE` (values: `espeak`, `piper`, or `auto`). `auto` tries to use
+Piper when a CLI binary is present and falls back to espeak-ng otherwise.
 
-- ROS 2 (e.g., Jazzy) environment sourced.
-- Audio output via ALSA (`aplay`).
-- Piper CLI engine (`piper-tts`) available in `PATH` (provisioning installs it and auto-detects the binary; override with `PSY_PIPER_BIN` if needed).
+### espeak-ng (default)
 
-Model selection:
+- Packages (`espeak-ng`, `espeak-ng-data`, `alsa-utils`) are installed
+  automatically during provisioning.
+- Customise the voice with environment variables:
+  - `PSY_ESPEAK_VOICE` (e.g., `en+m7`, `en+f3`)
+  - `PSY_ESPEAK_RATE` (words per minute)
+  - `PSY_ESPEAK_PITCH` (0–99)
+  - `PSY_ESPEAK_ARGS` (additional flags, such as `--path=...`)
+- Example configuration appended to `/etc/default/psyched-voice`:
 
-- Default behavior now performs alias-based auto-selection when `PSY_VOICE_MODEL_NAME` is not set.
-  - Alias `en_male_high` (default) expands to ordered candidates:
-    `en_US-kyle-high`, `en_US-ryan-high`, `en_GB-southern_english_male-medium`, `en_US-lessac-medium`.
-  - The provisioning script attempts each candidate until one successfully downloads or already exists.
-  - A generated `/etc/default/psyched-voice` file pins the effective model and records fallbacks (first existing is used at runtime via the node's fallback logic).
+  ```bash
+  PSY_TTS_ENGINE=espeak
+  PSY_ESPEAK_VOICE=en+m7
+  PSY_ESPEAK_RATE=175
+  PSY_ESPEAK_PITCH=55
+  ```
 
-- To force a specific model explicitly, set `PSY_VOICE_MODEL_NAME=<basename>` before provisioning, or set `PSY_VOICE_MODEL` in `/etc/default/psyched-voice`.
+`psh say "Hello there"` or `ros2 topic pub` (see below) are handy smoke tests.
 
-Available built-in aliases (can be comma-separated in `PSY_VOICE_MODEL_ALIAS` to merge lists):
+### Piper (optional high-quality voices)
 
-| Alias | Candidate Order |
+Set `PSY_TTS_ENGINE=piper` (or `auto`) before re-running
+`/opt/psyched/provision/services/voice.sh provision`. The script attempts to
+install the Piper CLI (`piper-tts`) and download one of the configured voice
+models. If the CLI is not found the service falls back to espeak-ng automatically
+but prints a warning so you can investigate.
+
+Voice selection uses aliases to provide an ordered list of candidate models.
+Defaults favour male English voices that are widely distributed:
+
+| Alias | Candidate order |
 |-------|-----------------|
-| `en_male_high` (default) | kyle-high → ryan-high → southern_english_male-medium → lessac-medium |
+| `en_male_default` | lessac-medium → kyle-high → ryan-high → southern_english_male-medium |
+| `en_male_high` | kyle-high → ryan-high → lessac-medium → southern_english_male-medium |
 | `en_female_high` | amy-high → lessac-medium |
 | `minimal` / `small` | lessac-medium → kyle-high |
 
-Example forcing alias list (merged, de-duplicated in order):
+Override the alias list at provisioning time, e.g.
+
 ```bash
-PSY_VOICE_MODEL_ALIAS="en_female_high,en_male_high" /opt/psyched/provision/services/voice.sh provision
+PSY_TTS_ENGINE=piper PSY_VOICE_MODEL_ALIAS="en_female_high,en_male_high" \
+  /opt/psyched/provision/services/voice.sh provision
 ```
-- To use a high-quality male voice (example: `en_US-kyle-high`), set one of:
-  - At provisioning time (temporary):
-    ```bash
-    PSY_VOICE_MODEL_NAME=en_US-kyle-high /opt/psyched/provision/services/voice.sh provision
-    ```
-  - Persistent via `/etc/default/psyched-voice`:
-    ```bash
-    sudo tee /etc/default/psyched-voice >/dev/null <<'EOF'
-    # Primary male Piper model (high quality)
-    PSY_VOICE_MODEL=/opt/psyched/voices/en_US-kyle-high.onnx
-    # Optional: fallbacks (colon separated) – will pick first that exists
-    PSY_VOICE_MODEL_FALLBACKS=/opt/psyched/voices/en_US-ryan-high.onnx:/opt/psyched/voices/en_GB-southern_english_male-medium.onnx
-    # Optional integrity check (SHA256 of the .onnx file)
-    # PSY_VOICE_MODEL_SHA256=<sha256sum-of-en_US-kyle-high.onnx>
-    EOF
-    ```
-  - Then re-provision or restart service:
-    ```bash
-    sudo systemctl restart psyched@voice.service || /opt/psyched/provision/services/voice.sh provision
-    ```
 
-Supported environment variables:
+The script downloads the first working candidate into `/opt/psyched/voices` and
+records the chosen model plus fallbacks in `/etc/default/psyched-voice`.
 
-- `PSY_VOICE_MODEL_NAME`: Concrete model basename (skips alias auto-selection if set).
-- `PSY_VOICE_MODEL_ALIAS`: Comma-separated alias names producing ordered candidate list (default: `en_male_high`).
-- `PSY_VOICE_MODEL`: Absolute path to primary model for runtime (overrides *_NAME and alias resolution at execution time).
-- `PSY_VOICE_MODEL_FALLBACKS`: Colon-separated model paths; the node picks the first existing file (auto-generated if using alias selection).
-- `PSY_VOICE_MODEL_SHA256`: If set during provisioning, verifies the downloaded `.onnx` integrity.
+Manual voice installation remains available. Download an ONNX model (and
+matching `.onnx.json`) into `/opt/psyched/voices/` and set
+`PSY_VOICE_MODEL=/opt/psyched/voices/<model>.onnx` inside
+`/etc/default/psyched-voice`.
 
-Finding a male voice:
+## Configuration reference
 
-Common high-quality male English voices (choose one):
+| Variable | Description |
+|----------|-------------|
+| `PSY_TTS_ENGINE` | `espeak` (default), `piper`, or `auto` |
+| `PSY_PIPER_BIN` | Override for Piper CLI detection (optional) |
+| `PSY_VOICE_MODEL` | Primary Piper model path (auto-filled when provisioning Piper) |
+| `PSY_VOICE_MODEL_FALLBACKS` | Colon-separated Piper model paths checked in order |
+| `PSY_VOICE_MODEL_ALIAS` | Alias list used during provisioning (Piper) |
+| `PSY_ESPEAK_VOICE` / `PSY_ESPEAK_RATE` / `PSY_ESPEAK_PITCH` / `PSY_ESPEAK_ARGS` | espeak-ng tuning |
 
-- `en_US-kyle-high` (clear US male, high quality)
-- `en_US-ryan-high` (US male, high quality)
-- `en_GB-southern_english_male-medium` (UK male)
-
-You can list available voices from the upstream repository: https://github.com/rhasspy/piper-voices
-
-Manual download example (default first candidate of `en_male_high` alias):
-
-```bash
-sudo mkdir -p /opt/psyched/voices
-curl -fL -o /opt/psyched/voices/en_US-kyle-high.onnx \
-  https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/kyle/high/en_US-kyle-high.onnx
-curl -fL -o /opt/psyched/voices/en_US-kyle-high.onnx.json \
-  https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/kyle/high/en_US-kyle-high.onnx.json
-``` 
-
-If provisioning doesn't auto-download, set `PSY_VOICE_MODEL` as shown above after manual download.
-
-Systemd:
-
-- Installed as `psyched@voice.service` running `/etc/psyched/voice.launch.sh`.
-
-Quick test:
+## Quick test
 
 ```bash
 ros2 topic pub --once \
   /voice/$(hostname -s) std_msgs/String '{data: "Hello from Psyche"}'
 ```
 
-Offline or network-restricted environments:
-
-- Install the Piper CLI engine first (prefer `piper-tts` package when available):
-
-  ```bash
-  sudo apt-get update && sudo apt-get install piper-tts
-  ```
-
-- Preferred: install packaged voices if available
-
-  ```bash
-  sudo apt-get update && sudo apt-get install piper-voices
-  ```
-
-- Manual download from Hugging Face mirrors (example for `en_US-lessac-medium`):
-
-  Older example (previous default female/neutral voice):
-
-  ```bash
-  sudo mkdir -p /opt/psyched/voices
-  curl -fL -o /opt/psyched/voices/en_US-lessac-medium.onnx \
-    https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx
-  curl -fL -o /opt/psyched/voices/en_US-lessac-medium.onnx.json \
-    https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json
-  ```
-
-- Alternatively, download a tarball and place it in a cache directory and re-run provisioning:
-
-  ```bash
-  mkdir -p /opt/psyched/voices
-  curl -fL -o /opt/psyched/voices/en_US-lessac-medium.tar.gz \
-    https://github.com/rhasspy/piper-voices/releases/download/v1.0.0/en_US-lessac-medium.tar.gz
-  # then re-run
-  /opt/psyched/cli/psy svc enable voice && /opt/psyched/cli/psy host apply
-  ```
-
-If you use a different model, set `PSY_VOICE_MODEL_NAME` in the environment before provisioning or create `/etc/default/psyched-voice` with:
-
-```bash
-PSY_VOICE_MODEL=/opt/psyched/voices/<your-model>.onnx
-# Optional: point to a specific Piper binary (defaults to auto-detect)
-# PSY_PIPER_BIN=/usr/local/bin/piper
-```
+Audio should play through ALSA (`aplay`). If nothing happens, check the
+`psyched@voice.service` journal and confirm the selected engine has been
+installed and configured correctly.
