@@ -34,6 +34,19 @@ build() {
   safe_source_ros
   ensure_ws
   ensure_numpy
+  # Resolve ROS package dependencies
+  if command -v rosdep >/dev/null 2>&1; then
+    echo "[psy] Resolving dependencies via rosdep"
+    set +e
+    sudo rosdep init 2>/dev/null || true
+    set -e
+    rosdep update || true
+    (
+      cd "$WS" && rosdep install --from-paths src --ignore-src -r -y || true
+    )
+  else
+    echo "[psy] rosdep not found; skipping dependency resolution"
+  fi
   (
     cd "$WS" && colcon build
   )
