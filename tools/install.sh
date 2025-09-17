@@ -102,6 +102,13 @@ PY
 
     cp -a "${TOPDIR}/." "${staged}/"
 
+    # Preserve existing workspace to keep build artifacts/cache
+    if [ -d "${DEST_DIR}/ws" ]; then
+        echo "[install] Preserving existing workspace: ${DEST_DIR}/ws"
+        rm -rf "${staged}/ws" 2>/dev/null || true
+        cp -a "${DEST_DIR}/ws" "${staged}/" || true
+    fi
+
     # Swap into place atomically
     if [ -d "${DEST_DIR}" ]; then
         rm -rf "${DEST_DIR}.bak"
