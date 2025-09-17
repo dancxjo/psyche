@@ -157,6 +157,14 @@ if [ -d "${ROOT}/provision" ]; then
   find "${ROOT}/provision" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
 fi
 
+# Link CLI into /usr/bin for global access (idempotent)
+if [ -f "${CLI}" ]; then
+	if [ ! -L "/usr/bin/psy" ] || [ "$(readlink -f /usr/bin/psy 2>/dev/null || true)" != "${CLI}" ]; then
+		echo "[bootstrap] Linking ${CLI} -> /usr/bin/psy"
+		sudo ln -sf "${CLI}" /usr/bin/psy || true
+	fi
+fi
+
 # Determine host config (TOML)
 CFG_TOML="${HOSTCFG_DIR}/${HOST}.toml"
 if [ ! -f "${CFG_TOML}" ]; then
