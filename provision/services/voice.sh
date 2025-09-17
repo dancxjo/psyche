@@ -22,6 +22,107 @@ ensure_deps() {
   common_apt_install piper-tts alsa-utils
   # Try to get packaged voices if available (ignored if not found)
   common_apt_install ?piper-voices
+
+  if ! command -v piper-tts >/dev/null 2>&1 && ! command -v piper >/dev/null 2>&1; then
+    install_piper_cli_fallback || echo "[voice] WARNING: Piper CLI fallback install failed; voice service may not start" >&2
+  fi
+}
+
+install_piper_cli_fallback() {
+  # Fetch a prebuilt Piper CLI release when apt packages are unavailable.
+  local arch suffix tmp_dir tar_path version url dest dest_tmp bin_path final_dir wrapper
+
+  arch="$(dpkg --print-architecture 2>/dev/null || uname -m || echo unknown)"
+  case "$arch" in
+    amd64|x86_64) suffix="x86_64" ;;
+    arm64|aarch64) suffix="arm64" ;;
+    armhf|armv7l) suffix="armv7l" ;;
+    *)
+      echo "[voice] WARNING: Unsupported architecture '$arch' for Piper prebuilt binaries" >&2
+      return 1
+      ;;
+  esac
+
+  tmp_dir="$(mktemp -d 2>/dev/null || echo /tmp/piper.$$)"
+  tar_path="${tmp_dir}/piper.tar.gz"
+  local downloaded=0
+  for version in "${PSY_PIPER_VERSION:-v1.2.0}" 2023.11.14; do
+    url="https://github.com/rhasspy/piper/releases/download/${version}/piper_linux_${suffix}.tar.gz"
+    echo "[voice] Attempting Piper CLI download: ${url}"
+    if command -v curl >/dev/null 2>&1; then
+      if curl -fL --retry 3 --connect-timeout 20 -o "$tar_path" "$url"; then
+        downloaded=1
+        break
+      fi
+    elif command -v wget >/dev/null 2>&1; then
+      if wget -q -O "$tar_path" "$url"; then
+        downloaded=1
+        break
+      fi
+    else
+      echo "[voice] Neither curl nor wget available to download Piper binary" >&2
+      rm -rf "$tmp_dir" || true
+      return 1
+    fi
+  done
+
+  if [ "$downloaded" -ne 1 ] || [ ! -s "$tar_path" ]; then
+    echo "[voice] WARNING: Unable to download Piper CLI release" >&2
+    rm -rf "$tmp_dir" || true
+    return 1
+  fi
+
+  dest="/opt/psyched/piper-cli/${suffix}"
+  dest_tmp="${dest}.tmp"
+  sudo rm -rf "$dest_tmp" >/dev/null 2>&1 || true
+  sudo mkdir -p "$dest_tmp"
+  if ! sudo tar -xzf "$tar_path" -C "$dest_tmp"; then
+    echo "[voice] WARNING: Failed to extract Piper CLI archive" >&2
+    sudo rm -rf "$dest_tmp" || true
+    rm -rf "$tmp_dir" || true
+    return 1
+  fi
+
+  bin_path="$(sudo find "$dest_tmp" -maxdepth 4 -type f -name piper -print -quit 2>/dev/null)"
+  if [ -z "$bin_path" ]; then
+    echo "[voice] WARNING: Piper CLI binary not found after extraction" >&2
+    sudo rm -rf "$dest_tmp" || true
+    rm -rf "$tmp_dir" || true
+    return 1
+  fi
+
+  sudo chmod +x "$bin_path" || true
+  sudo rm -rf "$dest" >/dev/null 2>&1 || true
+  sudo mv "$dest_tmp" "$dest"
+
+  bin_path="$(sudo find "$dest" -maxdepth 2 -type f -name piper -print -quit 2>/dev/null)"
+  if [ -z "$bin_path" ]; then
+    echo "[voice] WARNING: Piper CLI binary missing after final move" >&2
+    rm -rf "$tmp_dir" || true
+    return 1
+  fi
+
+  final_dir="$(dirname "$bin_path")"
+  wrapper="/usr/local/bin/piper-tts"
+  sudo tee "$wrapper" >/dev/null <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+DIR="__PIPER_DIR__"
+if [ -z "${ESPEAK_DATA:-}" ] && [ -d "${DIR}/espeak-ng-data" ]; then
+  export ESPEAK_DATA="${DIR}/espeak-ng-data"
+fi
+if [ -d "${DIR}/lib" ]; then
+  export LD_LIBRARY_PATH="${DIR}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+cd "${DIR}"
+exec "${DIR}/piper" "$@"
+EOF
+  sudo sed -i "s#__PIPER_DIR__#$final_dir#g" "$wrapper"
+  sudo chmod +x "$wrapper"
+  sudo ln -sf "$wrapper" /usr/local/bin/piper
+
+  rm -rf "$tmp_dir" || true
+  echo "[voice] Installed Piper CLI fallback to $final_dir"
 }
 
 ensure_voice_model() {
@@ -181,25 +282,30 @@ ensure_voice_model() {
 voice_alias_candidates() {
     local alias="$1"
     case "$alias" in
+        # New: balanced default male ordering prioritizing widely distributed medium model
+        en_male_default|male_en_default|male_default)
+            # lessac-medium ships in many voice bundles; then kyle-high for higher quality; then ryan-high; then a UK male; final fallback repeats lessac
+            echo "en_US-lessac-medium:en_US-kyle-high:en_US-ryan-high:en_GB-southern_english_male-medium" ;;
         en_male_high|male_en|en_us_male)
-            echo "en_US-kyle-high:en_US-ryan-high:en_GB-southern_english_male-medium:en_US-lessac-medium" ;;
+            echo "en_US-kyle-high:en_US-ryan-high:en_US-lessac-medium:en_GB-southern_english_male-medium" ;;
         en_female_high|female_en)
             echo "en_US-amy-high:en_US-lessac-medium" ;;
         minimal|small)
             echo "en_US-lessac-medium:en_US-kyle-high" ;;
         *)
-            # Unknown alias; treat as direct model name
             echo "$alias" ;;
     esac
 }
 
 # Select a voice model when PSY_VOICE_MODEL_NAME not explicitly set
 select_voice_model() {
+    # If explicit model provided, honor it directly
     if [ -n "${PSY_VOICE_MODEL_NAME:-}" ]; then
-        echo "$PSY_VOICE_MODEL_NAME"
+        PSY_SELECTED_MODEL="$PSY_VOICE_MODEL_NAME"
+        PSY_INTERNAL_CANDIDATES="$PSY_VOICE_MODEL_NAME"
         return 0
     fi
-    local alias_list="${PSY_VOICE_MODEL_ALIAS:-en_male_high}"  # allow comma-separated aliases
+    local alias_list="${PSY_VOICE_MODEL_ALIAS:-en_male_default}" # default alias changed
     local final_candidates=()
     IFS=',' read -r -a alias_arr <<<"$alias_list"
     for a in "${alias_arr[@]}"; do
@@ -207,7 +313,6 @@ select_voice_model() {
         cands="$(voice_alias_candidates "$a")"
         IFS=':' read -r -a tmpc <<<"$cands"
         for c in "${tmpc[@]}"; do
-            # de-duplicate while preserving order
             local already=0
             for existing in "${final_candidates[@]}"; do
                 [ "$existing" = "$c" ] && already=1 && break
@@ -215,9 +320,8 @@ select_voice_model() {
             [ $already -eq 0 ] && final_candidates+=("$c")
         done
     done
-    # Fallback absolute default if list somehow empty
-    [ ${#final_candidates[@]} -eq 0 ] && final_candidates+=("en_US-kyle-high")
-    echo "${final_candidates[0]}"  # primary candidate returned; full list used later for fallback download attempts
+    [ ${#final_candidates[@]} -eq 0 ] && final_candidates+=("en_US-lessac-medium")
+    PSY_SELECTED_MODEL="${final_candidates[0]}"
     PSY_INTERNAL_CANDIDATES="${final_candidates[*]}"
 }
 
@@ -554,24 +658,20 @@ LAUNCH
 provision() {
     ensure_deps
 
-    # Determine model selection
-    local chosen
-    chosen="$(select_voice_model)"
-    export PSY_VOICE_MODEL_NAME="${PSY_EFFECTIVE_MODEL_NAME:-$chosen}"
+    # Build candidate list (no subshell capture)
+    select_voice_model
+    export PSY_VOICE_MODEL_NAME="${PSY_EFFECTIVE_MODEL_NAME:-$PSY_SELECTED_MODEL}"
 
-    # Attempt to download primary/fallback candidates
+    # Attempt downloads over all candidates
     attempt_candidates_download "$PSY_VOICE_MODEL_NAME" || true
-    # If a candidate succeeded, PSY_EFFECTIVE_MODEL_NAME set
     local effective="${PSY_EFFECTIVE_MODEL_NAME:-$PSY_VOICE_MODEL_NAME}"
 
     install_node
 
-    # Auto-generate default config if missing
     if [ ! -f /etc/default/psyched-voice ]; then
         echo "[voice] Creating /etc/default/psyched-voice with selected model and fallbacks"
         local fallback_line=""
         if [ -n "${PSY_INTERNAL_CANDIDATES:-}" ]; then
-            # remove primary from list and build fallback env var
             local fb=()
             for c in $PSY_INTERNAL_CANDIDATES; do
                 [ "$c" = "$effective" ] && continue
@@ -583,7 +683,7 @@ provision() {
         fi
         sudo tee /etc/default/psyched-voice >/dev/null <<CFG
 # Auto-generated by voice.sh provision on $(date -u +%Y-%m-%dT%H:%M:%SZ)
-# Primary Piper model
+# Primary Piper model (selected via alias: ${PSY_VOICE_MODEL_ALIAS:-en_male_default})
 PSY_VOICE_MODEL=/opt/psyched/voices/${effective}.onnx
 # Fallback models (first existing used)
 ${fallback_line}
