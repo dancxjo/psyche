@@ -20,6 +20,14 @@ provision() {
   sudo apt-get update -y
   # Prefer distro colcon package name (python3-colcon-common-extensions), fallback to ros-dev-tools already installed by ros.sh
   sudo apt-get install -y python3-colcon-common-extensions || true
+  # Ensure core C++ vision deps for packages like kinect_ros2
+  # These provide cv_bridge headers and OpenCV C++ libs required at compile time
+  sudo apt-get install -y \
+    ros-${ROS_DISTRO:-jazzy}-cv-bridge \
+    ros-${ROS_DISTRO:-jazzy}-image-transport \
+    ros-${ROS_DISTRO:-jazzy}-image-transport-plugins \
+    ros-${ROS_DISTRO:-jazzy}-vision-msgs \
+    libopencv-dev || true
 }
 build() {
   safe_source_ros
