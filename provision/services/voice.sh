@@ -52,7 +52,7 @@ install_piper_cli_fallback() {
   arch="$(dpkg --print-architecture 2>/dev/null || uname -m || echo unknown)"
   case "$arch" in
     amd64|x86_64) suffix="x86_64" ;;
-    arm64|aarch64) suffix="arm64" ;;
+    arm64|aarch64) suffix="aarch64" ;;
     armhf|armv7l) suffix="armv7l" ;;
     *)
       echo "[voice] WARNING: Unsupported architecture '$arch' for Piper prebuilt binaries" >&2
@@ -62,25 +62,49 @@ install_piper_cli_fallback() {
 
   tmp_dir="$(mktemp -d 2>/dev/null || echo /tmp/piper.$$)"
   tar_path="${tmp_dir}/piper.tar.gz"
-  local downloaded=0
-  for version in "${PSY_PIPER_VERSION:-v1.2.0}" 2023.11.14; do
-    url="https://github.com/rhasspy/piper/releases/download/${version}/piper_linux_${suffix}.tar.gz"
-    echo "[voice] Attempting Piper CLI download: ${url}"
-    if command -v curl >/dev/null 2>&1; then
-      if curl -fL --retry 3 --connect-timeout 20 -o "$tar_path" "$url"; then
-        downloaded=1
-        break
-      fi
-    elif command -v wget >/dev/null 2>&1; then
-      if wget -q -O "$tar_path" "$url"; then
-        downloaded=1
-        break
-      fi
-    else
-      echo "[voice] Neither curl nor wget available to download Piper binary" >&2
-      rm -rf "$tmp_dir" || true
-      return 1
-    fi
+  local downloaded=0 asset version_clean arch_candidates=() candidate asset_url fetch_tool
+
+  case "$suffix" in
+    x86_64) arch_candidates=("x86_64" "amd64") ;;
+    aarch64) arch_candidates=("aarch64" "arm64") ;;
+    armv7l) arch_candidates=("armv7l" "armhf" "armv7") ;;
+  esac
+
+  if command -v curl >/dev/null 2>&1; then
+    fetch_tool="curl"
+  elif command -v wget >/dev/null 2>&1; then
+    fetch_tool="wget"
+  else
+    echo "[voice] Neither curl nor wget available to download Piper binary" >&2
+    rm -rf "$tmp_dir" || true
+    return 1
+  fi
+
+  for version in "${PSY_PIPER_VERSION:-v1.3.0}" v1.2.0 2023.11.14 2023.06.05; do
+    version_clean="${version#v}"
+    for arch_tag in "${arch_candidates[@]}"; do
+      for asset in \
+        "piper_${version_clean}_linux_${arch_tag}.tar.gz" \
+        "piper_linux_${arch_tag}.tar.gz" \
+        "piper_${version_clean}_${arch_tag}.tar.gz" \
+        "piper_${arch_tag}.tar.gz"; do
+        candidate="${asset}"
+        [[ -n "$candidate" ]] || continue
+        asset_url="https://github.com/rhasspy/piper/releases/download/${version}/${candidate}"
+        echo "[voice] Attempting Piper CLI download: ${asset_url}"
+        if [ "$fetch_tool" = "curl" ]; then
+          if curl -fL --retry 3 --connect-timeout 20 -o "$tar_path" "$asset_url"; then
+            downloaded=1
+            break 3
+          fi
+        else
+          if wget -q -O "$tar_path" "$asset_url"; then
+            downloaded=1
+            break 3
+          fi
+        fi
+      done
+    done
   done
 
   if [ "$downloaded" -ne 1 ] || [ ! -s "$tar_path" ]; then
@@ -129,12 +153,18 @@ if [ -z "${ESPEAK_DATA:-}" ] && [ -d "${DIR}/espeak-ng-data" ]; then
   export ESPEAK_DATA="${DIR}/espeak-ng-data"
 fi
 if [ -d "${DIR}/lib" ]; then
-  export LD_LIBRARY_PATH="${DIR}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+    export LD_LIBRARY_PATH="${DIR}/lib:${LD_LIBRARY_PATH}"
+  else
+    export LD_LIBRARY_PATH="${DIR}/lib"
+  fi
 fi
 cd "${DIR}"
 exec "${DIR}/piper" "$@"
 EOF
-  sudo sed -i "s#__PIPER_DIR__#$final_dir#g" "$wrapper"
+  local escaped_dir
+  escaped_dir="$(printf '%s' "$final_dir" | sed 's/[&/]/\\&/g')"
+  sudo sed -i "s#__PIPER_DIR__#${escaped_dir}#g" "$wrapper"
   sudo chmod +x "$wrapper"
   sudo ln -sf "$wrapper" /usr/local/bin/piper
 
