@@ -228,5 +228,6 @@ case "$cmd" in
       echo "[psy] ERROR: failed to publish to $topic" >&2
       exit 3
     }
+    ;;
   *) usage; exit 1;;
 esac
