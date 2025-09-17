@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="/opt/psyched"
 WS="$ROOT/ws"
+. "$(dirname "$0")/_common.sh" 2>/dev/null || true
 
 safe_source_ros() {
   # Avoid nounset errors from ROS setup using AMENT_TRACE_SETUP_FILES
@@ -10,21 +11,9 @@ safe_source_ros() {
   set -u
 }
 
-ensure_ws() {
-  mkdir -p "$WS/src"
-  touch "$WS/.colcon_keep"
-}
+ensure_ws() { common_ensure_ws; }
 
-ensure_numpy() {
-  # Ensure Python3 NumPy is available for rosidl_generator_py
-  if ! /usr/bin/python3 -c 'import numpy' >/dev/null 2>&1; then
-    echo "[psy] Python NumPy not found; installing python3-numpy and python3-dev"
-    sudo apt-get update -y || true
-    sudo apt-get install -y python3-numpy python3-dev || true
-    # Optional: numpy-dev if available
-    sudo apt-get install -y python3-numpy-dev || true
-  fi
-}
+ensure_numpy() { common_ensure_numpy; }
 
 provision() {
   ensure_ws

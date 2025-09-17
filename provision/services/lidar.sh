@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
-WS="/opt/psyched/ws"
+. "$(dirname "$0")/_common.sh" 2>/dev/null || true
+WS="${PSY_WS:-/opt/psyched/ws}"
 SRC="$WS/src"
 
 provision() {
-  set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
-  sudo apt-get update -y
-  sudo apt-get install -y git
-  mkdir -p "$SRC"
+  common_safe_source_ros || true
+  common_apt_install git
+  common_ensure_ws
 
   # Install HLS-LFCD2 driver (preferred via apt), fallback to source clone
   if ! apt-cache show "ros-${ROS_DISTRO:-jazzy}-hls-lfcd-lds-driver" >/dev/null 2>&1; then
@@ -16,7 +16,7 @@ provision() {
     sudo apt-get install -y "ros-${ROS_DISTRO:-jazzy}-hls-lfcd-lds-driver" || true
   fi
   if ! ros2 pkg executables hls_lfcd_lds_driver >/dev/null 2>&1; then
-    [ -d "$SRC/hls_lfcd_lds_driver" ] || git clone https://github.com/ROBOTIS-GIT/hls_lfcd_lds_driver "$SRC/hls_lfcd_lds_driver" || true
+    common_clone_repo https://github.com/ROBOTIS-GIT/hls_lfcd_lds_driver "$SRC/hls_lfcd_lds_driver"
   fi
 
   # If legacy ROS1 rplidar_ros exists from earlier runs, prevent colcon from building it

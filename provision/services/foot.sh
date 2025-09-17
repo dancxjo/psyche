@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
-WS="/opt/psyched/ws"
+. "$(dirname "$0")/_common.sh" 2>/dev/null || true
+WS="${PSY_WS:-/opt/psyched/ws}"
 SRC="$WS/src"
 REPO_LIBCREATE="https://github.com/revyos-ros/libcreate.git"
 BRANCH_LIBCREATE="fix-std-string"
 REPO_CREATE_ROBOT="https://github.com/autonomylab/create_robot.git"
 
 provision() {
-  set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
-  mkdir -p "$SRC"
-  [ -d "$SRC/libcreate" ] || git clone --branch "$BRANCH_LIBCREATE" "$REPO_LIBCREATE" "$SRC/libcreate"
-  [ -d "$SRC/create_robot" ] || git clone "$REPO_CREATE_ROBOT" "$SRC/create_robot"
+  common_safe_source_ros || true
+  common_ensure_ws
+  common_clone_repo "$REPO_LIBCREATE" "$SRC/libcreate" "$BRANCH_LIBCREATE"
+  common_clone_repo "$REPO_CREATE_ROBOT" "$SRC/create_robot"
   # udev for stable /dev/create
   sudo tee /etc/udev/rules.d/70-create.rules >/dev/null <<'RULE'
 KERNEL=="ttyUSB*", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="create", MODE="0666"

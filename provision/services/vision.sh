@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
-WS="/opt/psyched/ws"
+. "$(dirname "$0")/_common.sh" 2>/dev/null || true
+WS="${PSY_WS:-/opt/psyched/ws}"
 SRC="$WS/src"
 
 provision() {
-  set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
+  common_safe_source_ros || true
   
   # Install required packages for vision processing
-  sudo apt-get update -y
-  sudo apt-get install -y \
+  common_apt_install \
     ros-${ROS_DISTRO:-jazzy}-cv-bridge \
     ros-${ROS_DISTRO:-jazzy}-image-transport \
     ros-${ROS_DISTRO:-jazzy}-vision-msgs \
@@ -18,11 +18,11 @@ provision() {
     pkg-config
 
   # Vision package should already exist in workspace, just ensure structure
-  mkdir -p "$SRC"
+  common_ensure_ws
   # Clone additional vision-related repos if not already present
-  [ -d "$SRC/ros2_shared" ] || git clone https://github.com/ptrmu/ros2_shared.git "$SRC/ros2_shared" || true
-  [ -d "$SRC/kinect_ros2" ] || git clone --branch frame_correction https://github.com/bribribriambriguy/kinect_ros2.git "$SRC/kinect_ros2" || true
-  [ -d "$SRC/libfreenect" ] || git clone https://github.com/OpenKinect/libfreenect "$SRC/libfreenect" || true
+  common_clone_repo https://github.com/ptrmu/ros2_shared.git "$SRC/ros2_shared"
+  common_clone_repo https://github.com/bribribriambriguy/kinect_ros2.git "$SRC/kinect_ros2" frame_correction
+  common_clone_repo https://github.com/OpenKinect/libfreenect "$SRC/libfreenect"
   # Prevent colcon from attempting to build non-ROS libfreenect; we build/install it manually below
   [ -d "$SRC/libfreenect" ] && touch "$SRC/libfreenect/COLCON_IGNORE" || true
 
@@ -42,15 +42,13 @@ provision() {
   # Build deferred: a single workspace build will run after provisioning
 
   # Create systemd launcher
-  sudo mkdir -p /etc/psyched
-  sudo tee /etc/psyched/vision.launch.sh >/dev/null <<'LAUNCH'
+  common_install_launcher vision LAUNCH <<'LAUNCH'
 #!/usr/bin/env bash
 set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
 source /opt/psyched/ws/install/setup.bash
 exec ros2 launch psyche_vision vision_launch.py
 LAUNCH
-  sudo chmod +x /etc/psyched/vision.launch.sh
 }
 
 case "${1:-provision}" in
