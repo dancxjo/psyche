@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import glob
 import os
 import signal
 import socket
@@ -193,15 +194,42 @@ class PiperVoiceNode(Node):
                     self.get_logger().info(f'Using Piper model: {candidate}')
                 self.model_path = candidate
                 return candidate
+        search_dirs = []
+        for candidate in self.model_candidates:
+            candidate_dir = os.path.dirname(candidate)
+            if candidate_dir and os.path.isdir(candidate_dir):
+                search_dirs.append(candidate_dir)
+        default_dir = os.environ.get('PSY_VOICE_MODEL_DIR', '/opt/psyched/voices')
+        if default_dir and os.path.isdir(default_dir):
+            search_dirs.append(default_dir)
+
+        discovered = []
+        seen = set()
+        for directory in search_dirs:
+            for path in sorted(glob.glob(os.path.join(directory, '*.onnx'))):
+                if path not in seen:
+                    observed = os.path.abspath(path)
+                    seen.add(observed)
+                    discovered.append(observed)
+        if discovered:
+            for path in discovered:
+                if path not in self.model_candidates:
+                    self.model_candidates.append(path)
+            fallback = discovered[0]
+            self.get_logger().warn(
+                f'Falling back to discovered Piper model: {fallback}'
+            )
+            self.model_path = fallback
+            return fallback
+
         if initial:
             self.get_logger().warn(
                 f"No available voice model found among candidates: {self.model_candidates}."
             )
-            self.model_path = None
-            return None
-        self.get_logger().error(
-            f"No Piper model files exist for candidates: {self.model_candidates}."
-        )
+        else:
+            self.get_logger().error(
+                f"No Piper model files exist for candidates: {self.model_candidates}."
+            )
         self.model_path = None
         return None
 
