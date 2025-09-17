@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+. "$(dirname "$0")/_common.sh" 2>/dev/null || true
 provision() {
   set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash || true; set -u
   export PSY_DEFER_APT=1

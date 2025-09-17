@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+. "$(dirname "$0")/_common.sh" 2>/dev/null || true
 
 # voice.sh — Provision Piper TTS + ROS2 node and systemd launcher
 # Features:

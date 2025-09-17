@@ -43,14 +43,33 @@ common_apt_install() {
 
 common_flush_apt_queue() {
   [ -f "$PSY_APT_QUEUE_FILE" ] || { echo "[psy] No queued apt packages"; return 0; }
-  mapfile -t PKGS < <(sed '/^\s*$/d' "$PSY_APT_QUEUE_FILE" | sort -u)
-  if [ ${#PKGS[@]} -eq 0 ]; then
+  mapfile -t ALL < <(sed '/^\s*$/d' "$PSY_APT_QUEUE_FILE" | sort -u)
+  if [ ${#ALL[@]} -eq 0 ]; then
     echo "[psy] Apt queue empty"
     return 0
   fi
-  echo "[psy] Installing ${#PKGS[@]} queued apt packages in one transaction"
+  # Split required vs optional (prefix ?pkg for optional)
+  REQUIRED=()
+  OPTIONAL=()
+  for p in "${ALL[@]}"; do
+    if [[ "$p" == \?* ]]; then
+      OPTIONAL+=("${p#?}")
+    else
+      REQUIRED+=("$p")
+    fi
+  done
+  echo "[psy] Installing ${#REQUIRED[@]} required packages in one transaction"
   sudo apt-get update -y || true
-  sudo apt-get install -y "${PKGS[@]}" || true
+  if [ ${#REQUIRED[@]} -gt 0 ]; then
+    sudo apt-get install -y "${REQUIRED[@]}" || true
+  fi
+  # Install optional packages one by one; ignore failures
+  if [ ${#OPTIONAL[@]} -gt 0 ]; then
+    echo "[psy] Installing ${#OPTIONAL[@]} optional packages (best effort)"
+    for op in "${OPTIONAL[@]}"; do
+      sudo apt-get install -y "$op" || true
+    done
+  fi
   rm -f "$PSY_APT_QUEUE_FILE" || true
 }
 
@@ -93,6 +112,6 @@ $marker
 
 common_ensure_numpy() {
   if ! /usr/bin/python3 -c 'import numpy' >/dev/null 2>&1; then
-    common_apt_install python3-numpy python3-dev python3-numpy-dev
+    common_apt_install python3-numpy python3-dev '?python3-numpy-dev'
   fi
 }
