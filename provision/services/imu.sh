@@ -34,6 +34,7 @@ provision() {
       ' "$HDR" > "$HDR.tmp" && mv "$HDR.tmp" "$HDR"
     fi
   fi
+  common_build_ws
   # systemd unit launcher
   sudo mkdir -p /etc/psyched
   sudo tee /etc/psyched/imu.launch.sh >/dev/null <<'LAUNCH'
