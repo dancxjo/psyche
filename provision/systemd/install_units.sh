@@ -16,6 +16,71 @@ CFG="${ROOT}/provision/hosts/$(hostname).toml"
 get_kv() { awk -F'=' -v k="$1" '$1~k{gsub(/[ "\t]/, "", $2); print $2}' "$CFG" 2>/dev/null || true; }
 ROS_DOMAIN_ID="$(get_kv domain_id || echo 42)"
 RMW_IMPLEMENTATION="$(get_kv rmw || echo rmw_cyclonedds_cpp)"
+
+# Extract the list of services granted to this host from the TOML config.
+HOST_SERVICES=()
+if [ -f "$CFG" ]; then
+  mapfile -t HOST_SERVICES < <(awk '
+    BEGIN { inarr = 0 }
+    /^[[:space:]]*services[[:space:]]*=\/\*/ { next }
+    /^[[:space:]]*services[[:space:]]*=/ { inarr = 1 }
+    inarr {
+      line = $0
+      sub(/#.*/, "", line)
+      while (match(line, /"([^"]+)"/, m)) {
+        print m[1]
+        line = substr(line, RSTART + RLENGTH)
+      }
+      if ($0 ~ /\]/) { exit }
+    }
+  ' "$CFG") || HOST_SERVICES=()
+fi
+
+declare -A HOST_SERVICE_MAP=()
+for svc in "${HOST_SERVICES[@]}"; do
+  [ -n "$svc" ] || continue
+  HOST_SERVICE_MAP["$svc"]=1
+done
+
+prune_ungranted_services() {
+  # Skip pruning if we could not read host services; avoid deleting blindly.
+  if [ ! -f "$CFG" ]; then
+    return
+  fi
+
+  local removed_launcher=0
+
+  if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
+    for f in /etc/psyched/*.launch.sh; do
+      [ -e "$f" ] || continue
+      local base name
+      base="$(basename "$f")"
+      name="${base%.launch.sh}"
+      if [ -z "${HOST_SERVICE_MAP[$name]:-}" ]; then
+        echo "[systemd] Pruning unauthorized launcher: $name"
+        sudo systemctl disable "psyched@${name}.service" >/dev/null 2>&1 || true
+        sudo systemctl stop "psyched@${name}.service" >/dev/null 2>&1 || true
+        sudo rm -f "$f" || true
+        removed_launcher=1
+      fi
+    done
+  fi
+
+  mapfile -t EXISTING_UNITS < <(systemctl list-unit-files 'psyched@*.service' --no-legend 2>/dev/null \
+    | awk '$1 ~ /^psyched@.+\.service$/ { sub(/^psyched@/, "", $1); sub(/\.service$/, "", $1); if (!seen[$1]++) print $1 }') || EXISTING_UNITS=()
+
+  for unit in "${EXISTING_UNITS[@]}"; do
+    if [ -z "${HOST_SERVICE_MAP[$unit]:-}" ]; then
+      echo "[systemd] Disabling unauthorized unit: psyched@${unit}.service"
+      sudo systemctl disable "psyched@${unit}.service" >/dev/null 2>&1 || true
+      sudo systemctl stop "psyched@${unit}.service" >/dev/null 2>&1 || true
+    fi
+  done
+
+  if [ "$removed_launcher" -eq 1 ]; then
+    sudo systemctl daemon-reload >/dev/null 2>&1 || true
+  fi
+}
 # Templated unit that runs /etc/psyched/<name>.launch.sh if present
 sudo tee /etc/systemd/system/psyched@.service >/dev/null <<'UNIT'
 [Unit]
@@ -65,6 +130,9 @@ sudo sed -i \
 
 # Reload systemd daemon to pick up changes to the template
 sudo systemctl daemon-reload || true
+
+# Remove any launchers/units not granted to this host
+prune_ungranted_services
 
 # Enable units for services that have launchers dynamically
 if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
