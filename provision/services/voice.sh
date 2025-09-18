@@ -202,11 +202,12 @@ fi
 if [ -z "${PSY_VOICE_MODEL:-}" ] && [ -f "${default_model}" ]; then
   export PSY_VOICE_MODEL="${default_model}"
 fi
-if [ -n "${PSY_PIPER_BIN:-}" ] && [ ! -x "${PSY_PIPER_BIN}" ]; then
+if [ -n "${PSY_PIPER_BIN:-}" ] && [ ! -x "${PSY_PIPER_BIN:-}" ]; then
   unset PSY_PIPER_BIN
 fi
 
 : "${PSY_PIPER_BIN:=}"
+
 export PSY_TTS_ENGINE
 exec python3 /etc/psyched/voice_node.py
 LAUNCH
