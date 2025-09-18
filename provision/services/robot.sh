@@ -31,6 +31,30 @@ provision() {
     <origin xyz="0.10 0.0 0.20" rpy="0 0 0"/>
   </joint>
   <link name="camera_link"/>
+  <joint name="camera_to_kinect_rgb" type="fixed">
+    <parent link="camera_link"/>
+    <child link="kinect_rgb"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="kinect_rgb"/>
+  <joint name="camera_to_kinect_depth" type="fixed">
+    <parent link="camera_link"/>
+    <child link="kinect_depth"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="kinect_depth"/>
+  <joint name="kinect_rgb_optical_joint" type="fixed">
+    <parent link="kinect_rgb"/>
+    <child link="kinect_rgb_optical_frame"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+  <link name="kinect_rgb_optical_frame"/>
+  <joint name="kinect_depth_optical_joint" type="fixed">
+    <parent link="kinect_depth"/>
+    <child link="kinect_depth_optical_frame"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+  <link name="kinect_depth_optical_frame"/>
 </robot>
 URDF
 

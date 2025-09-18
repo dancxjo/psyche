@@ -71,19 +71,34 @@ them repeatedly is safe.
   Nav2 using `provision/bringup/nav2_params.yaml`.
 
 ## `robot.sh`
-- Writes a minimal URDF to `/opt/psyched/provision/robot/robot.urdf` describing
-  `base_link`, `laser`, `imu`, and `camera_link` frames.
+- Writes a URDF to `/opt/psyched/provision/robot/robot.urdf` describing
+  `base_link`, `laser`, `imu`, `camera_link`, and the Kinect frames (`kinect_rgb`
+  / `kinect_depth` plus their optical variants) so RGB-D data can be referenced
+  in the TF tree.
 - Launch script runs `ros2 run robot_state_publisher robot_state_publisher` with
   the generated URDF.
 
 ## `vision.sh`
-- Queues image transport, vision messages, OpenCV, and libusb packages.
-- Clones supporting repos (`ros2_shared`, `kinect_ros2`, `libfreenect`) and marks
-  `libfreenect` with `COLCON_IGNORE` so colcon ignores it.
-- Patches `kinect_ros2` `package.xml` and `CMakeLists.txt` to declare
-  `cv_bridge` and `image_transport` dependencies.
-- Builds `libfreenect` from source (outside colcon) and installs it system-wide.
+- Queues image transport, vision messages, OpenCV, and NumPy packages used by
+  the `psyche_vision` nodes.
+- Clones shared utilities from `ros2_shared` into the workspace.
+- Leaves RGB-D sensor bring-up to dedicated services (see `eye_kinect.sh`).
 - Launch script execs `ros2 launch psyche_vision vision_launch.py`.
+
+## `eye_kinect.sh`
+- Queues Kinect runtime dependencies: `cv_bridge`, `image_transport`,
+  `camera_info_manager`, `depth_image_proc`, `libopencv-dev`, `libusb-1.0-0-dev`,
+  `libglfw3-dev`, `pkg-config`, and `cmake`.
+- Clones `fadlio/kinect_ros2` into the workspace (updating the remote when
+  possible) and keeps `libfreenect` sourced from `OpenKinect/libfreenect` outside
+  of colcon.
+- Builds and installs `libfreenect` system-wide when the shared library is not
+  already present, then refreshes the dynamic linker cache.
+- Installs `/etc/psyched/eye_kinect.launch.sh`, which sources ROS, overlays the
+  workspace, and runs `ros2 run kinect_ros2 kinect_ros2_node` with remaps so the
+  published topics land on `/camera/image_raw`, `/camera/depth/image_raw`, and
+  `/camera/depth/points`.
+- Logs runtime output to `/var/log/psyched-eye-kinect.log` for troubleshooting.
 
 ## `voice.sh`
 - Resolves the requested TTS engine (Piper by default, fallbacks to espeak).

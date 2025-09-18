@@ -20,7 +20,7 @@ provision() {
   export PSY_DEFER_APT=1
   # Prefer distro colcon package name; fallback handled in ros.sh
   common_apt_install python3-colcon-common-extensions
-  # Ensure core C++ vision deps for packages like kinect_ros2
+  # Ensure core C++ vision deps used by RGB-D pipelines such as kinect_ros2
   # These provide cv_bridge headers and OpenCV C++ libs required at compile time
   common_apt_install \
     ros-${ROS_DISTRO:-jazzy}-cv-bridge \

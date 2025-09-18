@@ -32,8 +32,10 @@ Other service scripts clone or queue additional dependencies into the workspace,
 for example:
 
 - `foot.sh` - clones `libcreate` and `create_robot`.
-- `vision.sh` - clones `ros2_shared`, `kinect_ros2`, and `libfreenect`; patches
-  `kinect_ros2` dependencies; builds `libfreenect` from source.
+- `vision.sh` - clones `ros2_shared` for shared launch/utilities used by
+  perception nodes.
+- `eye_kinect.sh` - clones `kinect_ros2`, stages `libfreenect`, and builds it
+  outside of colcon when needed for the Kinect RGB-D pipeline.
 - `imu.sh` - clones `ros2_mpu6050_driver` and inserts a missing `<array>` include.
 - `lidar.sh` - clones `hls_lfcd_lds_driver` if the apt package is unavailable.
 
@@ -78,8 +80,8 @@ parameters.
 
 ## External Package Notes
 
-- `libfreenect` is marked with `COLCON_IGNORE`; it is built manually during
-  provisioning and installed system-wide.
+- `libfreenect` is marked with `COLCON_IGNORE`; `eye_kinect.sh` builds it
+  manually during provisioning and installs it system-wide when not present.
 - Any legacy ROS1 packages (e.g., `rplidar_ros`) that remain in the workspace are
   also ignored via `COLCON_IGNORE` to keep colcon focused on ROS 2 projects.
 - Workspace builds respect `PSY_SKIP_ROSDEP=1`, allowing advanced users to skip
