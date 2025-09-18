@@ -128,17 +128,11 @@ them repeatedly is safe.
 - Handles interrupt, resume, and abandon operations by manipulating the playback
   process using POSIX signals.
 
-## `ai_stack.sh`
-- Configures the official Docker APT repository, queues Docker Engine packages,
-  and installs a launcher that ensures the Docker service is active before the
-  stack starts.
-- Writes a compose bundle under `/opt/psyched/docker/ai-stack` covering Ollama
-  (default model `phi4`), Neo4j, Qdrant, and Coqui TTS with persistent volumes.
-- Creates `/etc/default/psyched-ai-stack` so ports, credentials, and model names
-  can be customised without editing the compose file.
-- Launcher pre-pulls the configured Ollama model and runs
-  `docker compose up --remove-orphans`, exposing the services on a dedicated
-  `psy-ai-stack` Docker network.
+## `language.sh`
+- Installs Ollama directly on the host using the official installation script.
+- Enables and starts `ollama.service` so the API is available after provision.
+- Prefetches the default model (`gemma3n` by default) via `ollama run` so it is cached.
+- Installs a launcher that tails Ollama logs, keeping `psyched@language.service` aligned with the upstream daemon.
 
 ## `mic.sh`
 - Installs ALSA utilities and headers to enable audio capture.
