@@ -10,7 +10,11 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-    ('share/' + package_name + '/launch', ['launch/vision_launch.py', 'launch/face_object.launch.py']),
+        ('share/' + package_name + '/launch', [
+            'launch/vision_launch.py',
+            'launch/face_object.launch.py',
+            'launch/eye_kinect.launch.py',
+        ]),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
