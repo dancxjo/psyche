@@ -65,10 +65,12 @@ them repeatedly is safe.
   hlds_laser_publisher` with logging to `/tmp/lidar_driver.log`.
 
 ## `nav.sh`
-- Queues Nav2, SLAM Toolbox, and TF2 packages.
+- Queues Nav2, SLAM Toolbox, TF2, and `depthimage_to_laserscan` so RGB-D sensors
+  can stand in for a planar lidar feed.
 - Launch script (invoked by systemd) sources ROS, starts `slam_toolbox
-  online_sync_launch.py` with `provision/bringup/slam_params.yaml`, then launches
-  Nav2 using `provision/bringup/nav2_params.yaml`.
+  online_sync_launch.py` with `provision/bringup/slam_params.yaml`, spawns the
+  `depthimage_to_laserscan` node remapped to the Kinect depth topics, and then
+  launches Nav2 using `provision/bringup/nav2_params.yaml`.
 
 ## `robot.sh`
 - Writes a URDF to `/opt/psyched/provision/robot/robot.urdf` describing

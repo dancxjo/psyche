@@ -52,7 +52,10 @@ Key layers:
                                                               /odom       (odometry)
                                                              ^    ^
                                                              |    |
-                               slam_toolbox <-- /scan -- lidar driver    mpu6050 (IMU)
+                               slam_toolbox <-- /scan -- depthimage_to_laserscan <-- Kinect depth
+                                                                  |                 mpu6050 (IMU)
+                                                                  v
+                                                        /camera/depth/image_raw
                                                              |
                                                              v
                                                         nav2 bringup
@@ -67,10 +70,12 @@ Key layers:
 - **Control** - The object controller applies a proportional controller to keep
   the target centered, commanding angular velocity on `/cmd_vel`. The `foot`
   service routes this to an iRobot Create base using the `create_driver` node.
-- **Localization and Navigation** - `lidar` provides `/scan`, `imu` publishes
-  `/imu/data`, `gps` provides `/gps/fix`, and these combine through nav stack
-  components (`slam_toolbox`, Nav2, optional `robot_localization`). Tunable
-  parameters live in `provision/bringup/`.
+- **Localization and Navigation** - `depthimage_to_laserscan` converts Kinect
+  depth images into `/scan`, `imu` publishes `/imu/data`, `gps` provides
+  `/gps/fix`, and these combine through nav stack components (`slam_toolbox`,
+  Nav2, optional `robot_localization`). Tunable parameters live in
+  `provision/bringup/`. If a planar lidar is present it can still publish
+  directly to `/scan` and replace the depth bridge.
 - **Voice** - The `voice` service exposes `/voice/<hostname>` topics. It bridges
   ROS text messages to Piper or eSpeak, queues utterances, and plays them back
   via ALSA.
