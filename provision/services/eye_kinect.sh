@@ -267,12 +267,7 @@ echo "[psy][eye_kinect] Launching Kinect node at $(date)"
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
 root="${PSY_ROOT:-/opt/psyched}"
 set +u; [ -f "${root}/ws/install/setup.bash" ] && source "${root}/ws/install/setup.bash"; set -u
-exec ros2 run kinect_ros2 kinect_ros2_node --ros-args \
-  -r image_raw:=/camera/image_raw \
-  -r camera_info:=/camera/camera_info \
-  -r depth/image_raw:=/camera/depth/image_raw \
-  -r depth/camera_info:=/camera/depth/camera_info \
-  -r points:=/camera/depth/points
+exec ros2 launch psyche_vision eye_kinect.launch.py
 LAUNCH
 }
 
