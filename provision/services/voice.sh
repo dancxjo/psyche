@@ -206,6 +206,7 @@ if [ -n "${PSY_PIPER_BIN:-}" ] && [ ! -x "${PSY_PIPER_BIN}" ]; then
   unset PSY_PIPER_BIN
 fi
 
+: "${PSY_PIPER_BIN:=}"
 export PSY_TTS_ENGINE
 exec python3 /etc/psyched/voice_node.py
 LAUNCH
