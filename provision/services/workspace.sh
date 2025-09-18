@@ -78,6 +78,44 @@ ensure_cv_bridge_overlay() {
   fi
 }
 
+require_ros_setup() {
+  local distro="${ROS_DISTRO:-jazzy}"
+  local setup="/opt/ros/${distro}/setup.bash"
+  local ros_service="${PSY_ROOT:-/opt/psyched}/provision/services/ros.sh"
+
+  if [ -f "$setup" ]; then
+    return 0
+  fi
+
+  echo "[psy][workspace] ERROR: Expected ROS environment at ${setup}, but it was not found." >&2
+  if [ -f "$ros_service" ]; then
+    echo "[psy][workspace] HINT: Run '${ros_service} provision' to install ros-${distro}-ros-base before building." >&2
+  else
+    echo "[psy][workspace] HINT: Install the ROS ${distro} base packages (ros-${distro}-ros-base) before invoking the workspace build." >&2
+  fi
+  return 1
+}
+
+verify_ament_ready() {
+  local distro="${ROS_DISTRO:-jazzy}"
+  local hint="/opt/ros/${distro}/share/ament_cmake/cmake/ament_cmakeConfig.cmake"
+  local fallback="/usr/share/ament_cmake/cmake/ament_cmakeConfig.cmake"
+  local ros_service="${PSY_ROOT:-/opt/psyched}/provision/services/ros.sh"
+
+  if [ -f "$hint" ] || [ -f "$fallback" ]; then
+    return 0
+  fi
+
+  echo "[psy][workspace] ERROR: ament_cmake is still missing after dependency resolution." >&2
+  echo "[psy][workspace]        CMake config not found at ${hint}." >&2
+  if [ -f "$ros_service" ]; then
+    echo "[psy][workspace] HINT: Run '${ros_service} provision' or install ros-${distro}-ament-cmake manually, then retry." >&2
+  else
+    echo "[psy][workspace] HINT: Install ros-${distro}-ament-cmake before retrying the build." >&2
+  fi
+  return 1
+}
+
 provision() {
   ensure_ws
   common_sync_repo_src_to_ws
@@ -94,6 +132,7 @@ provision() {
 }
 build() {
   safe_source_ros
+  require_ros_setup
   ensure_ws
   common_sync_repo_src_to_ws
   ensure_numpy
@@ -112,6 +151,8 @@ build() {
   # Also pass CMake launcher so projects use ccache even if they reset CC/CXX
   # Install any queued apt packages before building
   common_flush_apt_queue || true
+  verify_ament_ready
+  safe_source_ros
   # Resolve ROS package dependencies (only once, after packages are present)
   # - Skip if no packages found in src yet
   # - Skip if environment requests it (PSY_SKIP_ROSDEP=1)
