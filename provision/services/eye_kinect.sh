@@ -11,15 +11,17 @@ if ! grep -q 'vision' "$PSY_HOST_FILE"; then
     #exit 1
 fi
 
-KINECT_REPO="https://github.com/fadlio/kinect_ros2.git"
+KINECT_REPO="${PSY_KINECT_REPO:-https://github.com/thallesgate/kinect_ros2.git}"
+KINECT_BRANCH="${PSY_KINECT_BRANCH:-jazzy}"
 LIBFREENECT_REPO="https://github.com/OpenKinect/libfreenect.git"
 
 ensure_kinect_repo() {
   local dest="$SRC/kinect_ros2"
   if [ ! -d "$dest" ]; then
-    common_clone_repo "$KINECT_REPO" "$dest"
+    common_clone_repo "$KINECT_REPO" "$dest" "$KINECT_BRANCH"
     ensure_kinect_cmake_support "$dest"
     ensure_kinect_cmake_deps "$dest"
+    ensure_kinect_cv_bridge_header "$dest"
     return
   fi
 
@@ -30,10 +32,21 @@ ensure_kinect_repo() {
       echo "[psy][eye_kinect] Existing repo at $dest uses remote $remote (expected $KINECT_REPO). Leaving unchanged." >&2
     else
       git -C "$dest" fetch origin --tags || true
-      local branch
-      branch="$(git -C "$dest" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-      if [ -n "$branch" ]; then
-        git -C "$dest" pull --ff-only origin "$branch" || true
+      local desired_branch="$KINECT_BRANCH"
+      if [ -n "$desired_branch" ]; then
+        git -C "$dest" fetch origin "$desired_branch" || true
+        local current_branch
+        current_branch="$(git -C "$dest" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+        if [ "$current_branch" != "$desired_branch" ]; then
+          git -C "$dest" checkout "$desired_branch" || true
+        fi
+        git -C "$dest" pull --ff-only origin "$desired_branch" || true
+      else
+        local branch
+        branch="$(git -C "$dest" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+        if [ -n "$branch" ]; then
+          git -C "$dest" pull --ff-only origin "$branch" || true
+        fi
       fi
     fi
   else
@@ -41,6 +54,7 @@ ensure_kinect_repo() {
   fi
   ensure_kinect_cmake_support "$dest"
   ensure_kinect_cmake_deps "$dest"
+  ensure_kinect_cv_bridge_header "$dest"
 }
 
 ensure_kinect_cmake_deps() {
@@ -136,6 +150,25 @@ ensure_kinect_package_deps() {
     if [ -f "$package_xml" ] && ! grep -q '<depend>cv_bridge</depend>' "$package_xml"; then
         # Add cv_bridge as a dependency
         sed -i '/<buildtool_depend>ament_cmake<\/buildtool_depend>/a \ \ <depend>cv_bridge<\/depend>' "$package_xml"
+    fi
+}
+
+ensure_kinect_cv_bridge_header() {
+    local repo="$1"
+    [ -d "$repo" ] || return
+    local header="$repo/include/kinect_ros2/kinect_ros2_component.hpp"
+    if [ -f "$header" ]; then
+        HEADER="$header" python3 - <<'PY'
+import os
+from pathlib import Path
+
+header = Path(os.environ["HEADER"])
+text = header.read_text()
+if 'cv_bridge/cv_bridge.h' not in text:
+    raise SystemExit(0)
+
+header.write_text(text.replace('cv_bridge/cv_bridge.h', 'cv_bridge/cv_bridge.hpp'))
+PY
     fi
 }
 
@@ -288,6 +321,7 @@ provision() {
   common_ensure_ws
   ensure_kinect_repo
   ensure_kinect_package_deps "$SRC/kinect_ros2"
+  ensure_kinect_cv_bridge_header "$SRC/kinect_ros2"
   ensure_libfreenect
   write_launcher
 }
