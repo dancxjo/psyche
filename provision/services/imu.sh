@@ -47,8 +47,8 @@ echo "[psy][imu] Launching IMU node at $(date)"
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
 root="${PSY_ROOT:-/opt/psyched}"
 set +u; [ -f "${root}/ws/install/setup.bash" ] && source "${root}/ws/install/setup.bash"; set -u
-echo "[psy][imu] Running mpu6050_node..."
-exec ros2 run mpu6050_driver mpu6050_node --ros-args -p i2c_bus:=1 -p i2c_address:=0x68 -r imu/data:=/imu
+echo "[psy][imu] Running mpu6050driver..."
+exec ros2 run mpu6050driver mpu6050driver --ros-args -r imu:=/imu/data
 LAUNCH
   sudo chmod +x /etc/psyched/imu.launch.sh
 }

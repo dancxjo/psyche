@@ -53,7 +53,8 @@ them repeatedly is safe.
   loaded.
 - Clones `ros2_mpu6050_driver` and patches `mpu6050sensor.h` to include `<array>`
   for GCC 13 compatibility.
-- Launch script runs `ros2 run mpu6050_driver mpu6050_node` with `/imu/data`.
+- Launch script runs `ros2 run mpu6050driver mpu6050driver --ros-args -r imu:=/imu/data` so the
+  published `imu` topic lands on `/imu/data`.
 
 ## `lidar.sh`
 - Installs git, ensures the workspace exists, and attempts to install the
