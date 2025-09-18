@@ -19,6 +19,7 @@ ensure_kinect_repo() {
   if [ ! -d "$dest" ]; then
     common_clone_repo "$KINECT_REPO" "$dest"
     ensure_kinect_cmake_support "$dest"
+    ensure_kinect_cmake_deps "$dest"
     return
   fi
 
@@ -39,6 +40,93 @@ ensure_kinect_repo() {
     echo "[psy][eye_kinect] Path $dest exists but is not a git repo; skipping clone/update." >&2
   fi
   ensure_kinect_cmake_support "$dest"
+  ensure_kinect_cmake_deps "$dest"
+}
+
+ensure_kinect_cmake_deps() {
+  local repo="$1"
+  [ -d "$repo" ] || return
+  local cmake="$repo/CMakeLists.txt"
+  [ -f "$cmake" ] || return
+
+  if ! grep -q 'find_package(cv_bridge' "$cmake"; then
+    CMAKE_FILE="$cmake" python3 - <<'PY'
+import os
+from pathlib import Path
+
+cmake_path = Path(os.environ["CMAKE_FILE"])
+text = cmake_path.read_text()
+if 'find_package(cv_bridge' in text:
+    raise SystemExit(0)
+
+newline = '\n'
+if '\r\n' in text and '\n' not in text.replace('\r\n', ''):
+    newline = '\r\n'
+
+lines = text.splitlines()
+
+insert_index = None
+for idx, line in enumerate(lines):
+    if 'find_package(sensor_msgs' in line:
+        insert_index = idx + 1
+        break
+if insert_index is None:
+    for idx, line in enumerate(lines):
+        if 'find_package(OpenCV' in line:
+            insert_index = idx + 1
+            break
+if insert_index is None:
+    for idx, line in enumerate(lines):
+        if 'find_package(rclcpp' in line:
+            insert_index = idx + 1
+            break
+if insert_index is None:
+    insert_index = len(lines)
+
+lines.insert(insert_index, 'find_package(cv_bridge REQUIRED)')
+cmake_path.write_text(newline.join(lines) + newline)
+PY
+  fi
+
+  CMAKE_FILE="$cmake" python3 - <<'PY'
+import os
+from pathlib import Path
+
+cmake_path = Path(os.environ["CMAKE_FILE"])
+text = cmake_path.read_text()
+newline = '\n'
+if '\r\n' in text and '\n' not in text.replace('\r\n', ''):
+    newline = '\r\n'
+
+lines = text.splitlines()
+
+for idx, line in enumerate(lines):
+    stripped = line.strip()
+    if stripped.startswith('ament_target_dependencies') and 'kinect_ros2_component' in stripped:
+        block_end = idx
+        found = False
+        indent = None
+        for j in range(idx + 1, len(lines)):
+            current = lines[j]
+            current_strip = current.strip()
+            if 'cv_bridge' in current_strip:
+                found = True
+                break
+            if current_strip.endswith(')'):
+                block_end = j
+                break
+            if indent is None and current_strip:
+                indent = current[:len(current) - len(current.lstrip())]
+        else:
+            block_end = len(lines) - 1
+        if not found:
+            if indent is None:
+                indent = '  '
+            lines.insert(idx + 1, f'{indent}cv_bridge')
+        break
+
+cmake_path.write_text(newline.join(lines) + newline)
+PY
 }
 
 ensure_kinect_package_deps() {

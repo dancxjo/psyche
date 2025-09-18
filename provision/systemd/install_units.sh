@@ -22,13 +22,13 @@ HOST_SERVICES=()
 if [ -f "$CFG" ]; then
   mapfile -t HOST_SERVICES < <(awk '
     BEGIN { inarr = 0 }
-    /^[[:space:]]*services[[:space:]]*=\/\*/ { next }
     /^[[:space:]]*services[[:space:]]*=/ { inarr = 1 }
     inarr {
       line = $0
       sub(/#.*/, "", line)
-      while (match(line, /"([^"]+)"/, m)) {
-        print m[1]
+      while (match(line, /"[^"]+"/)) {
+        svc = substr(line, RSTART + 1, RLENGTH - 2)
+        print svc
         line = substr(line, RSTART + RLENGTH)
       }
       if ($0 ~ /\]/) { exit }
@@ -139,6 +139,10 @@ if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
   for f in /etc/psyched/*.launch.sh; do
     [ -e "$f" ] || continue
     s="$(basename "$f")"; s="${s%.launch.sh}"
+    if [ -f "$CFG" ] && [ -z "${HOST_SERVICE_MAP[$s]:-}" ]; then
+      echo "[systemd] Skipping launcher without host authorization: $s"
+      continue
+    fi
     sudo systemctl enable "psyched@${s}.service" || true
   done
 fi
