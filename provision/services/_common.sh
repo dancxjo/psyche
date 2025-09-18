@@ -19,6 +19,56 @@ export PSY_WS="${PSY_WS:-$PSY_ROOT/ws}"
 export WS="$PSY_WS"
 export SRC="$PSY_WS/src"
 
+# Determine the active ROS distro if the environment hasn't already provided a usable value.
+_psy_guess_ros_distro() {
+  local env_guess="${ROS_DISTRO:-}"
+  if [ -n "$env_guess" ] && [ -f "/opt/ros/${env_guess}/setup.bash" ]; then
+    echo "$env_guess"
+    return 0
+  fi
+
+  if dpkg-query -W -f '${Package}\n' 'ros-*-ros-base' >/dev/null 2>&1; then
+    local pkg
+    while IFS= read -r pkg; do
+      case "$pkg" in
+        ros-*-ros-base)
+          pkg="${pkg#ros-}"
+          pkg="${pkg%-ros-base}"
+          [ -f "/opt/ros/${pkg}/setup.bash" ] && { echo "$pkg"; return 0; }
+          ;;
+      esac
+    done < <(dpkg-query -W -f '${Package}\n' 'ros-*-ros-base' 2>/dev/null | sort -u)
+  fi
+
+  local cfg="${PSY_ROOT}/provision/hosts/$(hostname).toml"
+  if [ -f "$cfg" ]; then
+    local cfg_guess
+    cfg_guess=$(awk -F'=' '/ros_distro/{gsub(/[ "\t]/, "", $2); print $2; exit}' "$cfg" 2>/dev/null || true)
+    if [ -n "$cfg_guess" ] && [ -f "/opt/ros/${cfg_guess}/setup.bash" ]; then
+      echo "$cfg_guess"
+      return 0
+    fi
+  fi
+
+  if [ -d "/opt/ros" ]; then
+    local dir
+    for dir in /opt/ros/*; do
+      [ -d "$dir" ] && [ -f "$dir/setup.bash" ] || continue
+      echo "$(basename "$dir")"
+      return 0
+    done
+  fi
+
+  echo jazzy
+}
+
+if [ -z "${ROS_DISTRO:-}" ] || [ ! -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]; then
+  _psy_ros_guess="$(_psy_guess_ros_distro 2>/dev/null || true)"
+  if [ -n "${_psy_ros_guess:-}" ]; then
+    export ROS_DISTRO="$_psy_ros_guess"
+  fi
+fi
+
 # Apt install queue (to combine all apt-get into one call at the end)
 export PSY_APT_QUEUE_FILE="${PSY_APT_QUEUE_FILE:-$PSY_ROOT/provision/.apt_queue}"
 export PSY_DEFER_APT="${PSY_DEFER_APT:-0}"
@@ -34,7 +84,12 @@ common_apt_update_once() {
 common_safe_source_ros() {
   # Avoid nounset errors from ROS setup using AMENT_TRACE_SETUP_FILES
   set +u
-  [ -f "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash" ] && . "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash" || true
+  local distro="${ROS_DISTRO:-}"
+  if [ -z "$distro" ] || [ ! -f "/opt/ros/${distro}/setup.bash" ]; then
+    distro="$(_psy_guess_ros_distro 2>/dev/null || echo jazzy)"
+    [ -n "$distro" ] && export ROS_DISTRO="$distro"
+  fi
+  [ -n "$distro" ] && [ -f "/opt/ros/${distro}/setup.bash" ] && . "/opt/ros/${distro}/setup.bash" || true
   set -u
 }
 

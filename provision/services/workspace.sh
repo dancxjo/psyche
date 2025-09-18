@@ -18,10 +18,29 @@ ensure_vision_deps() {
   # Kinect and other RGB-D pipelines depend on cv_bridge and related transports.
   common_apt_install \
     ros-${ROS_DISTRO:-jazzy}-cv-bridge \
+    ros-${ROS_DISTRO:-jazzy}-camera-calibration-parsers \
     ros-${ROS_DISTRO:-jazzy}-image-transport \
     ros-${ROS_DISTRO:-jazzy}-image-transport-plugins \
+    ros-${ROS_DISTRO:-jazzy}-image-pipeline \
+    ros-${ROS_DISTRO:-jazzy}-perception \
+    ros-${ROS_DISTRO:-jazzy}-perception-pcl \
     ros-${ROS_DISTRO:-jazzy}-vision-msgs \
-    libopencv-dev
+    ros-${ROS_DISTRO:-jazzy}-usb-cam \
+    libopencv-dev \
+    python3-opencv \
+    libglu1-mesa-dev \
+    freeglut3-dev \
+    mesa-common-dev \
+    ?libogre-1.12-dev \
+    ?ros-${ROS_DISTRO:-jazzy}-rviz2 \
+    ?libgl1-mesa-glx \
+    ?libegl1-mesa \
+    ?libxrandr2 \
+    ?libxrandr-dev \
+    ?libxinerama1 \
+    ?libxinerama-dev \
+    ?libxcursor1 \
+    ?libxcursor-dev
 }
 
 provision() {
