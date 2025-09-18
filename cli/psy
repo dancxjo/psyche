@@ -146,25 +146,6 @@ host_cfg() { echo "${HOSTCFG_DIR}/${1}.toml"; }
 
 get_host() { echo "${1:-$(hostname)}"; }
 
-toml_get_array() { # robust: extract quoted entries from an array, ignore comments
-  # arg1=file arg2=key
-  awk -v k="$2" '
-    BEGIN{ inarr=0 }
-    $0 ~ "^[[:space:]]*"k"[[:space:]]*=" { inarr=1 }
-    inarr {
-      line=$0
-      # strip comments
-      sub(/#.*/, "", line)
-      # find quoted strings and print each
-      while (match(line, /"([^"]+)"/, m)) {
-        print m[1]
-        line=substr(line, RSTART+RLENGTH)
-      }
-      if ($0 ~ /\]/) { exit }
-    }
-  ' "$1"
-}
-
 cmd="${1:-}"; shift || true
 case "$cmd" in
   update)
@@ -183,7 +164,7 @@ case "$cmd" in
         HOST="$(get_host "${1:-}")"
         CFG="$(host_cfg "$HOST")"
         [ -f "$CFG" ] || { echo "No host config: $CFG" >&2; exit 1; }
-        mapfile -t SERVICES < <(toml_get_array "$CFG" "services")
+        mapfile -t SERVICES < <(python3 "$ROOT/tools/psy_config.py" --file "$CFG" services)
         export PSY_HOST_FILE="$CFG"
         export PSY_DEFER_APT=1
         for s in "${SERVICES[@]}"; do

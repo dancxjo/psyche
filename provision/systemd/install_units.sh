@@ -13,13 +13,21 @@ else
   ROOT="${DEFAULT_ROOT%/}"
 fi
 CFG="${ROOT}/provision/hosts/$(hostname).toml"
-get_kv() { awk -F'=' -v k="$1" '$1~k{gsub(/[ "\t]/, "", $2); print $2}' "$CFG" 2>/dev/null || true; }
-ROS_DOMAIN_ID="$(get_kv domain_id || echo 42)"
-RMW_IMPLEMENTATION="$(get_kv rmw || echo rmw_cyclonedds_cpp)"
+CONFIG_HELPER="${ROOT}/tools/psy_config.py"
+if [ -f "$CONFIG_HELPER" ]; then
+  ROS_DOMAIN_ID="$(python3 "$CONFIG_HELPER" --file "$CFG" get domain_id)"
+  RMW_IMPLEMENTATION="$(python3 "$CONFIG_HELPER" --file "$CFG" get rmw)"
+else
+  get_kv() { awk -F'=' -v k="$1" '$1~k{gsub(/[ "\t]/, "", $2); print $2}' "$CFG" 2>/dev/null || true; }
+  ROS_DOMAIN_ID="$(get_kv domain_id || echo 42)"
+  RMW_IMPLEMENTATION="$(get_kv rmw || echo rmw_cyclonedds_cpp)"
+fi
 
 # Extract the list of services granted to this host from the TOML config.
 HOST_SERVICES=()
-if [ -f "$CFG" ]; then
+if [ -f "$CONFIG_HELPER" ] && [ -f "$CFG" ]; then
+  mapfile -t HOST_SERVICES < <(python3 "$CONFIG_HELPER" --file "$CFG" services)
+elif [ -f "$CFG" ]; then
   mapfile -t HOST_SERVICES < <(awk '
     BEGIN { inarr = 0 }
     /^[[:space:]]*services[[:space:]]*=/ { inarr = 1 }
