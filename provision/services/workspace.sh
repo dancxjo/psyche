@@ -9,6 +9,18 @@ ensure_ws() { common_ensure_ws; }
 
 ensure_numpy() { common_ensure_numpy; }
 
+ensure_ament_cmake() {
+  local distro="${ROS_DISTRO:-jazzy}"
+  local cmake_hint="/opt/ros/${distro}/share/ament_cmake/cmake/ament_cmakeConfig.cmake"
+
+  if [ -f "$cmake_hint" ]; then
+    return
+  fi
+
+  # Install the ROS distro-specific ament package; fall back to the generic name if needed.
+  common_apt_install "ros-${distro}-ament-cmake" '?ament-cmake'
+}
+
 ensure_vision_deps() {
   # Kinect and other RGB-D pipelines depend on cv_bridge and related transports.
   common_apt_install \
@@ -72,6 +84,8 @@ provision() {
   export PSY_DEFER_APT=1
   # Prefer distro colcon package name; fallback handled in ros.sh
   common_apt_install python3-colcon-common-extensions
+  # Ensure CMake tooling for ament packages is present before builds run.
+  ensure_ament_cmake
   # Ensure core C++ vision deps used by RGB-D pipelines such as kinect_ros2
   # These provide cv_bridge headers and OpenCV C++ libs required at compile time
   ensure_vision_deps
@@ -82,6 +96,7 @@ build() {
   ensure_ws
   ensure_numpy
   # Ensure vision dependencies are present even when provisioning hasn't queued them yet
+  ensure_ament_cmake
   ensure_vision_deps
   ensure_cv_bridge_overlay
   # Enable ccache to speed up rebuilds
