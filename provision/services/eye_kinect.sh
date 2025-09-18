@@ -11,6 +11,7 @@ ensure_kinect_repo() {
   local dest="$SRC/kinect_ros2"
   if [ ! -d "$dest" ]; then
     common_clone_repo "$KINECT_REPO" "$dest"
+    ensure_kinect_cmake_support "$dest"
     return
   fi
 
@@ -29,6 +30,103 @@ ensure_kinect_repo() {
     fi
   else
     echo "[psy][eye_kinect] Path $dest exists but is not a git repo; skipping clone/update." >&2
+  fi
+  ensure_kinect_cmake_support "$dest"
+}
+
+ensure_kinect_cmake_support() {
+  local repo="$1"
+  [ -d "$repo" ] || return
+
+  local cmake_dir="$repo/cmake"
+  local find_module="$cmake_dir/Findlibfreenect.cmake"
+
+  mkdir -p "$cmake_dir"
+
+  if [ ! -f "$find_module" ]; then
+    cat >"$find_module" <<'EOF'
+# Distributed under the BSD license.
+# Minimal Find module for libfreenect when CMake config is not provided.
+
+find_path(libfreenect_INCLUDE_DIR
+  NAMES libfreenect/libfreenect.h libfreenect.h
+  PATH_SUFFIXES libfreenect include
+)
+
+find_library(libfreenect_LIBRARY
+  NAMES freenect
+)
+
+if (libfreenect_INCLUDE_DIR AND EXISTS "${libfreenect_INCLUDE_DIR}/libfreenect/libfreenect.h")
+  set(libfreenect_INCLUDE_DIR "${libfreenect_INCLUDE_DIR}/libfreenect")
+endif()
+
+set(libfreenect_INCLUDE_DIRS "${libfreenect_INCLUDE_DIR}")
+set(libfreenect_LIBRARIES "${libfreenect_LIBRARY}")
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(libfreenect
+  REQUIRED_VARS libfreenect_LIBRARY libfreenect_INCLUDE_DIR)
+
+mark_as_advanced(libfreenect_INCLUDE_DIR libfreenect_LIBRARY)
+EOF
+  fi
+
+  # Ensure CMake uses the local Find module directory.
+  if ! grep -Fq 'CMAKE_MODULE_PATH' "$repo/CMakeLists.txt"; then
+    REPO_PATH="$repo" python3 - <<'PY'
+import os
+from pathlib import Path
+
+repo = Path(os.environ["REPO_PATH"])
+cmakelists = repo / "CMakeLists.txt"
+text = cmakelists.read_text()
+insertion = 'list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")\n\n'
+
+if insertion.strip() in text:
+    raise SystemExit(0)
+
+marker = 'project(kinect_ros2)\n'
+if marker in text:
+    text = text.replace(marker, marker + insertion, 1)
+else:
+    marker = 'project(kinect_ros2)\r\n'
+    insertion_crlf = insertion.replace('\n', '\r\n')
+    if marker in text:
+        text = text.replace(marker, marker + insertion_crlf, 1)
+    else:
+        raise SystemExit(0)
+
+cmakelists.write_text(text)
+PY
+  fi
+
+  # Ensure libfreenect include directory is added for compilation.
+  if ! grep -Fq 'libfreenect_INCLUDE_DIRS' "$repo/CMakeLists.txt"; then
+    REPO_PATH="$repo" python3 - <<'PY'
+import os
+from pathlib import Path
+
+repo = Path(os.environ["REPO_PATH"])
+cmakelists = repo / "CMakeLists.txt"
+text = cmakelists.read_text()
+
+newline = '\n'
+if '\r\n' in text and '\n' not in text.replace('\r\n', ''):
+    newline = '\r\n'
+
+needle = 'include_directories(include)' + newline
+replacement = 'include_directories(include){nl}include_directories(${{libfreenect_INCLUDE_DIRS}}){nl}'.format(nl=newline)
+
+if needle not in text:
+    needle = 'include_directories(include)'
+    replacement = 'include_directories(include){nl}include_directories(${{libfreenect_INCLUDE_DIRS}})'.format(nl=newline)
+    if needle not in text:
+        raise SystemExit(0)
+
+text = text.replace(needle, replacement, 1)
+cmakelists.write_text(text)
+PY
   fi
 }
 
