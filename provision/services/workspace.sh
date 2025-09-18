@@ -3,12 +3,7 @@ set -euo pipefail
 . "$(dirname "$0")/_common.sh" 2>/dev/null || true
 WS="${PSY_WS}"
 
-safe_source_ros() {
-  # Avoid nounset errors from ROS setup using AMENT_TRACE_SETUP_FILES
-  set +u
-  source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash" || true
-  set -u
-}
+safe_source_ros() { common_safe_source_ros; }
 
 ensure_ws() { common_ensure_ws; }
 
@@ -33,14 +28,42 @@ ensure_vision_deps() {
     mesa-common-dev \
     ?libogre-1.12-dev \
     ?ros-${ROS_DISTRO:-jazzy}-rviz2 \
-    ?libgl1-mesa-glx \
-    ?libegl1-mesa \
+    ?libgl1 \
+    ?libegl1 \
     ?libxrandr2 \
     ?libxrandr-dev \
     ?libxinerama1 \
     ?libxinerama-dev \
     ?libxcursor1 \
     ?libxcursor-dev
+}
+
+ensure_cv_bridge_overlay() {
+  local distro="${ROS_DISTRO:-jazzy}"
+  local header="/opt/ros/${distro}/include/cv_bridge/cv_bridge.h"
+  local pkg="ros-${distro}-cv-bridge"
+  local repo="$SRC/vision_opencv"
+
+  if dpkg -s "$pkg" >/dev/null 2>&1 || [ -f "$header" ]; then
+    return
+  fi
+
+  if [ ! -d "$repo" ]; then
+    common_clone_repo https://github.com/ros-perception/vision_opencv.git "$repo"
+  fi
+
+  if [ -d "$repo/.git" ]; then
+    git -C "$repo" fetch --tags --force >/dev/null 2>&1 || true
+    if git -C "$repo" rev-parse --verify "$distro" >/dev/null 2>&1; then
+      git -C "$repo" checkout "$distro" >/dev/null 2>&1 || true
+    elif git -C "$repo" rev-parse --verify "ros2" >/dev/null 2>&1; then
+      git -C "$repo" checkout "ros2" >/dev/null 2>&1 || true
+    fi
+  fi
+
+  if [ -d "$repo" ]; then
+    rm -f "$repo/COLCON_IGNORE" 2>/dev/null || true
+  fi
 }
 
 provision() {
@@ -52,6 +75,7 @@ provision() {
   # Ensure core C++ vision deps used by RGB-D pipelines such as kinect_ros2
   # These provide cv_bridge headers and OpenCV C++ libs required at compile time
   ensure_vision_deps
+  ensure_cv_bridge_overlay
 }
 build() {
   safe_source_ros
@@ -59,6 +83,7 @@ build() {
   ensure_numpy
   # Ensure vision dependencies are present even when provisioning hasn't queued them yet
   ensure_vision_deps
+  ensure_cv_bridge_overlay
   # Enable ccache to speed up rebuilds
   common_enable_ccache || true
   export CC="ccache gcc"

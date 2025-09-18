@@ -1,5 +1,5 @@
 # Pi 5 (cerebellum)
-ros_distro = "jazzy"
+ros_distro = "iron"
 domain_id = 42
 rmw = "rmw_cyclonedds_cpp"
 
