@@ -11,10 +11,8 @@ ENV_FILE="/etc/default/psyched-${STACK_NAME}"
 
 ensure_docker_runtime() {
   export PSY_DEFER_APT=1
-  # Queue Docker Engine and the compose plugin; rely on host-wide flush later.
-  common_apt_install docker.io docker-compose-plugin
-  # Helpful but optional tools when working with Docker.
-  common_apt_install ?docker-buildx-plugin ?containerd
+  # Use the shared helper so any service can rely on Docker being available.
+  common_ensure_docker_runtime
 }
 
 write_env_defaults() {

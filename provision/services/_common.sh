@@ -134,6 +134,63 @@ common_apt_install() {
   fi
 }
 
+# Ensure the official Docker APT repository and runtime packages are available.
+#
+# The helper keeps provisioning idempotent and safe to invoke from any service
+# script that depends on containers. It performs the following steps:
+#   1. Installs the tooling needed to manage APT repositories (curl, gnupg).
+#   2. Installs Docker's signing key under /etc/apt/keyrings if missing.
+#   3. Writes the Docker repository definition tailored to the host distro.
+#   4. Queues the Docker Engine, CLI, buildx and compose packages for install.
+#
+# Whenever the repository metadata changes we reset PSY_APT_UPDATED to force the
+# next apt transaction to refresh indexes – otherwise queued installs could fail
+# because the new repository would be unknown to apt.
+common_ensure_docker_runtime() {
+  local old_defer="${PSY_DEFER_APT:-0}"
+  local keyring="/etc/apt/keyrings/docker.gpg"
+  local repo_file="/etc/apt/sources.list.d/docker.list"
+  local os_id codename arch repo_entry gpg_url
+
+  # Ensure supporting tooling is installed immediately so we can fetch keys.
+  export PSY_DEFER_APT=0
+  common_apt_install ca-certificates curl gnupg
+  export PSY_DEFER_APT="$old_defer"
+
+  sudo install -m 0755 -d "$(dirname "$keyring")"
+
+  # Discover the distro identifier Docker expects (ubuntu/debian, etc.).
+  os_id=$(. /etc/os-release >/dev/null 2>&1 && echo "${ID:-ubuntu}")
+  case "$os_id" in
+    raspbian)
+      os_id="debian"
+      ;;
+  esac
+  gpg_url="https://download.docker.com/linux/${os_id}/gpg"
+
+  if [ ! -f "$keyring" ]; then
+    curl -fsSL "$gpg_url" | sudo gpg --dearmor -o "$keyring"
+    sudo chmod a+r "$keyring"
+    export PSY_APT_UPDATED=0
+  fi
+
+  arch="$(dpkg --print-architecture)"
+  codename=$(. /etc/os-release >/dev/null 2>&1 && echo "${VERSION_CODENAME:-}")
+  if [ -z "$codename" ] && command -v lsb_release >/dev/null 2>&1; then
+    codename="$(lsb_release -cs 2>/dev/null || true)"
+  fi
+  codename="${codename:-stable}"
+
+  repo_entry="deb [arch=${arch} signed-by=${keyring}] https://download.docker.com/linux/${os_id} ${codename} stable"
+
+  if [ ! -f "$repo_file" ] || ! grep -Fqx "$repo_entry" "$repo_file" 2>/dev/null; then
+    echo "$repo_entry" | sudo tee "$repo_file" >/dev/null
+    export PSY_APT_UPDATED=0
+  fi
+
+  common_apt_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+}
+
 common_flush_apt_queue() {
   [ -f "$PSY_APT_QUEUE_FILE" ] || { echo "[psy] No queued apt packages"; return 0; }
   mapfile -t ALL < <(sed '/^\s*$/d' "$PSY_APT_QUEUE_FILE" | sort -u)
