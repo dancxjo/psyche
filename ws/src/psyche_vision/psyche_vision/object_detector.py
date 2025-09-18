@@ -25,8 +25,8 @@ class ObjectDetector(Node):
         self.declare_parameter('target_color_upper', [10, 255, 255])  # HSV upper bound
         self.declare_parameter('min_area', 500)  # Minimum contour area
         self.declare_parameter('image_center_x', 640)  # Image width / 2
-    self.declare_parameter('camera_fov_degrees', 60.0)  # Camera field of view
-    self.declare_parameter('publish_target_point', True)  # Also publish /target_point
+        self.declare_parameter('camera_fov_degrees', 60.0)  # Camera field of view
+        self.declare_parameter('publish_target_point', True)  # Also publish /target_point
         
         # Initialize CV bridge
         self.bridge = CvBridge()
@@ -138,13 +138,13 @@ class ObjectDetector(Node):
         cy = int(M['m01'] / M['m00'])
         
         # Publish debug image
-    self.publish_debug_image(image, mask, largest_contour, cx, cy)
+        self.publish_debug_image(image, mask, largest_contour, cx, cy)
         
         # Confidence based on relative size
         image_area = image.shape[0] * image.shape[1]
         confidence = min(1.0, largest_area / (image_area * 0.1))
         
-    return cx, cy, confidence
+        return cx, cy, confidence
     
     def compute_bearing(self, target_x, image_width):
         """

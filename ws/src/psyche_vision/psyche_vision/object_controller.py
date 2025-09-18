@@ -23,9 +23,9 @@ class ObjectController(Node):
         self.declare_parameter('angle_tolerance_degrees', 2.0)  # Deadzone
         self.declare_parameter('min_confidence', 0.3)  # Minimum confidence to act
         self.declare_parameter('timeout_seconds', 2.0)  # Stop if no target for this long
-    self.declare_parameter('image_width', 1280)  # pixels; used with /target_point
-    self.declare_parameter('camera_fov_degrees', 60.0)  # FOV for pixel->angle
-    self.declare_parameter('use_target_point', True)  # prefer /target_point over /target_pose
+        self.declare_parameter('image_width', 1280)  # pixels; used with /target_point
+        self.declare_parameter('camera_fov_degrees', 60.0)  # FOV for pixel->angle
+        self.declare_parameter('use_target_point', True)  # prefer /target_point over /target_pose
         
         # State
         self.last_target_time = None
