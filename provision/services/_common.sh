@@ -204,3 +204,13 @@ common_enable_ccache() {
   export CCACHE_DIR="${CCACHE_DIR:-$PSY_ROOT/.ccache}"
   mkdir -p "$CCACHE_DIR" 2>/dev/null || true
 }
+
+common_build_ws() {
+  echo "[psy] Building workspace..."
+  if [ -f "$PSY_ROOT/cli/psy" ]; then
+    (cd "$PSY_ROOT" && ./cli/psy build)
+  else
+    echo "[psy] Error: $PSY_ROOT/cli/psy not found." >&2
+    return 1
+  fi
+}
