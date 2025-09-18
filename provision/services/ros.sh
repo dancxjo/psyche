@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="/opt/psyched"
-CFG="$ROOT/provision/hosts/$(hostname).toml"
 . "$(dirname "$0")/_common.sh" 2>/dev/null || true
+CFG="${PSY_ROOT}/provision/hosts/$(hostname).toml"
 
 ros_toml() {
   awk -F'=' '/ros_distro/{gsub(/[ "]/ ,"",$2);print $2}' "$CFG" 2>/dev/null || true
@@ -72,15 +71,15 @@ if [ -f "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash" ]; then
 fi
 
 # Source workspace overlay if present
-if [ -f "/opt/psyched/ws/install/setup.bash" ]; then
-  . "/opt/psyched/ws/install/setup.bash"
+if [ -f "${PSY_ROOT:-/opt/psyched}/ws/install/setup.bash" ]; then
+  . "${PSY_ROOT:-/opt/psyched}/ws/install/setup.bash"
 fi
 
 # Convenience aliases
 alias ros_source='[ -f "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash" ] && . "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"'
-alias psy_source='[ -f "/opt/psyched/ws/install/setup.bash" ] && . "/opt/psyched/ws/install/setup.bash"'
+alias psy_source='[ -f "${PSY_ROOT:-/opt/psyched}/ws/install/setup.bash" ] && . "${PSY_ROOT:-/opt/psyched}/ws/install/setup.bash"'
 alias resource='ros_source && psy_source'
-alias pbuild='here=$(pwd) && cd /opt/psyched && ./cli/psy build && resource && cd "$here"'
+alias pbuild='here=$(pwd) && cd "${PSY_ROOT:-/opt/psyched}" && ./cli/psy build && resource && cd "$here"'
 ENV
   sudo chmod 644 "$GLOBAL_ENV"
 

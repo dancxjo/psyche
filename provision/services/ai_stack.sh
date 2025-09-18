@@ -114,7 +114,8 @@ install_launcher() {
 #!/usr/bin/env bash
 set -euo pipefail
 
-STACK_DIR="/opt/psyched/docker/ai-stack"
+ROOT="${PSY_ROOT:-/opt/psyched}"
+STACK_DIR="${ROOT}/docker/ai-stack"
 COMPOSE_FILE="${STACK_DIR}/docker-compose.yml"
 ENV_FILE="/etc/default/psyched-ai-stack"
 

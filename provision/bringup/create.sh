@@ -2,8 +2,11 @@
 set -euo pipefail
 
 # Source ROS 2 underlay and the psyched overlay when available.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+DEFAULT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd -P)"
+root="${PSY_ROOT:-$DEFAULT_ROOT}"
 set +u; [ -f "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash" ] && source "/opt/ros/${ROS_DISTRO:-jazzy}/setup.bash"; set -u
-set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
+set +u; [ -f "${root}/ws/install/setup.bash" ] && source "${root}/ws/install/setup.bash"; set -u
 
 # Allow overrides via environment variables to stay aligned with systemd launcher defaults.
 CREATE_LAUNCH_PACKAGE="${CREATE_LAUNCH_PACKAGE:-create_bringup}"

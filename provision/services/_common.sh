@@ -4,8 +4,16 @@
 
 # Do not set -euo here; let the caller control shell options.
 
-# Root paths
-export PSY_ROOT="${PSY_ROOT:-/opt/psyched}"
+_psy_common_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+if [ -z "${PSY_ROOT:-}" ]; then
+  if [ -n "${_psy_common_dir:-}" ]; then
+    PSY_ROOT="$(cd "${_psy_common_dir}/.." && pwd -P)"
+  fi
+  PSY_ROOT="${PSY_ROOT:-/opt/psyched}"
+else
+  PSY_ROOT="${PSY_ROOT%/}"
+fi
+export PSY_ROOT
 export PSY_WS_REAL="${PSY_WS_REAL:-${PSY_ROOT%/}_ws}"
 export PSY_WS="${PSY_WS:-$PSY_ROOT/ws}"
 export WS="$PSY_WS"

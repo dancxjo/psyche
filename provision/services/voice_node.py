@@ -53,7 +53,8 @@ class PiperEngine(TTSEngine):
         super().__init__(logger)
 
         primary_model = os.environ.get(
-            "PSY_VOICE_MODEL", "/opt/psyched/voices/en_US-kyle-high.onnx"
+            "PSY_VOICE_MODEL",
+            f"{os.environ.get('PSY_ROOT', '/opt/psyched').rstrip('/')}/voices/en_US-kyle-high.onnx",
         )
         fallback_list = os.environ.get("PSY_VOICE_MODEL_FALLBACKS", "").strip()
         self.model_candidates: List[str] = [primary_model]
@@ -150,7 +151,8 @@ class PiperEngine(TTSEngine):
             candidate_dir = os.path.dirname(candidate)
             if candidate_dir and os.path.isdir(candidate_dir):
                 search_dirs.append(candidate_dir)
-        default_dir = os.environ.get("PSY_VOICE_MODEL_DIR", "/opt/psyched/voices")
+        root = os.environ.get("PSY_ROOT", "/opt/psyched").rstrip("/")
+        default_dir = os.environ.get("PSY_VOICE_MODEL_DIR", f"{root}/voices")
         if default_dir and os.path.isdir(default_dir):
             search_dirs.append(default_dir)
 

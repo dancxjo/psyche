@@ -32,7 +32,7 @@ def test_launcher_executes_create_bringup() -> None:
     # Given the launcher snippet captured from the provision script
     # When we look for the delegated entrypoint
     # Then it should execute the shared bringup script for the Create base
-    assert "exec /opt/psyched/provision/bringup/create.sh" in snippet
+    assert 'exec "${root}/provision/bringup/create.sh" "$@"' in snippet
 
 
 def test_create_bringup_defaults() -> None:

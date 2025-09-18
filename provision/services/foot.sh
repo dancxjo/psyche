@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 . "$(dirname "$0")/_common.sh" 2>/dev/null || true
-WS="${PSY_WS:-/opt/psyched/ws}"
+WS="${PSY_WS}"
 SRC="$WS/src"
 REPO_LIBCREATE="https://github.com/revyos-ros/libcreate.git"
 BRANCH_LIBCREATE="fix-std-string"
@@ -28,7 +28,8 @@ RULE
 set -euo pipefail
 
 # Delegate to the shared bringup script so manual and service launches stay aligned.
-exec /opt/psyched/provision/bringup/create.sh "$@"
+root="${PSY_ROOT:-/opt/psyched}"
+exec "${root}/provision/bringup/create.sh" "$@"
 LAUNCH
 }
 

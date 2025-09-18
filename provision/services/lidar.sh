@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 . "$(dirname "$0")/_common.sh" 2>/dev/null || true
-WS="${PSY_WS:-/opt/psyched/ws}"
+WS="${PSY_WS}"
 SRC="$WS/src"
 
 provision() {
@@ -40,7 +40,8 @@ RULE
 #!/usr/bin/env bash
 set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
-set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
+root="${PSY_ROOT:-/opt/psyched}"
+set +u; [ -f "${root}/ws/install/setup.bash" ] && source "${root}/ws/install/setup.bash"; set -u
 
 LOG=/tmp/lidar_driver.log
 PORT_DEFAULT=/dev/lidar

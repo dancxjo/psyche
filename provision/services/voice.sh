@@ -10,7 +10,7 @@ set -euo pipefail
 #   and convenience topics /voice/$HOSTNAME/{interrupt,resume,abandon}
 # - Uses espeak-ng with aplay for playback.
 
-ROOT="/opt/psyched"
+ROOT="${PSY_ROOT}"
 ETC_DIR="/etc/psyched"
 PY_NODE_PATH="${ETC_DIR}/voice_node.py"
 LAUNCH_PATH="${ETC_DIR}/voice.launch.sh"

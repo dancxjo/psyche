@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="/opt/psyched"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+DEFAULT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+if [ -n "${PSY_ROOT:-}" ] && [ -d "${PSY_ROOT%/}/provision/services" ]; then
+  ROOT="${PSY_ROOT%/}"
+elif [ -d "${DEFAULT_ROOT}/provision/services" ]; then
+  ROOT="$DEFAULT_ROOT"
+elif [ -d "/opt/psyched/provision/services" ]; then
+  ROOT="/opt/psyched"
+else
+  ROOT="${DEFAULT_ROOT}"
+fi
+export PSY_ROOT="$ROOT"
 PROV="$ROOT/provision"
 HOSTCFG_DIR="$PROV/hosts"
 SVCDIR="$PROV/services"
@@ -158,10 +169,10 @@ cmd="${1:-}"; shift || true
 case "$cmd" in
   update)
     echo "[psy] Updating psyche (this may take 5-45 minutes). Do not cancel."
-    if [ -x "/opt/psyched/tools/install.sh" ]; then
-      sudo bash /opt/psyched/tools/install.sh
+    if [ -x "$ROOT/tools/install.sh" ]; then
+      sudo bash "$ROOT/tools/install.sh"
     else
-      echo "[psy] ERROR: installer not found at /opt/psyched/tools/install.sh" >&2
+      echo "[psy] ERROR: installer not found at $ROOT/tools/install.sh" >&2
       exit 1
     fi
     ;;

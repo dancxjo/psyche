@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 . "$(dirname "$0")/_common.sh" 2>/dev/null || true
-WS="${PSY_WS:-/opt/psyched/ws}"
+WS="${PSY_WS}"
 SRC="$WS/src"
 REPO_IMU="https://github.com/hiwad-aziz/ros2_mpu6050_driver.git"
 
@@ -41,7 +41,8 @@ provision() {
 #!/usr/bin/env bash
 set -e
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
-set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
+root="${PSY_ROOT:-/opt/psyched}"
+set +u; [ -f "${root}/ws/install/setup.bash" ] && source "${root}/ws/install/setup.bash"; set -u
 exec ros2 run mpu6050_driver mpu6050_node --ros-args -p i2c_bus:=1 -p i2c_address:=0x68 -r imu/data:=/imu
 LAUNCH
   sudo chmod +x /etc/psyched/imu.launch.sh

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 . "$(dirname "$0")/_common.sh" 2>/dev/null || true
-WS="${PSY_WS:-/opt/psyched/ws}"
+WS="${PSY_WS}"
 SRC="$WS/src"
 
 provision() {
@@ -86,7 +86,8 @@ export HOME="${HOME:-/root}"
 export ROS_LOG_DIR="${ROS_LOG_DIR:-/var/log/ros}"
 export RCUTILS_LOGGING_DIR="${RCUTILS_LOGGING_DIR:-/var/log/ros}"
 set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash; set -u
-set +u; [ -f /opt/psyched/ws/install/setup.bash ] && source /opt/psyched/ws/install/setup.bash; set -u
+root="${PSY_ROOT:-/opt/psyched}"
+set +u; [ -f "${root}/ws/install/setup.bash" ] && source "${root}/ws/install/setup.bash"; set -u
 exec ros2 launch psyche_vision vision_launch.py
 LAUNCH
 }

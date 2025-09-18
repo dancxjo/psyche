@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="/opt/psyched"
-WS="$ROOT/ws"
 . "$(dirname "$0")/_common.sh" 2>/dev/null || true
+WS="${PSY_WS}"
 
 safe_source_ros() {
   # Avoid nounset errors from ROS setup using AMENT_TRACE_SETUP_FILES

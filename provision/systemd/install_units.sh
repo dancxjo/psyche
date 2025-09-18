@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Derive host config for environment values
-CFG="/opt/psyched/provision/hosts/$(hostname).toml"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+DEFAULT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd -P)"
+if [ -n "${PSY_ROOT:-}" ] && [ -d "${PSY_ROOT%/}/provision/hosts" ]; then
+  ROOT="${PSY_ROOT%/}"
+elif [ -d "${DEFAULT_ROOT}/provision/hosts" ]; then
+  ROOT="${DEFAULT_ROOT%/}"
+elif [ -d "/opt/psyched/provision/hosts" ]; then
+  ROOT="/opt/psyched"
+else
+  ROOT="${DEFAULT_ROOT%/}"
+fi
+CFG="${ROOT}/provision/hosts/$(hostname).toml"
 get_kv() { awk -F'=' -v k="$1" '$1~k{gsub(/[ "\t]/, "", $2); print $2}' "$CFG" 2>/dev/null || true; }
 ROS_DOMAIN_ID="$(get_kv domain_id || echo 42)"
 RMW_IMPLEMENTATION="$(get_kv rmw || echo rmw_cyclonedds_cpp)"
@@ -25,6 +36,7 @@ Environment=RCUTILS_LOGGING_DIR=/var/log/ros
 Environment=AMENT_TRACE_SETUP_FILES=0
 Environment=COLCON_TRACE=
 Environment=XDG_RUNTIME_DIR=/run/user/%U
+Environment=PSY_ROOT=__PSY_ROOT__
 # Prepare log directories before start
 ExecStartPre=/bin/mkdir -p /run/user/%U
 ExecStartPre=/bin/chmod 700 /run/user/%U
@@ -43,9 +55,12 @@ WantedBy=multi-user.target
 UNIT
 
 # Inject host-specific env values into the template
+ROOT_ESCAPED="${ROOT//\//\\/}"
+ROOT_ESCAPED="${ROOT_ESCAPED//&/\&}"
 sudo sed -i \
   -e "s#__RMW__#${RMW_IMPLEMENTATION}#g" \
   -e "s#__DOMAIN__#${ROS_DOMAIN_ID}#g" \
+  -e "s#__PSY_ROOT__#${ROOT_ESCAPED}#g" \
   /etc/systemd/system/psyched@.service
 
 # Reload systemd daemon to pick up changes to the template
