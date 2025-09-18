@@ -4,6 +4,13 @@ set -euo pipefail
 
 WS="${PSY_WS}"
 SRC="$WS/src"
+
+# Add vision as a dependency to ensure cv_bridge is installed first
+if ! grep -q 'vision' "$PSY_HOST_FILE"; then
+    echo "[psy][eye_kinect] This service requires the 'vision' service to be enabled." >&2
+    #exit 1
+fi
+
 KINECT_REPO="https://github.com/fadlio/kinect_ros2.git"
 LIBFREENECT_REPO="https://github.com/OpenKinect/libfreenect.git"
 
@@ -32,6 +39,16 @@ ensure_kinect_repo() {
     echo "[psy][eye_kinect] Path $dest exists but is not a git repo; skipping clone/update." >&2
   fi
   ensure_kinect_cmake_support "$dest"
+}
+
+ensure_kinect_package_deps() {
+    local repo="$1"
+    [ -d "$repo" ] || return
+    local package_xml="$repo/package.xml"
+    if [ -f "$package_xml" ] && ! grep -q '<depend>cv_bridge</depend>' "$package_xml"; then
+        # Add cv_bridge as a dependency
+        sed -i '/<buildtool_depend>ament_cmake<\/buildtool_depend>/a \ \ <depend>cv_bridge<\/depend>' "$package_xml"
+    fi
 }
 
 ensure_kinect_cmake_support() {
@@ -188,6 +205,7 @@ provision() {
 
   common_ensure_ws
   ensure_kinect_repo
+  ensure_kinect_package_deps "$SRC/kinect_ros2"
   ensure_libfreenect
   write_launcher
 }
