@@ -184,6 +184,7 @@ case "$cmd" in
         CFG="$(host_cfg "$HOST")"
         [ -f "$CFG" ] || { echo "No host config: $CFG" >&2; exit 1; }
         mapfile -t SERVICES < <(toml_get_array "$CFG" "services")
+        export PSY_HOST_FILE="$CFG"
         export PSY_DEFER_APT=1
         for s in "${SERVICES[@]}"; do
           echo "[psy] apply service: $s"
