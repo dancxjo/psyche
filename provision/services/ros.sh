@@ -14,7 +14,7 @@ provision() {
   # Queue essential tools
   common_apt_install curl gnupg lsb-release software-properties-common
   # Core Python tooling (distutils is deprecated/absent on modern distros; rely on setuptools)
-  common_apt_install python3-pip python3-venv python3-numpy python3-dev python3-setuptools python3-rosdep ros-dev-tools ccache
+    common_apt_install python3-pip python3-venv python3.12-venv python3-numpy python3-dev python3-setuptools python3-rosdep ros-dev-tools ccache
   # Optional NumPy headers package (may not exist on all distros)
   common_apt_install python3-numpy-dev
   # Try distro colcon extensions; ignore if not found, we'll fallback to pip
