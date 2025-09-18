@@ -31,11 +31,16 @@ Piper when a CLI binary is present and falls back to espeak-ng otherwise.
 ### Piper (default)
 
 - Installs the `piper-tts` CLI with `python3 -m pip`.
-- Downloads the `en_US-kyle-high` voice into `${PSY_ROOT}/voices` by default.
+- Downloads the `en_US-joe-medium` voice from the official Hugging Face mirror
+  into `${PSY_ROOT}/voices` by default.
 - Records the model path in `/etc/default/psyched-voice` so
   `voice_node.py` picks it up automatically.
 - Override the download via environment variables before provisioning:
-  - `PSY_PIPER_VOICE` – base name of the voice (default `en_US-kyle-high`).
+  - `PSY_PIPER_VOICE` – base name of the voice (default `en_US-joe-medium`).
+  - `PSY_PIPER_VOICE_SUBDIR` – Hugging Face subdirectory when the heuristics
+    need help (defaults to `lang/locale/voice/quality`).
+  - `PSY_PIPER_BASE_URL` – alternate mirror base (defaults to the Hugging Face
+    `resolve/main` endpoint).
   - `PSY_VOICE_MODEL` / `PSY_VOICE_MODEL_JSON` – explicit file locations.
   - `PSY_PIPER_MODEL_URL` / `PSY_PIPER_JSON_URL` – direct download URLs.
 - Use `PSY_PIPER_BIN` in `/etc/default/psyched-voice` to pin a specific
@@ -68,7 +73,8 @@ Piper when a CLI binary is present and falls back to espeak-ng otherwise.
 | `PSY_TTS_ENGINE` | `piper` (default), `espeak`, or `auto` |
 | `PSY_PIPER_BIN` | Override for Piper CLI detection (optional) |
 | `PSY_VOICE_MODEL` / `PSY_VOICE_MODEL_JSON` | Piper model paths (auto-filled) |
-| `PSY_PIPER_VOICE` / `PSY_PIPER_RELEASE` | Voice + release used when downloading |
+| `PSY_PIPER_VOICE` / `PSY_PIPER_VOICE_SUBDIR` | Voice name and Hugging Face subdirectory |
+| `PSY_PIPER_BASE_URL` | Base URL for Piper voices (defaults to Hugging Face) |
 | `PSY_ESPEAK_VOICE` / `PSY_ESPEAK_RATE` / `PSY_ESPEAK_PITCH` / `PSY_ESPEAK_ARGS` | espeak-ng tuning |
 
 ## Quick test

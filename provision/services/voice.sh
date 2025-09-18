@@ -15,13 +15,37 @@ PY_NODE_PATH="${ETC_DIR}/voice_node.py"
 LAUNCH_PATH="${ETC_DIR}/voice.launch.sh"
 
 VOICE_DIR="${PSY_VOICE_MODEL_DIR:-${ROOT}/voices}"
-PIPER_VOICE_NAME="${PSY_PIPER_VOICE:-en_US-kyle-high}"
-PIPER_RELEASE="${PSY_PIPER_RELEASE:-1.2.0}"
-PIPER_BASE_URL="${PSY_PIPER_BASE_URL:-https://github.com/rhasspy/piper/releases/download/v${PIPER_RELEASE}}"
+PIPER_VOICE_NAME="${PSY_PIPER_VOICE:-en_US-joe-medium}"
+PIPER_BASE_URL="${PSY_PIPER_BASE_URL:-https://huggingface.co/rhasspy/piper-voices/resolve/main}"
 PIPER_MODEL_FILE="${PIPER_VOICE_NAME}.onnx"
 PIPER_JSON_FILE="${PIPER_VOICE_NAME}.onnx.json"
-PIPER_MODEL_URL="${PSY_PIPER_MODEL_URL:-${PIPER_BASE_URL}/${PIPER_MODEL_FILE}}"
-PIPER_JSON_URL="${PSY_PIPER_JSON_URL:-${PIPER_BASE_URL}/${PIPER_JSON_FILE}}"
+PIPER_VOICE_SUBDIR="${PSY_PIPER_VOICE_SUBDIR:-}"
+if [ -z "${PIPER_VOICE_SUBDIR}" ]; then
+  # Derive Hugging Face layout (lang/locale/voice/quality) from the voice name when possible.
+  case "${PIPER_VOICE_NAME}" in
+    *_*-*)
+      locale="${PIPER_VOICE_NAME%%-*}"
+      remainder="${PIPER_VOICE_NAME#*-}"
+      case "${remainder}" in
+        *-*)
+          quality="${remainder##*-}"
+          voice_variant="${remainder%-*}"
+          language="${locale%%_*}"
+          if [ -n "${language}" ] && [ -n "${voice_variant}" ] && [ -n "${quality}" ]; then
+            PIPER_VOICE_SUBDIR="${language}/${locale}/${voice_variant}/${quality}"
+          fi
+          ;;
+      esac
+      ;;
+  esac
+fi
+if [ -n "${PIPER_VOICE_SUBDIR}" ]; then
+  PIPER_MODEL_URL="${PSY_PIPER_MODEL_URL:-${PIPER_BASE_URL}/${PIPER_VOICE_SUBDIR}/${PIPER_MODEL_FILE}}"
+  PIPER_JSON_URL="${PSY_PIPER_JSON_URL:-${PIPER_BASE_URL}/${PIPER_VOICE_SUBDIR}/${PIPER_JSON_FILE}}"
+else
+  PIPER_MODEL_URL="${PSY_PIPER_MODEL_URL:-${PIPER_BASE_URL}/${PIPER_MODEL_FILE}}"
+  PIPER_JSON_URL="${PSY_PIPER_JSON_URL:-${PIPER_BASE_URL}/${PIPER_JSON_FILE}}"
+fi
 PIPER_MODEL_DEST="${PSY_VOICE_MODEL:-${VOICE_DIR}/${PIPER_MODEL_FILE}}"
 PIPER_MODEL_DEST_DIR="$(dirname "${PIPER_MODEL_DEST}")"
 PIPER_JSON_DEST="${PSY_VOICE_MODEL_JSON:-${PIPER_MODEL_DEST_DIR}/${PIPER_JSON_FILE}}"
