@@ -9,6 +9,7 @@ CLI binary, whether provided via PATH or explicit configuration.
 from __future__ import annotations
 
 import os
+import re
 import stat
 import sys
 import types
@@ -181,4 +182,41 @@ echo \"piper cli stub\"
 
     assert engine.piper_bin == str(cli_binary)
     assert gui_wrapper.exists()
+
+
+def test_voice_provision_config_defaults_to_piper():
+    """Voice provisioning script should default to the Piper engine."""
+
+    script_text = (REPO_ROOT / "provision" / "services" / "voice.sh").read_text()
+
+    assert 'engine="piper"' in script_text, "piper should be the preferred engine"
+    assert re.search(r'PSY_TTS_ENGINE=\${engine}', script_text), (
+        "config writer must honour the selected engine"
+    )
+
+
+def test_voice_node_falls_back_to_espeak_when_piper_unavailable(
+    monkeypatch, voice_node_module
+):
+    """If Piper initialisation fails we should instantiate the espeak engine."""
+
+    class _FailingPiper(voice_node_module.TTSEngine):
+        def __init__(self, logger):
+            super().__init__(logger)
+            raise RuntimeError("piper missing")
+
+    class _FakeEspeak(voice_node_module.TTSEngine):
+        def __init__(self, logger):
+            super().__init__(logger)
+            self._logger.info("espeak initialised")
+
+    monkeypatch.setenv("PSY_TTS_ENGINE", "piper")
+    monkeypatch.setattr(voice_node_module, "PiperEngine", _FailingPiper)
+    monkeypatch.setattr(voice_node_module, "EspeakEngine", _FakeEspeak)
+
+    dummy = voice_node_module.VoiceNode.__new__(voice_node_module.VoiceNode)
+    dummy._logger = _SpyLogger()
+
+    engine = voice_node_module.VoiceNode._select_engine(dummy)
+    assert isinstance(engine, _FakeEspeak)
 
