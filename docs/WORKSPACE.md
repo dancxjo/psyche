@@ -13,6 +13,9 @@ build pipeline, and project-specific packages.
   establishes or repairs the symlink on each provisioning run.
 - A legacy workspace at `/opt/ros2_ws` is automatically merged into the new
   location by `merge_legacy_workspace` when `psy build` runs.
+- Repository-owned packages live under `src/` in the Git tree. `common_sync_repo_src_to_ws`
+  copies them into `${PSY_WS}/src/` before provisioning/build steps so `colcon`
+  always sees the latest checked-in sources.
 
 ## Provisioning Step
 
@@ -28,8 +31,8 @@ build pipeline, and project-specific packages.
    - `libopencv-dev`
 3. Queues `python3-colcon-common-extensions` when available.
 
-Other service scripts clone or queue additional dependencies into the workspace,
-for example:
+Other service scripts clone or queue additional dependencies directly into the
+workspace, for example:
 
 - `foot.sh` - clones `libcreate` and `create_robot`.
 - `vision.sh` - clones `ros2_shared` for shared launch/utilities used by
@@ -39,7 +42,9 @@ for example:
 - `imu.sh` - clones `ros2_mpu6050_driver` and inserts a missing `<array>` include.
 - `lidar.sh` - clones `hls_lfcd_lds_driver` if the apt package is unavailable.
 
-All clones land under `ws/src/` so they are visible to `colcon`.
+All runtime packages live under `${PSY_WS}/src/` so they are visible to `colcon`.
+Repository-managed packages are copied from `src/` while third-party dependencies
+are cloned in place during provisioning.
 
 ## Build Step
 
@@ -60,7 +65,7 @@ To rebuild after making changes, run `psy build` or call the script directly:
 
 ## `psyche_vision` Package
 
-Location: `ws/src/psyche_vision`
+Location: `src/psyche_vision` (synced into `${PSY_WS}/src/psyche_vision` during build)
 
 Components:
 
@@ -72,11 +77,11 @@ Components:
   - `launch/vision_launch.py` - default detector + controller.
   - `launch/face_object.launch.py` - variant enabling `/target_point` usage.
 - Tests: `test_vision.py` exercises bearing maths and controller clamping without
-  requiring ROS to be installed. Run with `python3 ws/src/psyche_vision/test_vision.py`.
+  requiring ROS to be installed. Run with `python3 src/psyche_vision/test_vision.py`.
 - Package metadata: `package.xml`, `setup.py`, and `resource/psyche_vision`.
 
-See `ws/src/psyche_vision/README.md` for node-level architecture and tuning
-parameters.
+See `src/psyche_vision/README.md` for node-level architecture and tuning
+parameters (the file is also copied into the workspace during sync).
 
 ## External Package Notes
 

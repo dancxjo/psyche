@@ -67,13 +67,15 @@ The CLI sources `_common.sh` helpers that consolidate apt installs, ensure the
 workspace is symlinked correctly, and create launchers in `/etc/psyched`.
 
 ## ROS Workspace Overview
-- `ws/src/psyche_vision` contains `object_detector` and `object_controller` nodes,
+- Repository-managed packages live under `src/` and are copied into the active
+  workspace during `psy build` / `workspace.sh` runs.
+- `src/psyche_vision` contains `object_detector` and `object_controller` nodes,
   launch descriptions (`vision_launch.py`, `face_object.launch.py`), and a README
   documenting the perception pipeline.
-- `ws/src/psyche_vision/test_vision.py` offers a ROS-free smoke test for the
+- `src/psyche_vision/test_vision.py` offers a ROS-free smoke test for the
   controller maths and HSV parameters.
 - External dependencies (e.g., `libcreate`, `kinect_ros2`) are cloned by service
-  scripts into the workspace during provisioning.
+  scripts directly into the workspace during provisioning.
 
 See `docs/WORKSPACE.md` for full package breakdown and build behaviour.
 
@@ -86,7 +88,7 @@ See `docs/WORKSPACE.md` for full package breakdown and build behaviour.
   resolution strategy.
 - `provision/services/VOICE_README.md` - Piper voice stack tuning and model cache
   management.
-- `ws/src/psyche_vision/README.md` - perception pipeline details and tuning tips.
+- `src/psyche_vision/README.md` - perception pipeline details and tuning tips.
 
 ## Support & Contribution Notes
 - Scripts assume Ubuntu-based environments with `sudo` available; see each

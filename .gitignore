@@ -25,6 +25,7 @@ devel/
 logs/
 install/
 build/
+ws/src/
 
 # IDE
 .vscode/

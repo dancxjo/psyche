@@ -7,7 +7,7 @@
 _psy_common_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 if [ -z "${PSY_ROOT:-}" ]; then
   if [ -n "${_psy_common_dir:-}" ]; then
-    PSY_ROOT="$(cd "${_psy_common_dir}/.." && pwd -P)"
+    PSY_ROOT="$(cd "${_psy_common_dir}/../.." 2>/dev/null && pwd -P)"
   fi
   PSY_ROOT="${PSY_ROOT:-/opt/psyched}"
 else
@@ -328,6 +328,65 @@ common_enable_ccache() {
   common_apt_install ccache
   export CCACHE_DIR="${CCACHE_DIR:-$PSY_ROOT/.ccache}"
   mkdir -p "$CCACHE_DIR" 2>/dev/null || true
+}
+
+common_repo_src_dir() {
+  local repo_src="${PSY_REPO_SRC_DIR:-$PSY_ROOT/src}"
+
+  if [ -d "$repo_src" ]; then
+    printf '%s\n' "$repo_src"
+    return 0
+  fi
+
+  # Fallback: some callers may source _common.sh before PSY_ROOT is rebound to
+  # the repository root, leaving PSY_ROOT pointing at provision/. Walk up one
+  # directory and retry so direct script invocation still locates src/.
+  if [ -d "${PSY_ROOT}/../src" ]; then
+    repo_src="$(cd "${PSY_ROOT}/.." && pwd -P)/src"
+    [ -d "$repo_src" ] && printf '%s\n' "$repo_src"
+  fi
+}
+
+common_sync_repo_src_to_ws() {
+  local repo_src="${1:-$(common_repo_src_dir)}"
+  local ws_src="${2:-$PSY_WS/src}"
+  local managed_marker=".psy_repo_managed"
+  local pkg src dest
+
+  [ -n "$repo_src" ] && [ -d "$repo_src" ] || return 0
+
+  mkdir -p "$ws_src" 2>/dev/null || true
+
+  # Copy each repo-managed package into the workspace src tree
+  while IFS= read -r pkg; do
+    [ -n "$pkg" ] || continue
+    src="$repo_src/$pkg"
+    dest="$ws_src/$pkg"
+
+    rm -rf "$dest" 2>/dev/null || true
+    mkdir -p "$dest" 2>/dev/null || true
+
+    if command -v rsync >/dev/null 2>&1; then
+      if ! rsync -a "$src/" "$dest/" >/dev/null 2>&1; then
+        echo "[psy] WARN: rsync failed while syncing $pkg; falling back to cp" >&2
+        rm -rf "$dest" 2>/dev/null || true
+        mkdir -p "$dest" 2>/dev/null || true
+        cp -a "${src}/." "${dest}/" 2>/dev/null || echo "[psy] WARN: Failed to copy $pkg into workspace" >&2
+      fi
+    else
+      cp -a "${src}/." "${dest}/" 2>/dev/null || echo "[psy] WARN: Failed to copy $pkg into workspace" >&2
+    fi
+
+    touch "$dest/$managed_marker" 2>/dev/null || true
+  done < <(find "$repo_src" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+
+  # Remove managed packages that no longer exist in the repo source tree
+  find "$ws_src" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | while read -r dest; do
+    [ -f "$dest/$managed_marker" ] || continue
+    pkg="$(basename "$dest")"
+    [ -d "$repo_src/$pkg" ] && continue
+    rm -rf "$dest" 2>/dev/null || true
+  done
 }
 
 common_build_ws() {

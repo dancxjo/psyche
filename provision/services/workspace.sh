@@ -80,6 +80,7 @@ ensure_cv_bridge_overlay() {
 
 provision() {
   ensure_ws
+  common_sync_repo_src_to_ws
   # Defer apt installs to combine them later
   export PSY_DEFER_APT=1
   # Prefer distro colcon package name; fallback handled in ros.sh
@@ -94,6 +95,7 @@ provision() {
 build() {
   safe_source_ros
   ensure_ws
+  common_sync_repo_src_to_ws
   ensure_numpy
   # Ensure vision dependencies are present even when provisioning hasn't queued them yet
   ensure_ament_cmake

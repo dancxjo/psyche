@@ -19,7 +19,7 @@ provision() {
   common_ensure_ws
   # Clone additional vision-related repos if not already present
   common_clone_repo https://github.com/ptrmu/ros2_shared.git "$SRC/ros2_shared"
-  # Note: psyche_vision package is committed to the repo in ws/src/
+  # Note: psyche_vision is committed under src/ and synced into the workspace
 
   # Build deferred: a single workspace build will run after provisioning
 
