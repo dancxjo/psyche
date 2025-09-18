@@ -127,8 +127,9 @@ them repeatedly is safe.
   process using POSIX signals.
 
 ## `ai_stack.sh`
-- Queues Docker Engine packages and installs a launcher that ensures the Docker
-  service is active before the stack starts.
+- Configures the official Docker APT repository, queues Docker Engine packages,
+  and installs a launcher that ensures the Docker service is active before the
+  stack starts.
 - Writes a compose bundle under `/opt/psyched/docker/ai-stack` covering Ollama
   (default model `phi4`), Neo4j, Qdrant, and Coqui TTS with persistent volumes.
 - Creates `/etc/default/psyched-ai-stack` so ports, credentials, and model names
