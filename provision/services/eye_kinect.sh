@@ -191,7 +191,6 @@ LAUNCH
 provision() {
   common_safe_source_ros || true
 
-  export PSY_DEFER_APT=1
   common_apt_install \
     ros-${ROS_DISTRO:-jazzy}-cv-bridge \
     ros-${ROS_DISTRO:-jazzy}-image-transport \
