@@ -14,6 +14,16 @@ ensure_ws() { common_ensure_ws; }
 
 ensure_numpy() { common_ensure_numpy; }
 
+ensure_vision_deps() {
+  # Kinect and other RGB-D pipelines depend on cv_bridge and related transports.
+  common_apt_install \
+    ros-${ROS_DISTRO:-jazzy}-cv-bridge \
+    ros-${ROS_DISTRO:-jazzy}-image-transport \
+    ros-${ROS_DISTRO:-jazzy}-image-transport-plugins \
+    ros-${ROS_DISTRO:-jazzy}-vision-msgs \
+    libopencv-dev
+}
+
 provision() {
   ensure_ws
   # Defer apt installs to combine them later
@@ -22,17 +32,14 @@ provision() {
   common_apt_install python3-colcon-common-extensions
   # Ensure core C++ vision deps used by RGB-D pipelines such as kinect_ros2
   # These provide cv_bridge headers and OpenCV C++ libs required at compile time
-  common_apt_install \
-    ros-${ROS_DISTRO:-jazzy}-cv-bridge \
-    ros-${ROS_DISTRO:-jazzy}-image-transport \
-    ros-${ROS_DISTRO:-jazzy}-image-transport-plugins \
-    ros-${ROS_DISTRO:-jazzy}-vision-msgs \
-    libopencv-dev
+  ensure_vision_deps
 }
 build() {
   safe_source_ros
   ensure_ws
   ensure_numpy
+  # Ensure vision dependencies are present even when provisioning hasn't queued them yet
+  ensure_vision_deps
   # Enable ccache to speed up rebuilds
   common_enable_ccache || true
   export CC="ccache gcc"
