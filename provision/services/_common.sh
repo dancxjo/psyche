@@ -41,6 +41,7 @@ common_safe_source_ros() {
 common_ensure_ws() {
   local real="${PSY_WS_REAL%/}"
   local link="$PSY_WS"
+  local target=""
 
   # If legacy installs still have a real directory at $link, migrate it beside $PSY_ROOT
   if [ -d "$link" ] && [ ! -L "$link" ] && [ "$link" != "$real" ]; then
@@ -59,7 +60,11 @@ common_ensure_ws() {
   if [ ! -e "$link" ]; then
     ln -s "$real" "$link" 2>/dev/null || true
   elif [ -L "$link" ]; then
-    :
+    target="$(readlink -f "$link" 2>/dev/null || true)"
+    if [ -z "$target" ] || [ "$target" != "$real" ]; then
+      rm -f "$link" 2>/dev/null || true
+      ln -s "$real" "$link" 2>/dev/null || true
+    fi
   elif [ "$link" = "$real" ]; then
     :
   else
