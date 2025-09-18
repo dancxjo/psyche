@@ -2,14 +2,21 @@
 set -euo pipefail
 . "$(dirname "$0")/_common.sh" 2>/dev/null || true
 CFG="${PSY_ROOT}/provision/hosts/$(hostname).toml"
-
-ros_toml() {
-  awk -F'=' '/ros_distro/{gsub(/[ "]/ ,"",$2);print $2}' "$CFG" 2>/dev/null || true
-}
-get() { awk -F'=' -v k="$1" '$1~k{gsub(/[ "]/ ,"",$2);print $2}' "$CFG" 2>/dev/null || true; }
+CONFIG_HELPER="${PSY_ROOT}/tools/psy_config.py"
 
 provision() {
-  ROS_DISTRO="$(ros_toml || echo jazzy)"
+  if [ -f "$CONFIG_HELPER" ]; then
+    ROS_DISTRO="$(python3 "$CONFIG_HELPER" --file "$CFG" get ros_distro)"
+    RMW_IMPLEMENTATION="$(python3 "$CONFIG_HELPER" --file "$CFG" get rmw)"
+    ROS_DOMAIN_ID="$(python3 "$CONFIG_HELPER" --file "$CFG" get domain_id)"
+  else
+    ROS_DISTRO="${ROS_DISTRO:-jazzy}"
+    RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}"
+    ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-42}"
+  fi
+  ROS_DISTRO="${ROS_DISTRO:-jazzy}"
+  RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}"
+  ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-42}"
   export PSY_DEFER_APT=1
   # Queue essential tools
   common_apt_install curl gnupg lsb-release software-properties-common
@@ -43,10 +50,10 @@ provision() {
   common_flush_apt_queue || true
   # Environment
   grep -q "RMW_IMPLEMENTATION" ~/.bashrc || {
-    echo "export RMW_IMPLEMENTATION=$(get rmw || echo rmw_cyclonedds_cpp)" >> ~/.bashrc
+    echo "export RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION}" >> ~/.bashrc
   }
   grep -q "ROS_DOMAIN_ID" ~/.bashrc || {
-    echo "export ROS_DOMAIN_ID=$(get domain_id || echo 42)" >> ~/.bashrc
+    echo "export ROS_DOMAIN_ID=${ROS_DOMAIN_ID}" >> ~/.bashrc
   }
   # Replace any existing plain source lines with a safe wrapper, else append wrapper
   SAFE_LINE='set +u; [ -f "/opt/ros/'"${ROS_DISTRO}"'/setup.bash" ] && source "/opt/ros/'"${ROS_DISTRO}"'/setup.bash"; set -u'
