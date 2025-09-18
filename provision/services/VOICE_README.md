@@ -31,6 +31,7 @@ Piper when a CLI binary is present and falls back to espeak-ng otherwise.
 ### Piper (default)
 
 - Installs the `piper-tts` CLI with `python3 -m pip`.
+- Pulls in GTK 3 introspection libraries so the Piper GUI/CLI works out of the box.
 - Downloads the `en_US-joe-medium` voice from the official Hugging Face mirror
   into `${PSY_ROOT}/voices` by default.
 - Records the model path in `/etc/default/psyched-voice` so
@@ -45,6 +46,8 @@ Piper when a CLI binary is present and falls back to espeak-ng otherwise.
   - `PSY_PIPER_MODEL_URL` / `PSY_PIPER_JSON_URL` – direct download URLs.
 - Use `PSY_PIPER_BIN` in `/etc/default/psyched-voice` to pin a specific
   executable when multiple versions are installed.
+- Models are cached in `${PSY_ROOT}/voices` and re-used on subsequent
+  provisioning runs; delete them manually if you ever need to refresh.
 
 ### espeak-ng (fallback)
 

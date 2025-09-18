@@ -53,8 +53,8 @@ PIPER_BIN_PATH=""
 
 ensure_deps() {
   export PSY_DEFER_APT=1
-  # Core runtime dependencies for ALSA playback plus espeak fallback
-  common_apt_install alsa-utils espeak-ng espeak-ng-data curl
+  # Core runtime dependencies for ALSA playback, espeak fallback, and Piper GUI bits
+  common_apt_install alsa-utils espeak-ng espeak-ng-data curl gir1.2-gtk-3.0 libgtk-3-0
 }
 
 find_piper_bin() {
@@ -93,6 +93,7 @@ download_file() {
   local url="$1" dest="$2"
 
   if [ -f "$dest" ]; then
+    echo "[voice] Using cached download at ${dest}"
     return 0
   fi
 
