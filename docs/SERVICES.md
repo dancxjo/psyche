@@ -72,6 +72,17 @@ them repeatedly is safe.
   `depthimage_to_laserscan` node remapped to the Kinect depth topics, and then
   launches Nav2 using `provision/bringup/nav2_params.yaml`.
 
+## `network_ap.sh`
+- Configures the robot as a Wi-Fi access point using `hostapd` and `dnsmasq` so
+  nearby operator laptops can join a self-contained ROS 2 network.
+- Writes `/etc/default/psyched-network-ap` capturing SSID, WPA2 passphrase,
+  channel, country code, and IPv4 settings that the launcher consumes at boot.
+- Installs `/etc/psyched/network-ap.launch.sh` which assigns a static IP to the
+  wireless interface, renders hostapd/dnsmasq configs on the fly, and supervises
+  both daemons.
+- Drops an Avahi service file advertising a `_dds._udp` endpoint so DDS peers
+  resolve the robot hostname over mDNS immediately after provisioning.
+
 ## `robot.sh`
 - Writes a URDF to `/opt/psyched/provision/robot/robot.urdf` describing
   `base_link`, `laser`, `imu`, `camera_link`, and the Kinect frames (`kinect_rgb`
