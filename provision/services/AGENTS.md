@@ -5,3 +5,5 @@
 - Update the voice service documentation alongside behavioural changes so operators understand the defaults.
 - When adjusting the navigation service launchers, run `pytest tests/services/test_nav_depth_to_scan.py` to confirm the
   depthimage_to_laserscan bridge expectations still hold.
+- When editing the network access point provisioning, run `pytest tests/services/test_network_ap.py` to keep the hostapd/dnsmasq
+  contract verified.
