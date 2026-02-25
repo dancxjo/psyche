@@ -61,8 +61,10 @@ class ObjectController(Node):
     
     def target_callback(self, msg):
         """Process incoming target pose messages."""
-        # Extract bearing angle from orientation.z and confidence from position.z
-        bearing_radians = msg.pose.orientation.z
+        # Extract bearing angle from orientation quaternion (yaw) and confidence from position.z
+        q = msg.pose.orientation
+        # sin(yaw/2) is stored in z, cos(yaw/2) is stored in w
+        bearing_radians = 2.0 * np.arctan2(q.z, q.w)
         self.current_target_angle = np.degrees(bearing_radians)
         self.current_confidence = msg.pose.position.z
         self.last_target_time = time.time()
@@ -133,9 +135,9 @@ class ObjectController(Node):
             return 0.0
         
         # Proportional controller: angular_vel = gain * error
-        # Positive angle = target to right = turn right (positive angular velocity)
-        # Negative angle = target to left = turn left (negative angular velocity)
-        angular_velocity = proportional_gain * np.radians(self.current_target_angle)
+        # Positive angle = target to right = turn right (negative angular velocity in right-hand rule)
+        # Negative angle = target to left = turn left (positive angular velocity)
+        angular_velocity = -1.0 * proportional_gain * np.radians(self.current_target_angle)
         
         # Clamp to maximum velocity
         angular_velocity = np.clip(angular_velocity, -max_angular_vel, max_angular_vel)

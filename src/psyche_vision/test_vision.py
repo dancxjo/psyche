@@ -53,7 +53,7 @@ def test_controller_logic():
         if abs(target_angle_degrees) < angle_tolerance:
             return 0.0
         
-        angular_velocity = proportional_gain * np.radians(target_angle_degrees)
+        angular_velocity = -1.0 * proportional_gain * np.radians(target_angle_degrees)
         return np.clip(angular_velocity, -max_angular_vel, max_angular_vel)
     
     # Test cases
@@ -64,13 +64,13 @@ def test_controller_logic():
     
     # Medium angle - should be proportional
     vel = compute_angular_velocity(10.0)
-    expected = 2.0 * np.radians(10.0)  # gain * angle_rad
+    expected = -2.0 * np.radians(10.0)  # -gain * angle_rad
     assert abs(vel - expected) < 0.01, f"Medium angle velocity mismatch: {vel} vs {expected}"
     print(f"✓ Medium angle: {vel:.3f} rad/s")
     
     # Large angle - should be clamped
     vel = compute_angular_velocity(50.0)
-    assert abs(vel) == 0.5, f"Large angle should be clamped to ±0.5, got {vel}"
+    assert abs(vel) == 0.5 and vel < 0.0, f"Large angle should be clamped to -0.5, got {vel}"
     print(f"✓ Large angle (clamped): {vel:.3f} rad/s")
 
 def test_color_detection_logic():

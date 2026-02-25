@@ -172,9 +172,11 @@ class ObjectDetector(Node):
         pose_msg.header.stamp = timestamp
         pose_msg.header.frame_id = 'camera_link'
         
-        # Store bearing in orientation.z (yaw) and confidence in position.z
-        pose_msg.pose.orientation.z = np.radians(bearing_degrees)
-        pose_msg.pose.position.z = confidence
+        # Store bearing in orientation quaternion (yaw) and confidence in position.z
+        half_yaw = np.radians(bearing_degrees) / 2.0
+        pose_msg.pose.orientation.z = np.sin(half_yaw)
+        pose_msg.pose.orientation.w = np.cos(half_yaw)
+        pose_msg.pose.position.z = float(confidence)
         
         self.target_pub.publish(pose_msg)
 

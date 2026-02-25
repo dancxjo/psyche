@@ -493,7 +493,7 @@ clamped = False
 if within_tol:
     value = 0.0
 else:
-    raw = gain * math.radians(bearing)
+    raw = -1.0 * gain * math.radians(bearing)
     value = raw
     if value > max_ang:
         value = max_ang
