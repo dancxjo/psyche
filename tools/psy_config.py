@@ -17,6 +17,7 @@ Run ``python -m tools.psy_config --help`` for CLI usage details.
 from __future__ import annotations
 
 import argparse
+import re
 import socket
 from dataclasses import dataclass
 from pathlib import Path
@@ -167,6 +168,8 @@ def _normalise_services(raw: Any) -> tuple[str, ...]:
             raise PsyConfigError("services entries must be strings")
         value = entry.strip()
         if value:
+            if not re.match(r"^[a-zA-Z0-9_-]+$", value):
+                raise PsyConfigError(f"invalid service name: {value}")
             services.append(value)
     return tuple(services)
 
