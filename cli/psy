@@ -130,6 +130,10 @@ resolve_service_names() {
     | awk '$1 ~ /^psyched@.+\.service$/ { sub(/^psyched@/, "", $1); sub(/\.service$/, "", $1); if (!seen[$1]++) print $1 }'
 }
 
+is_valid_name() {
+  [[ "$1" =~ ^[a-zA-Z0-9_-]+$ ]]
+}
+
 systemd_info() {
   echo "[psy] systemctl summary (filtered)"
   systemctl --no-pager | grep -i "psych" || true
@@ -162,12 +166,14 @@ case "$cmd" in
     case "$sub" in
       apply)
         HOST="$(get_host "${1:-}")"
+        is_valid_name "$HOST" || { echo "Invalid host name: $HOST" >&2; exit 1; }
         CFG="$(host_cfg "$HOST")"
         [ -f "$CFG" ] || { echo "No host config: $CFG" >&2; exit 1; }
         mapfile -t SERVICES < <(python3 "$ROOT/tools/psy_config.py" --file "$CFG" services)
         export PSY_HOST_FILE="$CFG"
         export PSY_DEFER_APT=1
         for s in "${SERVICES[@]}"; do
+          is_valid_name "$s" || { echo "[psy] skipping invalid service name: $s" >&2; continue; }
           echo "[psy] apply service: $s"
           bash "$SVCDIR/$s.sh" provision
         done
@@ -204,6 +210,7 @@ case "$cmd" in
         HOST="$(get_host)"
         CFG="$(host_cfg "$HOST")"
         NAME="${1:?service name}"
+        is_valid_name "$NAME" || { echo "Invalid service name: $NAME" >&2; exit 1; }
         tmp="$(mktemp)"
         if [ "$sub" = "enable" ]; then
           awk -v n="$NAME" '
