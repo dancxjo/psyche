@@ -165,8 +165,7 @@ class ObjectController(Node):
     
     def publish_stop_command(self):
         """Publish zero velocity to stop the robot."""
-        twist = Twist()
-        self.cmd_vel_pub.publish(twist)
+        self.publish_velocity_command(0.0)
 
 
 def main(args=None):
