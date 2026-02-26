@@ -195,6 +195,10 @@ class ObjectDetector(Node):
     
     def publish_debug_image(self, original, mask, contour, cx, cy):
         """Publish debug visualization."""
+        # Skip processing if no one is listening
+        if self.debug_pub.get_subscription_count() == 0:
+            return
+
         try:
             # Create debug image
             debug_img = original.copy()
