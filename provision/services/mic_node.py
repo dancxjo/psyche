@@ -193,7 +193,7 @@ class MicVADNode(Node):
         if self._vad_impl is not None:
             try:
                 return bool(self._vad_impl.is_speech(frame, self.sample_rate))  # type: ignore
-            except Exception:  # pragma: no cover - fallback safety
+            except Exception:  # fallback safety
                 pass
         # Energy fallback -----------------------------------------------------
         # Interpret PCM16 little-endian mono
