@@ -147,9 +147,13 @@ them repeatedly is safe.
 
 ## `mic.sh`
 - Installs ALSA utilities and headers to enable audio capture.
-- A companion runtime node `mic_node.py` (installed separately when needed)
-  publishes voice activity detection (VAD) boolean frames on
-  `/voice/<hostname>/vad` (`std_msgs/Bool`).
+- The runtime node `mic_node.py` now streams the complete audio pipeline:
+  - `/voice/<hostname>/vad` and `/audio/vad` (`std_msgs/Bool`) mirror the VAD state.
+  - `/audio/is_quiet` (`std_msgs/Bool`) exposes a silence detector with hold logic.
+  - `/audio/pcm` (`psyche_interfaces/AudioPCM`) carries raw PCM frames.
+  - `/audio/segment/current` (`psyche_interfaces/AudioChunk`) publishes the rolling utterance buffer.
+  - `/audio/segment/final` (`psyche_interfaces/AudioSegment`) emits finalised clips.
+  - `/audio/segment/final/chunks3s` (`psyche_interfaces/AudioChunk`) provides timeout splits for long segments.
 - Environment overrides for the node:
   - `PSY_MIC_SAMPLE_RATE` (default 16000)
   - `PSY_MIC_FRAME_MS` (10|20|30, default 20)
@@ -157,8 +161,13 @@ them repeatedly is safe.
   - `PSY_MIC_VAD_PUBLISH_HZ` (max Boolean publish rate, default derived from frame)
   - `PSY_MIC_DEVICE` (ALSA device, default `default`)
   - `PSY_MIC_DISABLE_AUDIO` (if set, uses a synthetic silence source for tests)
-  - Falls back to an internal energy threshold detector if `webrtcvad` is not
-    available.
+  - `PSY_MIC_SEGMENT_MIN_SPEECH_MS` (speech duration required to open a segment, default 120)
+  - `PSY_MIC_SEGMENT_CLOSE_SILENCE_MS` (silence duration to close a segment, default 700)
+  - `PSY_MIC_SEGMENT_MAX_MS` (timeout guard for long segments, default 15000)
+  - `PSY_MIC_SEGMENT_CHUNK_MS` (chunk size for timeout splits, default 3000)
+  - `PSY_MIC_SEGMENT_CURRENT_UPDATE_MS` (update cadence for the rolling chunk, default 200)
+  - `PSY_MIC_SILENCE_HOLD_MS` (hold time before `/audio/is_quiet` toggles true, default 300)
+- Falls back to an internal energy detector when `webrtcvad` is unavailable.
 
 ## `nav2.sh` and Bringup Configs
 - `provision/bringup/nav2.sh` is launched through `psy bring up nav`
