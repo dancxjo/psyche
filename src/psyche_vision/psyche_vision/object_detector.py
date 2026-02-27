@@ -58,6 +58,9 @@ class ObjectDetector(Node):
             '/vision_debug',
             10
         )
+
+        # ⚡ Bolt Optimization: Pre-allocate morphology kernel
+        self.morph_kernel = np.ones((5, 5), np.uint8)
         
         self.get_logger().info('Object detector started')
     
@@ -106,9 +109,8 @@ class ObjectDetector(Node):
         mask = cv2.inRange(hsv, lower, upper)
         
         # Morphological operations to clean up mask
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, self.morph_kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, self.morph_kernel)
         
         # Find contours
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -195,7 +197,7 @@ class ObjectDetector(Node):
     
     def publish_debug_image(self, original, mask, contour, cx, cy):
         """Publish debug visualization."""
-        # Skip processing if no one is listening
+        # ⚡ Bolt Optimization: Skip expensive image copy & draw if no subscribers
         if self.debug_pub.get_subscription_count() == 0:
             return
 
