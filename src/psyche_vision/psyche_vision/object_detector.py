@@ -31,6 +31,9 @@ class ObjectDetector(Node):
         # Initialize CV bridge
         self.bridge = CvBridge()
         
+        # Pre-allocate morphology kernel to avoid per-frame allocation overhead
+        self.morph_kernel = np.ones((5, 5), np.uint8)
+
         # Publishers and subscribers
         self.image_sub = self.create_subscription(
             Image, 
@@ -106,9 +109,8 @@ class ObjectDetector(Node):
         mask = cv2.inRange(hsv, lower, upper)
         
         # Morphological operations to clean up mask
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, self.morph_kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, self.morph_kernel)
         
         # Find contours
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
