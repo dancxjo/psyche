@@ -1,0 +1,3 @@
+## 2025-03-03 - CLI Developer Experience (DX) Improvements
+**Learning:** Dense walls of unformatted text in command-line tool outputs are difficult to parse and slow down developer workflows. By logically grouping commands (e.g., Services, Operations, Systemd, Tools) and applying standardized ANSI color formatting, legibility and overall DX are significantly improved. Using bash ANSI-C quoting (`$'\033[...'`) ensures consistent cross-environment interpolation, especially within heredocs.
+**Action:** When working on CLI utilities, always implement semantic log helpers (`log_info`, `log_success`, `log_error`) and logical formatting groups to guide users. Avoid generic echo statements for structured tool outputs.
