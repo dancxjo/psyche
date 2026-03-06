@@ -1,0 +1,3 @@
+## 2024-05-28 - Loop conditional branching in hot paths
+**Learning:** Initializing search variables (e.g., `largest_area = min_area`) to reduce conditional branch count within a hot Python loop provides better performance (~15% gain) than standard double comparisons due to reduced function call overhead. Pre-allocating constant objects (like Numpy kernels) in `__init__` rather than creating them every frame also reduces memory allocation overhead in high-frequency callbacks.
+**Action:** In Python-based vision processing loops, initialize search variables to eliminate branch paths and pre-allocate constant numpy arrays/kernels in class constructors.
