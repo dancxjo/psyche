@@ -28,6 +28,10 @@ class ObjectDetector(Node):
         self.declare_parameter('camera_fov_degrees', 60.0)  # Camera field of view
         self.declare_parameter('publish_target_point', True)  # Also publish /target_point
         
+        # Pre-allocate kernel for morphological operations to reduce memory allocation
+        # overhead in high-frequency image_callback
+        self.morph_kernel = np.ones((5, 5), np.uint8)
+
         # Initialize CV bridge
         self.bridge = CvBridge()
         
@@ -106,9 +110,8 @@ class ObjectDetector(Node):
         mask = cv2.inRange(hsv, lower, upper)
         
         # Morphological operations to clean up mask
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, self.morph_kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, self.morph_kernel)
         
         # Find contours
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -116,13 +119,15 @@ class ObjectDetector(Node):
         if not contours:
             return None, None, 0.0
         
-        # Find largest contour that meets minimum area requirement
+        # Find largest contour that meets minimum area requirement.
+        # Initialize largest_area to min_area to avoid an extra branch check
+        # inside the loop since any area <= min_area will fail area > largest_area
         largest_contour = None
-        largest_area = 0
+        largest_area = min_area
         
         for contour in contours:
             area = cv2.contourArea(contour)
-            if area > min_area and area > largest_area:
+            if area > largest_area:
                 largest_area = area
                 largest_contour = contour
         
