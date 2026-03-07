@@ -71,32 +71,53 @@ merge_legacy_workspace() {
 }
 
 usage() {
+  local C_BOLD=""
+  local C_CMD=""
+  local C_HEADER=""
+  local C_RESET=""
+
+  if [ -t 1 ]; then
+    C_BOLD=$'\033[1m'
+    C_CMD=$'\033[36m'
+    C_HEADER=$'\033[33m'
+    C_RESET=$'\033[0m'
+  fi
+
   cat <<USAGE
-psy — psycheOS host/service manager
+${C_BOLD}psy${C_RESET} — psycheOS host/service manager
 
-Usage:
-  psy bring up [svc..]        Start named services via systemd (defaults to all)
-  psy bring down [svc..]      Stop named services via systemd (defaults to all)
-  psy bring restart [svc..]   Restart named services via systemd (defaults to all)
-  psy bring status [svc..]    Show brief status for named services (defaults to all)
-  psy debug [svc..]           Show systemd summary plus recent logs
-  psy host apply [<host>]      Apply host's service set (defaults to $(hostname))
-  psy svc list                 List available services
-  psy svc enable <name>        Enable a service for this host
-  psy svc disable <name>       Disable a service for this host
-  psy build                    colcon build (creates ws if needed)
-  psy bringup nav              Launch nav2 stack (tmux/screen-less; use systemd)
-  psy bringup create           Launch iRobot Create base bringup (create_bringup create_1.launch)
-  psy systemd install          Install per-service systemd units and enable configured ones
-  psy systemd info [svc..]    Show systemd summary (and recent logs for named services)
-  psy systemd up               Start all enabled service units now
-  psy systemd down             Stop all service units
-  psy update                   Reinstall latest psyche from GitHub and re-apply
-  psy say <text>               Publish text to /voice/$(hostname -s)
+${C_HEADER}Usage:${C_RESET}
+  ${C_CMD}psy <command> [subcommand] [args...]${C_RESET}
 
-Helper:
-  psh say <text>               Convenience wrapper to publish to /voice/$(hostname -s)
-  psh bearing <deg>            Publish /cmd_vel Twist to rotate toward the bearing
+${C_HEADER}Services:${C_RESET}
+  ${C_CMD}psy svc list${C_RESET}                 List available services
+  ${C_CMD}psy svc enable <name>${C_RESET}        Enable a service for this host
+  ${C_CMD}psy svc disable <name>${C_RESET}       Disable a service for this host
+  ${C_CMD}psy host apply [<host>]${C_RESET}      Apply host's service set (defaults to $(hostname))
+
+${C_HEADER}Operations:${C_RESET}
+  ${C_CMD}psy bring up [svc..]${C_RESET}        Start named services via systemd (defaults to all)
+  ${C_CMD}psy bring down [svc..]${C_RESET}      Stop named services via systemd (defaults to all)
+  ${C_CMD}psy bring restart [svc..]${C_RESET}   Restart named services via systemd (defaults to all)
+  ${C_CMD}psy bring status [svc..]${C_RESET}    Show brief status for named services (defaults to all)
+  ${C_CMD}psy bringup nav${C_RESET}              Launch nav2 stack (tmux/screen-less; use systemd)
+  ${C_CMD}psy bringup create${C_RESET}           Launch iRobot Create base bringup (create_bringup create_1.launch)
+
+${C_HEADER}Systemd:${C_RESET}
+  ${C_CMD}psy systemd install${C_RESET}          Install per-service systemd units and enable configured ones
+  ${C_CMD}psy systemd info [svc..]${C_RESET}    Show systemd summary (and recent logs for named services)
+  ${C_CMD}psy systemd up${C_RESET}               Start all enabled service units now
+  ${C_CMD}psy systemd down${C_RESET}             Stop all service units
+  ${C_CMD}psy debug [svc..]${C_RESET}           Show systemd summary plus recent logs
+
+${C_HEADER}Tools:${C_RESET}
+  ${C_CMD}psy build${C_RESET}                    colcon build (creates ws if needed)
+  ${C_CMD}psy update${C_RESET}                   Reinstall latest psyche from GitHub and re-apply
+  ${C_CMD}psy say <text>${C_RESET}               Publish text to /voice/$(hostname -s)
+
+${C_HEADER}Helper:${C_RESET}
+  ${C_CMD}psh say <text>${C_RESET}               Convenience wrapper to publish to /voice/$(hostname -s)
+  ${C_CMD}psh bearing <deg>${C_RESET}            Publish /cmd_vel Twist to rotate toward the bearing
 USAGE
 }
 
