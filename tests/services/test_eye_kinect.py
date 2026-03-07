@@ -44,7 +44,7 @@ def test_eye_kinect_launch_spawns_point_cloud_process() -> None:
     """The launch file should run the depth_image_proc point cloud executable."""
 
     repo_root = Path(__file__).resolve().parents[2]
-    launch_file = repo_root / "ws" / "src" / "psyche_vision" / "launch" / "eye_kinect.launch.py"
+    launch_file = repo_root / "src" / "psyche_vision" / "launch" / "eye_kinect.launch.py"
 
     # Given the launch file text
     text = launch_file.read_text(encoding="utf-8")
