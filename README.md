@@ -1,5 +1,7 @@
 # Psyche Robotics Stack
 
+Psyche is part of the [Project PETE](https://dancxjo.github.io/project-pete.html) lineage: the Pseudoconscious Experiment in Thought and Emotions. In that history, this repository represents the ROS 2 robotics stack and provisioning layer for embodied PETE experiments.
+
 Psyche provides a reproducible ROS 2 stack for the "psyched" robot platform. The
 repository bundles a provisioning system, systemd launchers, hardware bring-up
 scripts, and the `psyche_vision` perception package, along with a lightweight CLI
