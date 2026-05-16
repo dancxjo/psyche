@@ -1,0 +1,3 @@
+## 2024-05-24 - Bash CLI UX Enhancements and Heredoc Parsing
+**Learning:** Organizing CLI help output with visual groups and color-coding significantly improves readability. However, when defining color variables using ANSI-C quoting in bash, they must be used carefully inside heredocs. Also, dynamic command substitutions like `\$(hostname)` must be escaped inside unquoted heredocs to prevent them from executing at parsing time, preventing syntax errors and unexpected behavior.
+**Action:** When designing bash CLI help messages, use structured groups and standardized ANSI variables. Always double-check heredoc parsing behavior and ensure any dynamic substitutions are properly escaped (`\$`) if they are meant to be displayed as examples rather than executed.
