@@ -70,32 +70,43 @@ merge_legacy_workspace() {
   fi
 }
 
+C_RESET=$'\033[0m'
+C_INFO=$'\033[1;34m'
+C_SUCCESS=$'\033[1;32m'
+C_WARN=$'\033[1;33m'
+C_ERROR=$'\033[1;31m'
+C_BOLD=$'\033[1m'
+
 usage() {
   cat <<USAGE
-psy — psycheOS host/service manager
+${C_BOLD}psy — psycheOS host/service manager${C_RESET}
 
-Usage:
+${C_INFO}Services${C_RESET}
+  psy svc list                 List available services
+  psy svc enable <name>        Enable a service for this host
+  psy svc disable <name>       Disable a service for this host
+  psy host apply [<host>]      Apply host's service set (defaults to \$(hostname))
+
+${C_INFO}Operations${C_RESET}
   psy bring up [svc..]        Start named services via systemd (defaults to all)
   psy bring down [svc..]      Stop named services via systemd (defaults to all)
   psy bring restart [svc..]   Restart named services via systemd (defaults to all)
   psy bring status [svc..]    Show brief status for named services (defaults to all)
-  psy debug [svc..]           Show systemd summary plus recent logs
-  psy host apply [<host>]      Apply host's service set (defaults to $(hostname))
-  psy svc list                 List available services
-  psy svc enable <name>        Enable a service for this host
-  psy svc disable <name>       Disable a service for this host
-  psy build                    colcon build (creates ws if needed)
   psy bringup nav              Launch nav2 stack (tmux/screen-less; use systemd)
   psy bringup create           Launch iRobot Create base bringup (create_bringup create_1.launch)
+  psy build                    colcon build (creates ws if needed)
+  psy update                   Reinstall latest psyche from GitHub and re-apply
+
+${C_INFO}Systemd${C_RESET}
   psy systemd install          Install per-service systemd units and enable configured ones
-  psy systemd info [svc..]    Show systemd summary (and recent logs for named services)
   psy systemd up               Start all enabled service units now
   psy systemd down             Stop all service units
-  psy update                   Reinstall latest psyche from GitHub and re-apply
-  psy say <text>               Publish text to /voice/$(hostname -s)
+  psy systemd info [svc..]    Show systemd summary (and recent logs for named services)
+  psy debug [svc..]           Show systemd summary plus recent logs
 
-Helper:
-  psh say <text>               Convenience wrapper to publish to /voice/$(hostname -s)
+${C_INFO}Tools${C_RESET}
+  psy say <text>               Publish text to /voice/\$(hostname -s)
+  psh say <text>               Convenience wrapper to publish to /voice/\$(hostname -s)
   psh bearing <deg>            Publish /cmd_vel Twist to rotate toward the bearing
 USAGE
 }
