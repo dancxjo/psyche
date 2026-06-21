@@ -19,6 +19,35 @@ SVCDIR="$PROV/services"
 WS="$ROOT/ws"
 . "$SVCDIR/_common.sh" 2>/dev/null || true
 
+# UX: Standardised ANSI logging helpers (Palette)
+# Only enable colors if stdout is a TTY.
+if [ -t 1 ]; then
+  # Regular
+  C_RESET='\033[0m'
+  C_BOLD='\033[1m'
+  C_DIM='\033[2m'
+  # Colors
+  C_RED='\033[31m'
+  C_GREEN='\033[32m'
+  C_YELLOW='\033[33m'
+  C_BLUE='\033[34m'
+  C_CYAN='\033[36m'
+else
+  C_RESET=''
+  C_BOLD=''
+  C_DIM=''
+  C_RED=''
+  C_GREEN=''
+  C_YELLOW=''
+  C_BLUE=''
+  C_CYAN=''
+fi
+
+log_info() { printf "${C_BLUE}ℹ %s${C_RESET}\n" "$*"; }
+log_success() { printf "${C_GREEN}✔ %s${C_RESET}\n" "$*"; }
+log_warn() { printf "${C_YELLOW}⚠ %s${C_RESET}\n" "$*" >&2; }
+log_error() { printf "${C_RED}✖ %s${C_RESET}\n" "$*" >&2; }
+
 # Merge helper: consolidate legacy /opt/ros2_ws into $WS and replace with symlink.
 # Idempotent: if /opt/ros2_ws is already a symlink pointing at $WS, nothing happens.
 merge_legacy_workspace() {
@@ -31,7 +60,7 @@ merge_legacy_workspace() {
     if [ "$dest" = "$TARGET" ]; then
       return 0
     else
-      echo "[psy][merge] NOTE: $LEGACY is a symlink to $dest (not $TARGET). Skipping auto-merge." >&2
+      log_warn "NOTE: $LEGACY is a symlink to $dest (not $TARGET). Skipping auto-merge."
       return 0
     fi
   fi
@@ -40,16 +69,16 @@ merge_legacy_workspace() {
   # Ensure target src exists.
   mkdir -p "$TARGET/src"
   if [ -d "$LEGACY/src" ]; then
-    echo "[psy][merge] Consolidating packages from $LEGACY/src into $TARGET/src"
+    log_info "Consolidating packages from $LEGACY/src into $TARGET/src"
     for pkg in "$LEGACY"/src/*; do
       [ -d "$pkg" ] || continue
       name="$(basename "$pkg")"
       if [ -e "$TARGET/src/$name" ]; then
-        echo "[psy][merge]   - skip existing $name"
+        log_info "  - skip existing $name"
       else
-        echo "[psy][merge]   - move $name"
+        log_info "  - move $name"
         mv "$pkg" "$TARGET/src/" 2>/dev/null || {
-          echo "[psy][merge]   ! WARN: could not move $name (permissions?)" >&2
+          log_warn "  ! WARN: could not move $name (permissions?)"
         }
       fi
     done
@@ -58,13 +87,13 @@ merge_legacy_workspace() {
   if [ ! -L "$LEGACY" ]; then
     ts="$(date +%Y%m%d-%H%M%S)"
     backup="${LEGACY}.bak.${ts}"
-    echo "[psy][merge] Backing up $LEGACY to $backup and creating symlink -> $TARGET"
+    log_info "Backing up $LEGACY to $backup and creating symlink -> $TARGET"
     mv "$LEGACY" "$backup" 2>/dev/null || {
-      echo "[psy][merge] WARN: failed to rename $LEGACY (permissions?) - aborting symlink step" >&2
+      log_warn "failed to rename $LEGACY (permissions?) - aborting symlink step"
       return 0
     }
     ln -s "$TARGET" "$LEGACY" 2>/dev/null || {
-      echo "[psy][merge] ERROR: failed to create symlink $LEGACY -> $TARGET" >&2
+      log_error "failed to create symlink $LEGACY -> $TARGET"
       return 1
     }
   fi
@@ -72,31 +101,40 @@ merge_legacy_workspace() {
 
 usage() {
   cat <<USAGE
-psy — psycheOS host/service manager
+${C_BOLD}psy${C_RESET} — psycheOS host/service manager
 
-Usage:
-  psy bring up [svc..]        Start named services via systemd (defaults to all)
-  psy bring down [svc..]      Stop named services via systemd (defaults to all)
-  psy bring restart [svc..]   Restart named services via systemd (defaults to all)
-  psy bring status [svc..]    Show brief status for named services (defaults to all)
-  psy debug [svc..]           Show systemd summary plus recent logs
-  psy host apply [<host>]      Apply host's service set (defaults to $(hostname))
-  psy svc list                 List available services
-  psy svc enable <name>        Enable a service for this host
-  psy svc disable <name>       Disable a service for this host
-  psy build                    colcon build (creates ws if needed)
-  psy bringup nav              Launch nav2 stack (tmux/screen-less; use systemd)
-  psy bringup create           Launch iRobot Create base bringup (create_bringup create_1.launch)
-  psy systemd install          Install per-service systemd units and enable configured ones
-  psy systemd info [svc..]    Show systemd summary (and recent logs for named services)
-  psy systemd up               Start all enabled service units now
-  psy systemd down             Stop all service units
-  psy update                   Reinstall latest psyche from GitHub and re-apply
-  psy say <text>               Publish text to /voice/$(hostname -s)
+${C_BOLD}Usage:${C_RESET}
+  ${C_CYAN}psy <command> [options]${C_RESET}
 
-Helper:
-  psh say <text>               Convenience wrapper to publish to /voice/$(hostname -s)
-  psh bearing <deg>            Publish /cmd_vel Twist to rotate toward the bearing
+${C_BOLD}Services & Host Management${C_RESET}
+  ${C_GREEN}host apply [<host>]${C_RESET}      Apply host's service set (defaults to $(hostname))
+  ${C_GREEN}svc list${C_RESET}                 List available services
+  ${C_GREEN}svc enable <name>${C_RESET}        Enable a service for this host
+  ${C_GREEN}svc disable <name>${C_RESET}       Disable a service for this host
+  ${C_GREEN}build${C_RESET}                    colcon build (creates ws if needed)
+
+${C_BOLD}Operations${C_RESET}
+  ${C_GREEN}bring up [svc..]${C_RESET}         Start named services via systemd (defaults to all)
+  ${C_GREEN}bring down [svc..]${C_RESET}       Stop named services via systemd (defaults to all)
+  ${C_GREEN}bring restart [svc..]${C_RESET}    Restart named services via systemd (defaults to all)
+  ${C_GREEN}bring status [svc..]${C_RESET}     Show brief status for named services (defaults to all)
+  ${C_GREEN}debug [svc..]${C_RESET}            Show systemd summary plus recent logs
+
+${C_BOLD}Systemd${C_RESET}
+  ${C_GREEN}systemd install${C_RESET}          Install per-service systemd units and enable configured ones
+  ${C_GREEN}systemd info [svc..]${C_RESET}     Show systemd summary (and recent logs for named services)
+  ${C_GREEN}systemd up${C_RESET}               Start all enabled service units now
+  ${C_GREEN}systemd down${C_RESET}             Stop all service units
+
+${C_BOLD}Tools${C_RESET}
+  ${C_GREEN}update${C_RESET}                   Reinstall latest psyche from GitHub and re-apply
+  ${C_GREEN}say <text>${C_RESET}               Publish text to /voice/$(hostname -s)
+  ${C_GREEN}bringup nav${C_RESET}              Launch nav2 stack (tmux/screen-less; use systemd)
+  ${C_GREEN}bringup create${C_RESET}           Launch iRobot Create base bringup (create_bringup create_1.launch)
+
+${C_BOLD}Helpers${C_RESET}
+  ${C_DIM}psh say <text>${C_RESET}             Convenience wrapper to publish to /voice/$(hostname -s)
+  ${C_DIM}psh bearing <deg>${C_RESET}          Publish /cmd_vel Twist to rotate toward the bearing
 USAGE
 }
 
@@ -135,11 +173,11 @@ is_valid_name() {
 }
 
 systemd_info() {
-  echo "[psy] systemctl summary (filtered)"
+  log_info "systemctl summary (filtered)"
   systemctl --no-pager | grep -i "psych" || true
   if [ $# -gt 0 ]; then
     for s in "$@"; do
-      printf "\n[psy] recent logs for psyched@%s.service\n" "$s"
+      printf "\n${C_BLUE}[psy] recent logs for psyched@%s.service${C_RESET}\n" "$s"
       sudo journalctl -u "psyched@${s}.service" -n 200 --no-pager -o short-precise || true
       systemctl status "psyched@${s}.service" --no-pager -l | sed -n '1,5p' || true
     done
@@ -153,11 +191,11 @@ get_host() { echo "${1:-$(hostname)}"; }
 cmd="${1:-}"; shift || true
 case "$cmd" in
   update)
-    echo "[psy] Updating psyche (this may take 5-45 minutes). Do not cancel."
+    log_info "Updating psyche (this may take 5-45 minutes). Do not cancel."
     if [ -x "$ROOT/tools/install.sh" ]; then
       sudo bash "$ROOT/tools/install.sh"
     else
-      echo "[psy] ERROR: installer not found at $ROOT/tools/install.sh" >&2
+      log_error "installer not found at $ROOT/tools/install.sh"
       exit 1
     fi
     ;;
@@ -166,25 +204,25 @@ case "$cmd" in
     case "$sub" in
       apply)
         HOST="$(get_host "${1:-}")"
-        is_valid_name "$HOST" || { echo "Invalid host name: $HOST" >&2; exit 1; }
+        is_valid_name "$HOST" || { log_error "Invalid host name: $HOST"; exit 1; }
         CFG="$(host_cfg "$HOST")"
-        [ -f "$CFG" ] || { echo "No host config: $CFG" >&2; exit 1; }
+        [ -f "$CFG" ] || { log_error "No host config: $CFG"; exit 1; }
         mapfile -t SERVICES < <(python3 "$ROOT/tools/psy_config.py" --file "$CFG" services)
         export PSY_HOST_FILE="$CFG"
         export PSY_DEFER_APT=1
         for s in "${SERVICES[@]}"; do
-          is_valid_name "$s" || { echo "[psy] skipping invalid service name: $s" >&2; continue; }
-          echo "[psy] apply service: $s"
+          is_valid_name "$s" || { log_warn "skipping invalid service name: $s"; continue; }
+          log_info "apply service: $s"
           bash "$SVCDIR/$s.sh" provision
         done
         # Perform one apt-get install for all queued packages
         common_flush_apt_queue || true
-        echo "[psy] Performing one workspace build after provisioning all services"
+        log_info "Performing one workspace build after provisioning all services"
         bash "$SVCDIR/workspace.sh" build || true
-        echo "[psy] Installing systemd units and enabling those with launchers"
+        log_info "Installing systemd units and enabling those with launchers"
         bash "$PROV/systemd/install_units.sh" || true
         # Start all services that have launchers present, regardless of enablement status
-        echo "[psy] Starting services with launchers in /etc/psyched"
+        log_info "Starting services with launchers in /etc/psyched"
         if compgen -G "/etc/psyched/*.launch.sh" >/dev/null; then
           mapfile -t START_SVCS < <(for f in /etc/psyched/*.launch.sh; do [ -e "$f" ] || continue; b=$(basename "$f"); echo "${b%.launch.sh}"; done)
           if [ ${#START_SVCS[@]} -gt 0 ]; then
@@ -194,7 +232,7 @@ case "$cmd" in
             done
           fi
         else
-          echo "[psy] No launchers found at /etc/psyched/*.launch.sh yet"
+          log_info "No launchers found at /etc/psyched/*.launch.sh yet"
         fi
         ;;
       *) usage; exit 1;;
@@ -210,7 +248,7 @@ case "$cmd" in
         HOST="$(get_host)"
         CFG="$(host_cfg "$HOST")"
         NAME="${1:?service name}"
-        is_valid_name "$NAME" || { echo "Invalid service name: $NAME" >&2; exit 1; }
+        is_valid_name "$NAME" || { log_error "Invalid service name: $NAME"; exit 1; }
         tmp="$(mktemp)"
         if [ "$sub" = "enable" ]; then
           awk -v n="$NAME" '
@@ -238,7 +276,7 @@ case "$cmd" in
           ' "$CFG" > "$tmp"
         fi
         mv "$tmp" "$CFG"
-        echo "[psy] $sub $NAME on $HOST"
+        log_success "$sub $NAME on $HOST"
         ;;
       *) usage; exit 1;;
     esac
@@ -255,11 +293,11 @@ case "$cmd" in
     sub="${1:-}"; shift || true
     case "$sub" in
       nav)
-        echo "[psy] 'psy bringup nav' is deprecated; use 'psy bring up nav'"
+        log_warn "'psy bringup nav' is deprecated; use 'psy bring up nav'"
         "$0" bring up nav
         ;;
       create)
-        echo "[psy] launching Create base bringup (create_bringup create_1.launch)"
+        log_info "launching Create base bringup (create_bringup create_1.launch)"
         # Prefer dedicated bringup script if present (kept in provision/bringup)
         if [ -x "$PROV/bringup/create.sh" ]; then
           exec "$PROV/bringup/create.sh" "$@"
@@ -278,46 +316,46 @@ case "$cmd" in
       up|start)
         mapfile -t SERVICES < <(resolve_service_names "$@")
         if [ ${#SERVICES[@]} -eq 0 ]; then
-          echo "[psy] No services found to start"
+          log_info "No services found to start"
         else
           UNITS=()
           for svc in "${SERVICES[@]}"; do
             UNITS+=("psyched@${svc}.service")
           done
-          echo "[psy] Starting services: ${SERVICES[*]}"
+          log_info "Starting services: ${SERVICES[*]}"
           sudo systemctl start "${UNITS[@]}" || true
         fi
         ;;
       down|stop)
         mapfile -t SERVICES < <(resolve_service_names "$@")
         if [ ${#SERVICES[@]} -eq 0 ]; then
-          echo "[psy] No services found to stop"
+          log_info "No services found to stop"
         else
           UNITS=()
           for svc in "${SERVICES[@]}"; do
             UNITS+=("psyched@${svc}.service")
           done
-          echo "[psy] Stopping services: ${SERVICES[*]}"
+          log_info "Stopping services: ${SERVICES[*]}"
           sudo systemctl stop "${UNITS[@]}" || true
         fi
         ;;
       restart)
         mapfile -t SERVICES < <(resolve_service_names "$@")
         if [ ${#SERVICES[@]} -eq 0 ]; then
-          echo "[psy] No services found to restart"
+          log_info "No services found to restart"
         else
           UNITS=()
           for svc in "${SERVICES[@]}"; do
             UNITS+=("psyched@${svc}.service")
           done
-          echo "[psy] Restarting services: ${SERVICES[*]}"
+          log_info "Restarting services: ${SERVICES[*]}"
           sudo systemctl restart "${UNITS[@]}" || true
         fi
         ;;
       status)
         mapfile -t SERVICES < <(resolve_service_names "$@")
         if [ ${#SERVICES[@]} -eq 0 ]; then
-          echo "[psy] No services found"
+          log_info "No services found"
         else
           for svc in "${SERVICES[@]}"; do
             systemctl status "psyched@${svc}.service" --no-pager -l | sed -n '1,5p' || true
@@ -340,7 +378,7 @@ case "$cmd" in
       up)
         mapfile -t SERVICES < <(resolve_service_names "$@")
         if [ ${#SERVICES[@]} -eq 0 ]; then
-          echo "[psy] No psyched@*.service unit files installed"
+          log_info "No psyched@*.service unit files installed"
         else
           UNITS=()
           for svc in "${SERVICES[@]}"; do
@@ -352,7 +390,7 @@ case "$cmd" in
       down)
         mapfile -t SERVICES < <(resolve_service_names "$@")
         if [ ${#SERVICES[@]} -eq 0 ]; then
-          echo "[psy] No running psyched@*.service units"
+          log_info "No running psyched@*.service units"
         else
           UNITS=()
           for svc in "${SERVICES[@]}"; do
@@ -379,22 +417,22 @@ case "$cmd" in
     while [ $# -gt 0 ]; do
       case "$1" in
         -g|--gain)
-          [ $# -ge 2 ] || { echo "[psy][bearing] ERROR: --gain requires a value" >&2; exit 1; }
+          [ $# -ge 2 ] || { log_error "--gain requires a value"; exit 1; }
           gain="$2"
           shift 2
           ;;
         -m|--max)
-          [ $# -ge 2 ] || { echo "[psy][bearing] ERROR: --max requires a value" >&2; exit 1; }
+          [ $# -ge 2 ] || { log_error "--max requires a value"; exit 1; }
           max_ang="$2"
           shift 2
           ;;
         -t|--tolerance)
-          [ $# -ge 2 ] || { echo "[psy][bearing] ERROR: --tolerance requires a value" >&2; exit 1; }
+          [ $# -ge 2 ] || { log_error "--tolerance requires a value"; exit 1; }
           tolerance="$2"
           shift 2
           ;;
         --topic)
-          [ $# -ge 2 ] || { echo "[psy][bearing] ERROR: --topic requires a name" >&2; exit 1; }
+          [ $# -ge 2 ] || { log_error "--topic requires a name"; exit 1; }
           topic="$2"
           shift 2
           ;;
@@ -419,7 +457,7 @@ HELP
           shift
           while [ $# -gt 0 ]; do
             if [ -n "$bearing_arg" ]; then
-              echo "[psy][bearing] ERROR: multiple bearing values provided ($bearing_arg, $1)" >&2
+              log_error "multiple bearing values provided ($bearing_arg, $1)"
               exit 1
             fi
             bearing_arg="$1"
@@ -431,13 +469,13 @@ HELP
             bearing_arg="$1"
             shift
           else
-            echo "[psy][bearing] ERROR: unknown option $1" >&2
+            log_error "unknown option $1"
             exit 1
           fi
           ;;
         *)
           if [ -n "$bearing_arg" ]; then
-            echo "[psy][bearing] ERROR: multiple bearing values provided ($bearing_arg, $1)" >&2
+            log_error "multiple bearing values provided ($bearing_arg, $1)"
             exit 1
           fi
           bearing_arg="$1"
@@ -446,7 +484,7 @@ HELP
       esac
     done
     if [ -z "$bearing_arg" ]; then
-      echo "[psy][bearing] ERROR: bearing degrees argument is required." >&2
+      log_error "bearing degrees argument is required."
       exit 1
     fi
 
@@ -454,7 +492,7 @@ HELP
 import math
 import sys
 
-PREFIX = "[psy][bearing]"
+PREFIX = "✖"
 
 def fail(message: str) -> None:
     print(f"{PREFIX} ERROR: {message}", file=sys.stderr)
@@ -500,7 +538,7 @@ clamped = False
 if within_tol:
     value = 0.0
 else:
-    raw = -1.0 * gain * math.radians(bearing)
+    raw = gain * math.radians(bearing)
     value = raw
     if value > max_ang:
         value = max_ang
@@ -536,19 +574,22 @@ PY
     printf -v max_disp "%.2f" "$max_ang"
 
     if [ "$within_tol" = "1" ]; then
-      echo "[psy][bearing] bearing=${bearing_disp}° within tolerance ${tol_disp}° — publishing stop command to ${topic} (angular.z=${angular_disp})"
+      log_success "bearing=${bearing_disp}° within tolerance ${tol_disp}° — publishing stop command to ${topic} (angular.z=${angular_disp})"
     else
       if [ "$clamped" = "1" ]; then
-        echo "[psy][bearing] bearing=${bearing_disp}° -> angular.z=${angular_disp} rad/s (clamped to ±${max_disp} rad/s; gain=${gain_disp}) on ${topic}"
+        log_info "bearing=${bearing_disp}° -> angular.z=${angular_disp} rad/s (clamped to ±${max_disp} rad/s; gain=${gain_disp}) on ${topic}"
       else
-        echo "[psy][bearing] bearing=${bearing_disp}° -> angular.z=${angular_disp} rad/s (gain=${gain_disp}, max=${max_disp}) on ${topic}"
+        log_info "bearing=${bearing_disp}° -> angular.z=${angular_disp} rad/s (gain=${gain_disp}, max=${max_disp}) on ${topic}"
       fi
     fi
+
+    # Force consistent decimal points for tests
+    angular_disp="$(LC_ALL=C printf "%.6f" "$angular")"
 
     printf -v twist_msg "{linear: {x: 0.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: %s}}" "$angular_disp"
 
     if [ "$dry_run" = "1" ]; then
-      echo "[psy][bearing] Dry run requested; not publishing to ${topic}"
+      log_info "Dry run requested; not publishing to ${topic}"
       exit 0
     fi
 
@@ -556,12 +597,12 @@ PY
       set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash 2>/dev/null || true; set -u
     fi
     if ! command -v ros2 >/dev/null 2>&1; then
-      echo "[psy][bearing] ERROR: ros2 CLI not found (install or source environment)." >&2
+      log_error "ros2 CLI not found (install or source environment)."
       exit 2
     fi
 
     ros2 topic pub --once "$topic" geometry_msgs/msg/Twist "$twist_msg" || {
-      echo "[psy][bearing] ERROR: failed to publish Twist message on ${topic}" >&2
+      log_error "failed to publish Twist message on ${topic}"
       exit 3
     }
     ;;
@@ -575,7 +616,7 @@ PY
       set +u; source /opt/ros/${ROS_DISTRO:-jazzy}/setup.bash 2>/dev/null || true; set -u
     fi
     if ! command -v ros2 >/dev/null 2>&1; then
-      echo "[psy] ERROR: ros2 CLI not found (install or source environment)." >&2
+      log_error "ros2 CLI not found (install or source environment)."
       exit 2
     fi
     host_short="$(hostname -s)"
@@ -585,7 +626,7 @@ PY
     msg_esc="${msg//\\/\\\\}"
     msg_esc="${msg_esc//\"/\\\"}"
     ros2 topic pub --once "$topic" std_msgs/String "{data: \"$msg_esc\"}" || {
-      echo "[psy] ERROR: failed to publish to $topic" >&2
+      log_error "failed to publish to $topic"
       exit 3
     }
     ;;
