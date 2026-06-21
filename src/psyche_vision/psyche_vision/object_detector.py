@@ -59,6 +59,10 @@ class ObjectDetector(Node):
             10
         )
         
+        # Pre-allocate kernel for morphological operations to avoid
+        # creating a new Numpy array on every camera frame (performance optimization)
+        self.morph_kernel = np.ones((5, 5), np.uint8)
+
         self.get_logger().info('Object detector started')
     
     def image_callback(self, msg):
@@ -106,9 +110,8 @@ class ObjectDetector(Node):
         mask = cv2.inRange(hsv, lower, upper)
         
         # Morphological operations to clean up mask
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, self.morph_kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, self.morph_kernel)
         
         # Find contours
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
