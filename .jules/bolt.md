@@ -1,0 +1,3 @@
+## 2024-03-12 - Fast PCM16 Energy Calculation
+**Learning:** In Python audio processing on resource-constrained devices, calculating audio energy via explicit `struct.unpack_from` loops is extremely slow due to the overhead of thousands of function calls and tuple unpacks per frame. The `audioop.rms` function would be fast but is deprecated/removed in Python 3.13. Using `array.array('h', frame)` and `sum(map(abs, ...))` provides a massive performance boost by pushing the loop into C, without requiring heavy dependencies like NumPy.
+**Action:** When calculating PCM16 energy or RMS in Python where NumPy is forbidden, replace `struct` loops with `array.array('h')` combined with built-ins like `sum` and `map`.

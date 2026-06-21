@@ -49,6 +49,7 @@ import sys
 import threading
 import time
 import wave
+import array
 from typing import Deque, Iterable, List, Optional
 
 try:  # pragma: no cover - optional dependency
@@ -569,11 +570,10 @@ class MicVADNode(Node):
         if not frame:
             return False
         count = len(frame) // 2
-        # Unpack shorts; to keep cheap avoid numpy
-        energy = 0
-        for i in range(count):
-            (sample,) = struct.unpack_from('<h', frame, i * 2)
-            energy += abs(sample)
+        # Unpack shorts; to keep cheap avoid numpy.
+        # array.array + sum is much faster than struct loop
+        samples = array.array('h', frame)
+        energy = sum(map(abs, samples))
         avg = energy / max(1, count)
         active = avg > self._energy_threshold
         if active:
