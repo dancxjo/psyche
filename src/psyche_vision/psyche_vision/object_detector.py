@@ -31,6 +31,9 @@ class ObjectDetector(Node):
         # Initialize CV bridge
         self.bridge = CvBridge()
         
+        # Pre-allocate kernel for morphological operations to reduce memory allocation per frame
+        self.morph_kernel = np.ones((5, 5), np.uint8)
+
         # Publishers and subscribers
         self.image_sub = self.create_subscription(
             Image, 
@@ -63,6 +66,12 @@ class ObjectDetector(Node):
     
     def image_callback(self, msg):
         """Process incoming camera images."""
+        # Performance optimization: skip expensive image processing if no one is listening
+        if (self.target_pub.get_subscription_count() == 0 and
+            self.point_pub.get_subscription_count() == 0 and
+            self.debug_pub.get_subscription_count() == 0):
+            return
+
         try:
             # Convert ROS image to OpenCV
             cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
@@ -106,9 +115,8 @@ class ObjectDetector(Node):
         mask = cv2.inRange(hsv, lower, upper)
         
         # Morphological operations to clean up mask
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, self.morph_kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, self.morph_kernel)
         
         # Find contours
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
