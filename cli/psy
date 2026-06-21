@@ -71,32 +71,47 @@ merge_legacy_workspace() {
 }
 
 usage() {
+  local b="" c="" g="" r=""
+  if [ -t 1 ]; then
+    b=$'\e[1m'
+    c=$'\e[36m'
+    g=$'\e[32m'
+    r=$'\e[0m'
+  fi
+
   cat <<USAGE
-psy — psycheOS host/service manager
+${b}psy${r} — psycheOS host/service manager
 
-Usage:
-  psy bring up [svc..]        Start named services via systemd (defaults to all)
-  psy bring down [svc..]      Stop named services via systemd (defaults to all)
-  psy bring restart [svc..]   Restart named services via systemd (defaults to all)
-  psy bring status [svc..]    Show brief status for named services (defaults to all)
-  psy debug [svc..]           Show systemd summary plus recent logs
-  psy host apply [<host>]      Apply host's service set (defaults to $(hostname))
-  psy svc list                 List available services
-  psy svc enable <name>        Enable a service for this host
-  psy svc disable <name>       Disable a service for this host
-  psy build                    colcon build (creates ws if needed)
-  psy bringup nav              Launch nav2 stack (tmux/screen-less; use systemd)
-  psy bringup create           Launch iRobot Create base bringup (create_bringup create_1.launch)
-  psy systemd install          Install per-service systemd units and enable configured ones
-  psy systemd info [svc..]    Show systemd summary (and recent logs for named services)
-  psy systemd up               Start all enabled service units now
-  psy systemd down             Stop all service units
-  psy update                   Reinstall latest psyche from GitHub and re-apply
-  psy say <text>               Publish text to /voice/$(hostname -s)
+${b}Usage:${r}
+  ${c}psy${r} <command> [args]
 
-Helper:
-  psh say <text>               Convenience wrapper to publish to /voice/$(hostname -s)
-  psh bearing <deg>            Publish /cmd_vel Twist to rotate toward the bearing
+${b}Services:${r}
+  ${g}psy svc list${r}                 List available services
+  ${g}psy svc enable <name>${r}        Enable a service for this host
+  ${g}psy svc disable <name>${r}       Disable a service for this host
+
+${b}Operations:${r}
+  ${g}psy host apply [<host>]${r}      Apply host's service set (defaults to $(hostname))
+  ${g}psy update${r}                   Reinstall latest psyche from GitHub and re-apply
+  ${g}psy build${r}                    colcon build (creates ws if needed)
+  ${g}psy bringup nav${r}              Launch nav2 stack (tmux/screen-less; use systemd)
+  ${g}psy bringup create${r}           Launch iRobot Create base bringup (create_bringup create_1.launch)
+
+${b}Systemd:${r}
+  ${g}psy bring up [svc..]${r}         Start named services via systemd (defaults to all)
+  ${g}psy bring down [svc..]${r}       Stop named services via systemd (defaults to all)
+  ${g}psy bring restart [svc..]${r}    Restart named services via systemd (defaults to all)
+  ${g}psy bring status [svc..]${r}     Show brief status for named services (defaults to all)
+  ${g}psy debug [svc..]${r}            Show systemd summary plus recent logs
+  ${g}psy systemd install${r}          Install per-service systemd units and enable configured ones
+  ${g}psy systemd info [svc..]${r}     Show systemd summary (and recent logs for named services)
+  ${g}psy systemd up${r}               Start all enabled service units now
+  ${g}psy systemd down${r}             Stop all service units
+
+${b}Tools:${r}
+  ${g}psy say <text>${r}               Publish text to /voice/$(hostname -s)
+  ${g}psh say <text>${r}               Convenience wrapper to publish to /voice/$(hostname -s)
+  ${g}psh bearing <deg>${r}            Publish /cmd_vel Twist to rotate toward the bearing
 USAGE
 }
 
