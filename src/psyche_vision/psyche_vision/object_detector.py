@@ -28,6 +28,10 @@ class ObjectDetector(Node):
         self.declare_parameter('camera_fov_degrees', 60.0)  # Camera field of view
         self.declare_parameter('publish_target_point', True)  # Also publish /target_point
         
+        # Pre-allocate kernel for morphological operations to avoid per-frame memory allocation
+        # This optimization reduces overhead in the high-frequency image callback
+        self.morph_kernel = np.ones((5, 5), np.uint8)
+
         # Initialize CV bridge
         self.bridge = CvBridge()
         
@@ -106,9 +110,8 @@ class ObjectDetector(Node):
         mask = cv2.inRange(hsv, lower, upper)
         
         # Morphological operations to clean up mask
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, self.morph_kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, self.morph_kernel)
         
         # Find contours
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
