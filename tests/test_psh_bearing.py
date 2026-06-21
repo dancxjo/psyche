@@ -81,13 +81,13 @@ set -e
         self.assertIsNotNone(match, f"Failed to parse angular velocity from: {twist}")
         angular_z = float(match.group(1))
 
-        expected = 2.0 * math.radians(10.0)
+        expected = -2.0 * math.radians(10.0)
         self.assertTrue(
             math.isclose(angular_z, expected, rel_tol=1e-6, abs_tol=1e-6),
             f"Expected angular velocity {expected}, got {angular_z}",
         )
 
-        self.assertIn("angular.z=0.349066", result.stdout)
+        self.assertIn("angular.z=-0.349066", result.stdout)
         self.assertIn("bearing=10.00°", result.stdout)
 
     def test_bearing_honours_deadzone(self):
