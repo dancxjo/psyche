@@ -439,3 +439,32 @@ def test_cmd_topic_dispatches_interrupt_resume_abandon(monkeypatch, voice_node_m
     assert calls.count("abandon") == 3
 
     node.destroy_node()
+
+
+def test_text_cb_ignores_empty_or_whitespace(monkeypatch, voice_node_module):
+    """VoiceNode.text_cb should ignore empty or whitespace-only messages."""
+    engine = _InstantEngine()
+    procs: list[_FakeProc] = []
+
+    def _popen(cmd, *_a, **_k):
+        p = _FakeProc(duration=0.05)
+        procs.append(p)
+        return p
+
+    node = _build_node(voice_node_module, engine, _popen, monkeypatch)
+    String = sys.modules["std_msgs.msg"].String
+
+    # Test empty string
+    node.text_cb(String(""))
+    # Test whitespace
+    node.text_cb(String("   "))
+    node.text_cb(String("\n\t  "))
+
+    # Give it a tiny bit of time just in case, though it's synchronous in text_cb
+    time.sleep(0.1)
+
+    assert node.queue.empty(), "Queue should be empty when receiving only whitespace"
+    assert len(engine.synthesized) == 0, "No synthesis should have occurred"
+    assert len(procs) == 0, "No playback should have been attempted"
+
+    node.destroy_node()
