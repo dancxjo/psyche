@@ -570,10 +570,8 @@ class MicVADNode(Node):
             return False
         count = len(frame) // 2
         # Unpack shorts; to keep cheap avoid numpy
-        energy = 0
-        for i in range(count):
-            (sample,) = struct.unpack_from('<h', frame, i * 2)
-            energy += abs(sample)
+        samples = struct.unpack(f'<{count}h', frame[:count*2])
+        energy = sum(map(abs, samples))
         avg = energy / max(1, count)
         active = avg > self._energy_threshold
         if active:
