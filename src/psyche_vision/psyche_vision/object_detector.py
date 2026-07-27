@@ -82,10 +82,7 @@ class ObjectDetector(Node):
                     self.publish_target_point(target_x, target_y, cv_image.shape[1], cv_image.shape[0], msg)
                 
                 self.get_logger().info(f'Target detected: x={target_x}, bearing={bearing:.2f}°, conf={confidence:.2f}')
-            else:
-                # No target detected - could publish a "no target" message if needed
-                pass
-                
+
         except Exception as e:
             self.get_logger().error(f'Error processing image: {str(e)}')
     
